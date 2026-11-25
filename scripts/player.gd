@@ -17,7 +17,12 @@ const Sprites := preload("res://scripts/sprites.gd")
 const ART_ANIMS := {
 	"idle": ["res://assets/sprites/arte/pato_parado.png", 1, 1.0],
 	"run": ["res://assets/sprites/arte/pato_correndo.png", 8, 16.0],
+	"jump": ["res://assets/sprites/arte/pato_pulando.png", 4, 8.0, false],
+	"apex": ["res://assets/sprites/arte/pato_apice.png", 2, 6.0, false],
+	"fall": ["res://assets/sprites/arte/pato_caindo.png", 6, 8.0],
 }
+## Velocidade vertical abaixo da qual, no ar, o pato esta no "apice" (transicao entre subir e cair).
+const APEX_SPEED := 0.8
 ## Ponto do quadro de 128 que fica nos pes: a ultima linha de contorno cai sobre a borda do chao.
 const ART_ORIGIN := Vector2(64, 124)
 
@@ -164,7 +169,9 @@ func take_damage(source_x: float = NAN) -> void:
 func _set_anim(anim_name: String) -> void:
 	if anim_name != _anim:
 		_anim = anim_name
-		sprite.play(anim_name)
+		# o sprite antigo nao tem todas as animacoes novas (ex.: apice)
+		var old_name := anim_name if sprite.sprite_frames.has_animation(anim_name) else "fall"
+		sprite.play(old_name)
 		_show_art_for(anim_name)
 
 
@@ -513,10 +520,12 @@ func _update_sprite() -> void:
 		next_anim = "fall"  # mergulhado: quadro de queda (sem sprite de mergulho ainda)
 	elif climbing:
 		next_anim = "jump"  # sem sprite de escalar ainda: quadro do pulo, parado
-	elif spdv < 0.0:
+	elif spdv < -APEX_SPEED:
 		next_anim = "jump"
-	elif spdv > 0.0:
+	elif spdv > APEX_SPEED:
 		next_anim = "fall"
+	elif spdv != 0.0 and not _place_meeting(position.x, position.y + 1.0):
+		next_anim = "apex"  # no alto do pulo: a asa bate e os pes comecam a descer
 
 	_set_anim(next_anim)
 	sprite.speed_scale = 0.0 if climbing and spdv == 0.0 else 1.0

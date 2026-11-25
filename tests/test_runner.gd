@@ -456,6 +456,22 @@ func _test_levels() -> void:
 	check(Game.current_level_name == "tutorial", "JOGAR comeca pelo tutorial")
 	check(Game.total_collectibles == 3, "tutorial tem 3 flores (veio %d)" % Game.total_collectibles)
 	check(get_tree().get_nodes_in_group("dica").size() >= 7, "placas de dica no tutorial")
+
+	print("-- arte nova do pato (parado, pulo: subida, apice, queda)")
+	reset_player(Vector2(150, 304))
+	await frames(5)
+	var art: AnimatedSprite2D = player().get_node("Arte")
+	check(art.visible and art.animation == "idle" and not player().sprite.visible, "parado: arte nova")
+	var anims := {}
+	key_event(KEY_SPACE, true)
+	for i in 70:
+		await frames(1)
+		if i == 2:
+			key_event(KEY_SPACE, false)
+		anims[player()._anim] = art.visible
+	check(anims.has("jump") and anims.has("apex") and anims.has("fall"),
+		"um pulo passa por subida, apice e queda (%s)" % [anims.keys()])
+	check(anims.values().all(func(v): return v), "todas com a arte nova")
 	reset_player(Vector2(150, 304))
 	await frames(2)
 	var dica2: Node = node("Dicas/Dica2")

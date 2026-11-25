@@ -144,7 +144,8 @@ Sem acessórios no pato e sem tema medieval: o estilo é o do original, só que 
 | Sprite | Arquivo | Observação |
 |---|---|---|
 | Pato parado | `assets/sprites/arte/pato_parado.png` | o original ampliado com contorno de 1 px; pés com a linha entre eles de 1 px (sem contorno dobrado) |
-| Pato correndo | `assets/sprites/arte/pato_correndo.png` | 8 quadros a 16 por segundo: corpo do parado subindo e descendo a cada passo, pés gordinhos redesenhados (o de trás um pouco mais escuro) e só o olho da frente (olhando para onde corre). Pular, cair, dano e morte ainda usam os quadros antigos |
+| Pato correndo | `assets/sprites/arte/pato_correndo.png` | 8 quadros a 16 por segundo: corpo do parado subindo e descendo a cada passo, pés gordinhos (o de trás um pouco mais escuro), só o olho da frente e uma linha só de contorno entre os pés |
+| Pato pulando, no ápice e caindo | `pato_pulando.png` (4 quadros, 8/s), `pato_apice.png` (2, 6/s), `pato_caindo.png` (6, 8/s) | subindo: pés encolhendo, sem asa; ápice: transição em que a asa pequena bate e os pés começam a descer; caindo: pernas penduradas e asa batendo. A asa se separa do corpo por cores leves (sombra `#e2e2e2` embaixo, tom `#f0f0f0` na parte de baixo dela), com contorno escuro só na borda de fora. Dano e morte ainda usam os quadros antigos |
 | Topo do chão de grama (meio) | bloco (1,1) de `assets/sprites/arte/tileset_grama.png` | o original ampliado com a borda de cima fina (1 px) e mais suave (`#1d6b22`); os outros blocos do tileset são os antigos ampliados 8x até serem refeitos |
 
 O gerador do pato está em `tools/arte/pato.py` (Python, sem dependências; lê os sprites

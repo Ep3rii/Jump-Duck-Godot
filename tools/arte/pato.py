@@ -525,3 +525,599 @@ def main_idle_fixed():
         new.save(os.path.join(ARTE, "pato_parado.png"))
         print("salvo em assets/sprites/arte/pato_parado.png")
     print("ok parado corrigido", outline_problems(idle_fixed()))
+
+
+# ------------------------------------------------------------ pulo e queda v2 (corpo no ar)
+def tilt_body(body, k):
+    """Inclina o corpo (cisalhamento por coluna: k < 0 levanta a frente/cabeca) e refaz o
+    contorno de 1 px em volta (o olho e as linhas internas vao junto com o miolo)."""
+    def empty(x, y):
+        return not (0 <= x < 32 and 0 <= y < 32) or body.px[y][x] is None
+    inner = {}
+    for y in range(32):
+        for x in range(32):
+            c = body.px[y][x]
+            if c is None:
+                continue
+            outer = c == OUTLINE and any(empty(x + dx, y + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1))
+            if not outer:
+                ny = y + int(round((x - 16) * k))
+                if 0 <= ny < 32:
+                    inner[(x, ny)] = c
+    cv = Canvas(32, 32)
+    for (x, y), c in inner.items():
+        cv.px[y][x] = c
+    for y in range(32):
+        for x in range(32):
+            if (x, y) in inner:
+                continue
+            if any((x + dx, y + dy) in inner for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                cv.px[y][x] = OUTLINE
+    return cv
+
+
+# asinha nas costas: "up" levantada, "mid" aberta na horizontal, None = fechada
+WING_SHAPES = {
+    "up": [(6, 15), (14, 15), (13, 10), (10, 6), (7, 8), (5, 12)],
+    "mid": [(4, 15), (15, 15), (15, 12), (9, 10), (3, 12)],
+}
+
+
+def add_wing(cv, pose):
+    if pose is None:
+        return cv
+    w = set(cv.mask_poly(WING_SHAPES[pose]))
+    ring = set()
+    for (x, y) in w:
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if (nx, ny) not in w and 0 <= nx < 32 and 0 <= ny < 32:
+                ring.add((nx, ny))
+    for (x, y) in ring:
+        cv.px[y][x] = OUTLINE
+    ys = [y for _, y in w]
+    for (x, y) in w:
+        cv.px[y][x] = (226, 226, 226, 255) if y >= max(ys) - 1 else (255, 255, 255, 255)
+    # pontinhas de pena na borda de tras da asa
+    return cv
+
+
+def air_frame(body, legs, tilt, wing):
+    dxf, lf, dxb, lb = legs
+    b = tilt_body(body, tilt) if tilt else body
+    cv = run_frame(b, (dxf, lf, dxb, lb, 0))
+    cv = add_wing(cv, wing)
+    cv = clean_feet_outline(cv)
+    return thin_blocks_area(cv, 2, 20, 0, 17)
+
+
+def thin_blocks_area(cv, y0, y1, x0, x1):
+    """Como thin_blocks, mas so numa area (usado na asa, longe do olho)."""
+    for _ in range(20):
+        found = False
+        for y in range(y0, y1):
+            for x in range(x0, x1):
+                block = [(x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1)]
+                if not all(cv.px[by][bx] == OUTLINE for bx, by in block):
+                    continue
+                for bx, by in block:
+                    done = False
+                    for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                        nx, ny = bx + dx, by + dy
+                        if (nx, ny) in block or not (0 <= nx < 32 and 0 <= ny < 32):
+                            continue
+                        if cv.px[ny][nx] in WHITE_SET:
+                            cv.px[by][bx] = cv.px[ny][nx]
+                            done = found = True
+                            break
+                    if done:
+                        break
+        if not found:
+            break
+    return cv
+
+
+# subindo (3 quadros, sem repetir: fica no ultimo): impulso -> encolhendo -> encolhido
+JUMP2 = [((2, 2, -4, 0), -1 / 16.0, None),
+         ((2, 4, -2, 3), -1 / 10.0, None),
+         ((1, 5, -2, 5), -1 / 10.0, "mid")]
+# caindo (4 quadros em laco): pernas soltas pedalando e a asinha batendo
+FALL2 = [((2, 0, -2, 0), 0.0, "up"),
+         ((3, 0, -2, 1), 0.0, "mid"),
+         ((2, 1, -3, 0), 0.0, None),
+         ((2, 0, -2, 1), 0.0, "mid")]
+
+
+def main_air2():
+    salvar = "--salvar" in sys.argv
+    body = look_forward(idle_body())
+    jump = save_strip([air_frame(body, *c) for c in JUMP2], "pato_pulando", salvar)
+    fall = save_strip([air_frame(body, *c) for c in FALL2], "pato_caindo", salvar)
+    idle = upscale(idle_fixed(), 4)
+    allf = jump + [None] + fall
+    prev = Canvas(len(allf) * (256 + 8), 256)
+    for i, b in enumerate(allf):
+        if b is not None:
+            prev.blit(b, i * (256 + 8), 0, 2)
+    prev.save(os.path.join(OUT, "pato_pulo2_quadros_2x.png"))
+    H = 128 + 112
+    seq = []
+    vy, y = -4.0 * 8, 0.0
+    t = 0
+    while True:
+        y += vy
+        vy += 0.25 * 8
+        landed = y >= 0
+        if landed:
+            y = 0
+        if vy < 0:
+            img = jump[min(t // 6, len(jump) - 1)]   # 10 fps, para no ultimo
+        else:
+            img = fall[(t // 5) % len(fall)]         # 12 fps
+        fr = Canvas(128, H)
+        fr.blit(idle if landed else img, 0, int(H - 128 + y))
+        seq.append(fr)
+        t += 1
+        if landed:
+            break
+    for _ in range(25):
+        fr = Canvas(128, H)
+        fr.blit(idle, 0, H - 128)
+        seq.append(fr)
+    save_gif(os.path.join(OUT, "pato_pulo2.gif"), seq, delay_cs=2, scale=1, bg=(191, 228, 250))
+    print("ok pulo2", [outline_problems(air_frame(body, *c)) for c in JUMP2 + FALL2])
+
+
+def add_wing(cv, pose):  # noqa: F811
+    """Asinha arredondada e cheia sobre as costas, com pontinhas de pena atras.
+    up = levantada (batendo), mid = aberta para tras, None = fechada (nao aparece)."""
+    if pose is None:
+        return cv
+    if pose == "up":
+        w = set(cv.mask_ellipse(9.5, 9.5, 5.0, 4.2)) | set(cv.mask_ellipse(10.5, 12.5, 5.5, 2.2))
+        tips = [(4, 8), (4, 9), (5, 6)]          # pontas de pena saindo para tras
+    else:
+        w = set(cv.mask_ellipse(9.0, 13.0, 7.0, 2.6))
+        tips = [(1, 12), (2, 11)]
+    w |= set(tips)
+    ring = set()
+    for (x, y) in w:
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if (nx, ny) not in w and 0 <= nx < 32 and 0 <= ny < 32:
+                ring.add((nx, ny))
+    for (x, y) in ring:
+        cv.px[y][x] = OUTLINE
+    bottom = max(y for _, y in w)
+    for (x, y) in w:
+        cv.px[y][x] = (226, 226, 226, 255) if y == bottom else (255, 255, 255, 255)
+    return cv
+
+
+JUMP2 = [((2, 2, -4, 0), 0.0, None),
+         ((2, 3, -3, 2), 0.0, None),
+         ((2, 4, -2, 4), 0.0, "mid")]
+FALL2 = [((2, 0, -2, 0), 0.0, "up"),
+         ((3, 0, -2, 1), 0.0, "mid"),
+         ((2, 1, -3, 0), 0.0, None),
+         ((2, 0, -2, 1), 0.0, "mid")]
+
+
+# ------------------------------------------------------------ pulo v3: subida, apice e queda
+# asa presa no ombro: dobrada no flanco, meio aberta para tras, levantada
+WING3 = {
+    "dobrada": [(16, 14), (15, 17), (9, 19), (4, 18), (6, 15), (11, 13)],
+    "meia": [(16, 14), (14, 17), (7, 16), (1, 12), (4, 11), (11, 12)],
+    "alta": [(16, 14), (14, 17), (11, 15), (7, 9), (6, 4), (9, 5), (13, 10)],
+}
+
+
+def add_wing3(cv, pose):
+    if pose is None:
+        return cv
+    w = set(cv.mask_poly(WING3[pose]))
+    ring = set()
+    for (x, y) in w:
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if (nx, ny) not in w and 0 <= nx < 32 and 0 <= ny < 32:
+                ring.add((nx, ny))
+    for (x, y) in ring:
+        cv.px[y][x] = OUTLINE
+    ys = [y for _, y in w]
+    for (x, y) in w:
+        cv.px[y][x] = (226, 226, 226, 255) if y >= max(ys) - 1 else (255, 255, 255, 255)
+    return cv
+
+
+def air3(body, legs, bob, wing):
+    dxf, lf, dxb, lb = legs
+    cv = run_frame(body, (dxf, lf, dxb, lb, bob))
+    cv = add_wing3(cv, wing)
+    cv = clean_feet_outline(cv)
+    return thin_blocks_area(cv, 2, 22, 0, 17)
+
+
+# subindo (4, para no ultimo): impulso -> encolhendo -> encolhido
+JUMP3 = [((2, 1, -4, 0), 0, "dobrada"),
+         ((2, 2, -3, 1), 0, "dobrada"),
+         ((2, 3, -2, 3), 0, "dobrada"),
+         ((2, 4, -2, 4), 0, "dobrada")]
+# apice (2, para no ultimo): asa bate e os pes comecam a descer
+APEX3 = [((2, 3, -2, 3), 0, "meia"),
+         ((2, 2, -2, 1), -1, "alta")]
+# caindo (6 em laco): corpo 2 px mais alto no quadro = pernas compridas penduradas,
+# balancando de leve, e a asa batendo
+FALL3 = [((2, 0, -2, 0), -2, "alta"),
+         ((2, 0, -1, 1), -2, "meia"),
+         ((1, 1, -2, 0), -2, "dobrada"),
+         ((2, 0, -2, 0), -2, "meia"),
+         ((3, 1, -2, 0), -2, "alta"),
+         ((2, 0, -3, 1), -2, "meia")]
+
+
+def main_air3():
+    salvar = "--salvar" in sys.argv
+    body = look_forward(idle_body())
+    jump = save_strip([air3(body, *c) for c in JUMP3], "pato_pulando", salvar)
+    apex = save_strip([air3(body, *c) for c in APEX3], "pato_apice", salvar)
+    fall = save_strip([air3(body, *c) for c in FALL3], "pato_caindo", salvar)
+    idle = upscale(idle_fixed(), 4)
+    groups = [jump, apex, fall]
+    n = sum(len(g) for g in groups) + 2
+    prev = Canvas(n * (256 + 8), 256)
+    i = 0
+    for g in groups:
+        for b in g:
+            prev.blit(b, i * (256 + 8), 0, 2)
+            i += 1
+        i += 1
+    prev.save(os.path.join(OUT, "pato_pulo3_quadros_2x.png"))
+    # GIF de um pulo inteiro com a mesma regra do jogo (subindo / apice / caindo)
+    H = 128 + 112
+    seq = []
+    vy, y = -4.0, 0.0  # em pixels do jogo
+    t_jump = t_apex = t_fall = 0
+    while True:
+        y += vy * 8
+        vy += 0.25
+        landed = y >= 0
+        if landed:
+            y = 0
+        if vy < -0.8:
+            img = jump[min(t_jump // 5, len(jump) - 1)]
+            t_jump += 1
+        elif vy < 0.8:
+            img = apex[min(t_apex // 5, len(apex) - 1)]
+            t_apex += 1
+        else:
+            img = fall[(t_fall // 5) % len(fall)]
+            t_fall += 1
+        fr = Canvas(128, H)
+        fr.blit(idle if landed else img, 0, int(H - 128 + y))
+        seq.append(fr)
+        if landed:
+            break
+    for _ in range(25):
+        fr = Canvas(128, H)
+        fr.blit(idle, 0, H - 128)
+        seq.append(fr)
+    save_gif(os.path.join(OUT, "pato_pulo3.gif"), seq, delay_cs=2, scale=1, bg=(191, 228, 250))
+    # GIF so da queda em laco (para ver a asa e as pernas)
+    save_gif(os.path.join(OUT, "pato_queda3_laco.gif"), fall, delay_cs=8, scale=1, bg=(191, 228, 250))
+    print("ok pulo3", [outline_problems(air3(body, *c)) for c in JUMP3 + APEX3 + FALL3])
+
+
+# o pato ja ocupa a grade inteira: subir o corpo corta a cabeca. Corpo no lugar.
+APEX3 = [((2, 3, -2, 3), 0, "meia"),
+         ((2, 2, -2, 1), 0, "alta")]
+FALL3 = [((2, 0, -2, 0), 0, "alta"),
+         ((2, 0, -1, 1), 0, "meia"),
+         ((1, 1, -2, 0), 0, "dobrada"),
+         ((2, 0, -2, 0), 0, "meia"),
+         ((3, 1, -2, 0), 0, "alta"),
+         ((2, 0, -3, 1), 0, "meia")]
+
+
+# ------------------------------------------------------------ variantes de asa (para escolher)
+WING_VARIANTS = {
+    # A: pequena e arredondada
+    "A": {
+        "dobrada": [(15, 15), (14, 17), (9, 18), (6, 17), (8, 15), (12, 14)],
+        "meia": [(15, 15), (13, 17), (8, 16), (4, 13), (7, 12), (12, 13)],
+        "alta": [(15, 15), (13, 17), (11, 16), (8, 11), (8, 8), (11, 9), (13, 12)],
+    },
+    # B: com tres penas na ponta (borda de tras recortada)
+    "B": {
+        "dobrada": [(16, 14), (15, 17), (10, 19), (8, 18), (6, 19), (5, 17), (3, 17), (6, 15), (11, 13)],
+        "meia": [(16, 14), (14, 17), (8, 16), (5, 16), (4, 14), (1, 13), (2, 11), (5, 11), (11, 12)],
+        "alta": [(16, 14), (14, 17), (11, 15), (8, 11), (6, 11), (6, 8), (4, 6), (6, 4), (9, 5), (13, 10)],
+    },
+    # C: igual a v3, mas sem a asa dobrada (corpo limpo como o original)
+    "C": {
+        "dobrada": None,
+        "meia": [(16, 14), (14, 17), (7, 16), (1, 12), (4, 11), (11, 12)],
+        "alta": [(16, 14), (14, 17), (11, 15), (7, 9), (6, 4), (9, 5), (13, 10)],
+    },
+}
+
+
+def air_variant(body, legs, bob, wing, variant):
+    global WING3
+    saved = WING3
+    shapes = WING_VARIANTS[variant]
+    WING3 = {k: v for k, v in shapes.items() if v is not None}
+    try:
+        w = wing if (wing is None or shapes.get(wing) is not None) else None
+        return air3(body, legs, bob, w)
+    finally:
+        WING3 = saved
+
+
+def main_wing_variants():
+    body = look_forward(idle_body())
+    rows = []
+    for v in ("A", "B", "C"):
+        fr = [upscale(air_variant(body, *c, v), 4) for c in JUMP3[-1:] + APEX3 + FALL3[:3]]
+        rows.append(fr)
+        save_gif(os.path.join(OUT, "asa_%s_queda.gif" % v),
+                 [upscale(air_variant(body, *c, v), 4) for c in FALL3], delay_cs=8, scale=1,
+                 bg=(191, 228, 250))
+    cv = Canvas(6 * 136 + 40, 3 * 136)
+    for r, fr in enumerate(rows):
+        for i, f in enumerate(fr):
+            cv.blit(f, 40 + i * 136, r * 136)
+        # letra da variante (A/B/C) em blocos simples
+        letters = {"A": ["0110", "1001", "1111", "1001", "1001"],
+                   "B": ["1110", "1001", "1110", "1001", "1110"],
+                   "C": ["0111", "1000", "1000", "1000", "0111"]}["ABC"[r]]
+        for yy, line in enumerate(letters):
+            for xx, ch in enumerate(line):
+                if ch == "1":
+                    cv.fill(cv.mask_rect(6 + xx * 6, r * 136 + 40 + yy * 6, 6, 6), OUTLINE)
+    cv.save(os.path.join(OUT, "asas_ABC.png"))
+    print("ok variantes", {v: [outline_problems(air_variant(body, *c, v)) for c in FALL3] for v in "ABC"})
+
+
+# escolhida: asa pequena (A) que so aparece quando bate (C); fechada, o corpo fica limpo
+WING_VARIANTS["AC"] = {
+    "dobrada": None,
+    "meia": WING_VARIANTS["A"]["meia"],
+    "alta": WING_VARIANTS["A"]["alta"],
+}
+
+
+def main_air_final():
+    salvar = "--salvar" in sys.argv
+    body = look_forward(idle_body())
+    groups = {}
+    for nm, cyc, out in (("subida", JUMP3, "pato_pulando"), ("apice", APEX3, "pato_apice"),
+                         ("queda", FALL3, "pato_caindo")):
+        frames = [air_variant(body, *c, "AC") for c in cyc]
+        groups[nm] = save_strip(frames, out, salvar)
+        cv = Canvas(len(frames) * 136, 128)
+        for i, f in enumerate(groups[nm]):
+            cv.blit(f, i * 136, 0)
+        cv.save(os.path.join(OUT, "pulo_final_%s.png" % nm))
+    idle = upscale(idle_fixed(), 4)
+    jump, apex, fall = groups["subida"], groups["apice"], groups["queda"]
+    H = 128 + 112
+    seq = []
+    vy, y = -4.0, 0.0
+    tj = ta = tf = 0
+    while True:
+        y += vy * 8
+        vy += 0.25
+        landed = y >= 0
+        if landed:
+            y = 0
+        if vy < -0.8:
+            img = jump[min(tj // 5, len(jump) - 1)]
+            tj += 1
+        elif vy < 0.8:
+            img = apex[min(ta // 5, len(apex) - 1)]
+            ta += 1
+        else:
+            img = fall[(tf // 5) % len(fall)]
+            tf += 1
+        fr = Canvas(128, H)
+        fr.blit(idle if landed else img, 0, int(H - 128 + y))
+        seq.append(fr)
+        if landed:
+            break
+    for _ in range(25):
+        fr = Canvas(128, H)
+        fr.blit(idle, 0, H - 128)
+        seq.append(fr)
+    save_gif(os.path.join(OUT, "pato_pulo_final.gif"), seq, delay_cs=2, scale=1, bg=(191, 228, 250))
+    save_gif(os.path.join(OUT, "pato_queda_final_laco.gif"), fall, delay_cs=8, scale=1, bg=(191, 228, 250))
+    print("ok final", [outline_problems(air_variant(body, *c, "AC")) for c in JUMP3 + APEX3 + FALL3])
+
+
+# ------------------------------------------------------------ asa sem contorno interno
+WING_LIGHT = (240, 240, 240, 255)   # parte de baixo da asa (quase branco)
+WING_SHADOW = (226, 226, 226, 255)  # sombra no corpo embaixo da asa (o cinza-claro do pato)
+
+
+def add_wing3(cv, pose):  # noqa: F811
+    """Asa sem linha escura por dentro: onde a asa fica sobre o corpo, a separacao e feita com
+    cores leves (sombra cinza-clara embaixo da asa e um tom quase branco na parte de baixo
+    dela). O contorno escuro so aparece na borda de fora (asa sobre o vazio)."""
+    if pose is None:
+        return cv
+    w = set(cv.mask_poly(WING3[pose]))
+    cy = sum(y for _, y in w) / len(w)
+    ring = set()
+    for (x, y) in w:
+        for nx, ny in ((x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)):
+            if (nx, ny) not in w and 0 <= nx < 32 and 0 <= ny < 32:
+                ring.add((nx, ny))
+    for (x, y) in ring:
+        c = cv.px[y][x]
+        if c is None:
+            cv.px[y][x] = OUTLINE                      # borda de fora
+        elif c in WHITE_SET and y > cy:
+            cv.px[y][x] = WING_SHADOW                  # sombra embaixo da asa
+        # em cima/dos lados sobre o corpo: nada (o tom da asa ja demarca)
+    bottom = max(y for _, y in w)
+    for (x, y) in w:
+        cv.px[y][x] = WING_LIGHT if y >= bottom - 1 else (255, 255, 255, 255)
+    return cv
+
+
+WHITE_SET.add(WING_LIGHT)
+
+FPS_PULO = {"subida": 8.0, "apice": 6.0, "queda": 8.0}
+
+
+def main_air_final2():
+    salvar = "--salvar" in sys.argv
+    body = look_forward(idle_body())
+    groups = {}
+    for nm, cyc, out in (("subida", JUMP3, "pato_pulando"), ("apice", APEX3, "pato_apice"),
+                         ("queda", FALL3, "pato_caindo")):
+        frames = [air_variant(body, *c, "AC") for c in cyc]
+        groups[nm] = save_strip(frames, out, salvar)
+        cv = Canvas(len(frames) * 136, 128)
+        for i, f in enumerate(groups[nm]):
+            cv.blit(f, i * 136, 0)
+        cv.save(os.path.join(OUT, "pulo_final2_%s.png" % nm))
+    idle = upscale(idle_fixed(), 4)
+    jump, apex, fall = groups["subida"], groups["apice"], groups["queda"]
+    step = {k: 60.0 / v for k, v in FPS_PULO.items()}
+    H = 128 + 112
+    seq = []
+    vy, y = -4.0, 0.0
+    tj = ta = tf = 0
+    while True:
+        y += vy * 8
+        vy += 0.25
+        landed = y >= 0
+        if landed:
+            y = 0
+        if vy < -0.8:
+            img = jump[min(int(tj / step["subida"]), len(jump) - 1)]
+            tj += 1
+        elif vy < 0.8:
+            img = apex[min(int(ta / step["apice"]), len(apex) - 1)]
+            ta += 1
+        else:
+            img = fall[int(tf / step["queda"]) % len(fall)]
+            tf += 1
+        fr = Canvas(128, H)
+        fr.blit(idle if landed else img, 0, int(H - 128 + y))
+        seq.append(fr)
+        if landed:
+            break
+    for _ in range(25):
+        fr = Canvas(128, H)
+        fr.blit(idle, 0, H - 128)
+        seq.append(fr)
+    save_gif(os.path.join(OUT, "pato_pulo_final2.gif"), seq, delay_cs=2, scale=1, bg=(191, 228, 250))
+    save_gif(os.path.join(OUT, "pato_queda_final2_laco.gif"), fall, delay_cs=int(round(100 / FPS_PULO["queda"])),
+             scale=1, bg=(191, 228, 250))
+    print("ok final2", [outline_problems(air_variant(body, *c, "AC")) for c in JUMP3 + APEX3 + FALL3])
+
+
+def close_wing_notch(cv, x0=6, x1=19, y0=3, y1=16):
+    """Fecha o 'V' de contorno entre a asa levantada e as costas: vaos estreitos (ate 4 px na
+    horizontal) entre a asa e o corpo viram corpo branco e o contorno de fora e refeito por
+    cima, liso (a asa nasce das costas sem dobra de contorno)."""
+    def filled(x, y):
+        return 0 <= x < 32 and 0 <= y < 32 and cv.px[y][x] is not None and cv.px[y][x] != OUTLINE
+    for _ in range(3):
+        for y in range(y0, y1):
+            x = x0
+            while x < x1:
+                if filled(x, y):
+                    j = x + 1
+                    while j < x1 + 4 and j < 32 and not filled(j, y):
+                        j += 1
+                    if j < 32 and filled(j, y) and 1 <= j - x - 1 <= 4:
+                        for k in range(x + 1, j):
+                            cv.px[y][k] = (255, 255, 255, 255)
+                    x = j
+                else:
+                    x += 1
+    # refaz o contorno na regiao: contorno que nao encosta no vazio vira corpo; vazio que encosta
+    # no corpo vira contorno
+    for y in range(max(0, y0 - 2), min(32, y1 + 2)):
+        for x in range(max(0, x0 - 2), min(18, x1 + 3)):
+            if cv.px[y][x] == OUTLINE:
+                if not any(0 <= x + dx < 32 and 0 <= y + dy < 32 and cv.px[y + dy][x + dx] is None
+                           for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))) and y < 20:
+                    cv.px[y][x] = (255, 255, 255, 255)
+    for y in range(max(0, y0 - 2), min(32, y1 + 2)):
+        for x in range(max(0, x0 - 2), min(18, x1 + 3)):
+            if cv.px[y][x] is None and any(filled(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                cv.px[y][x] = OUTLINE
+    return cv
+
+
+_air3_v1 = air3
+
+
+def air3(body, legs, bob, wing):  # noqa: F811
+    cv = _air3_v1(body, legs, bob, wing)
+    if wing in ("alta", "meia"):
+        cv = close_wing_notch(cv)
+    return cv
+
+
+def air3(body, legs, bob, wing):  # noqa: F811
+    """So tira o contorno interno da asa (o 'V' entre a asa levantada e o pescoco): o vao vira
+    corpo e as linhas do V somem. A area fica longe do olho (x < 18)."""
+    cv = _air3_v1(body, legs, bob, wing)
+    if wing in ("alta", "meia"):
+        cv = close_wing_notch(cv, x0=6, x1=15, y0=3, y1=16)
+    return cv
+
+
+def remove_inner_wing_outline(cv, pose):
+    """Tira SO o contorno interno da asa (a linha da borda da asa virada para o pescoco, que
+    formava o 'V'), sem preencher nada: o resto do desenho fica igual a versao anterior."""
+    if pose not in WING3:
+        return cv
+    wing = set(cv.mask_poly(WING3[pose]))
+
+    def is_body(x, y):  # pixel colorido que nao e da asa
+        return (0 <= x < 32 and 0 <= y < 32 and (x, y) not in wing
+                and cv.px[y][x] is not None and cv.px[y][x] != OUTLINE)
+
+    remove = []
+    for y in range(32):
+        for x in range(32):
+            if cv.px[y][x] != OUTLINE or (x, y) in wing:
+                continue
+            nb = [(x + 1, y), (x - 1, y), (x, y + 1), (x, y - 1)]
+            touches_wing = any(p in wing for p in nb)
+            touches_body = any(is_body(*p) for p in nb)
+            if not touches_wing:
+                continue
+            if touches_body:
+                # separador entre asa e corpo (branco dos dois lados): vira branco
+                if (x - 1, y) in wing and is_body(x + 1, y):
+                    remove.append((x, y, (255, 255, 255, 255)))
+                continue
+            # borda da asa virada para o pescoco: olhando para a direita, o primeiro pixel
+            # colorido (pulando vazio e contorno) e o corpo, bem perto
+            for k in range(1, 7):
+                nx = x + k
+                if nx >= 32:
+                    break
+                c = cv.px[y][nx]
+                if c is None or c == OUTLINE:
+                    continue
+                if (nx, y) not in wing:
+                    remove.append((x, y, None))
+                break
+    for x, y, c in remove:
+        cv.px[y][x] = c
+    return cv
+
+
+def air3(body, legs, bob, wing):  # noqa: F811
+    cv = _air3_v1(body, legs, bob, wing)
+    return remove_inner_wing_outline(cv, wing)
+
+
+# versao escolhida (asa_sem_contorno_2x.png): asa pequena so no ar, separada do corpo por cores
+# leves, sem as remocoes de contorno que vieram depois
+air3 = _air3_v1  # noqa: F811
