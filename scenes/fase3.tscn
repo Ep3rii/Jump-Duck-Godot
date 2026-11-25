@@ -194,12 +194,12 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=1856481789 instance=ExtResource("24_elwqn")]
 position = Vector2(72, 304)
 script = ExtResource("25_v3o63")
-texto = "O JACARÉ GIGANTE|GUARDA ESTE LAGO"
+texto = "CUIDADO: O JACARÉ|GIGANTE MORA AQUI"
 
 [node name="Dica2" type="Node2D" parent="Dicas" unique_id=273155207 instance=ExtResource("24_elwqn")]
 position = Vector2(784, 304)
 script = ExtResource("25_v3o63")
-texto = "BOLHAS: ELE VAI SALTAR!|COM DOR DE DENTE, PISE"
+texto = "BOLHAS? ELE VAI SALTAR!|COM DOR DE DENTE, PISE NELE"
 alcance = 40.0
 
 [node name="Jogador" type="Node2D" parent="." unique_id=513219468]

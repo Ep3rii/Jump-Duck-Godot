@@ -159,44 +159,44 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=1113923924 instance=ExtResource("20_x6vwi")]
 position = Vector2(120, 304)
 script = ExtResource("21_coeiu")
-texto = "SETAS OU A/D:|ANDAR"
+texto = "ANDE COM AS SETAS|OU COM A E D"
 
 [node name="Dica2" type="Node2D" parent="Dicas" unique_id=600534903 instance=ExtResource("20_x6vwi")]
 position = Vector2(176, 304)
 script = ExtResource("21_coeiu")
-texto = "ESPAÇO: PULAR"
+texto = "ESPAÇO PULA!"
 alcance = 40.0
 
 [node name="Dica3" type="Node2D" parent="Dicas" unique_id=975199095 instance=ExtResource("20_x6vwi")]
 position = Vector2(280, 304)
 script = ExtResource("21_coeiu")
-texto = "PEGUE AS FLORES!|ELAS DÃO PONTOS"
+texto = "PEGUE AS FLORES!|ELAS VALEM PONTOS"
 
 [node name="Dica4" type="Node2D" parent="Dicas" unique_id=1109372130 instance=ExtResource("20_x6vwi")]
 position = Vector2(376, 304)
 script = ExtResource("21_coeiu")
-texto = "ESPAÇO NO AR:|PULO DUPLO"
+texto = "NO AR, ESPAÇO DE NOVO:|PULO DUPLO!"
 
 [node name="Dica5" type="Node2D" parent="Dicas" unique_id=1442400280 instance=ExtResource("20_x6vwi")]
 position = Vector2(728, 176)
 script = ExtResource("21_coeiu")
-texto = "QUEDA ALTA MACHUCA!|DESÇA PELO CIPÓ: BAIXO"
+texto = "CAIR DO ALTO MACHUCA!|DESÇA O CIPÓ COM BAIXO"
 
 [node name="Dica6" type="Node2D" parent="Dicas" unique_id=1313174915 instance=ExtResource("20_x6vwi")]
 position = Vector2(808, 304)
 script = ExtResource("21_coeiu")
-texto = "EMPURRE O FENO|ATÉ A PAREDE"
+texto = "EMPURRE O FENO ATÉ|A PAREDE E SUBA NELE"
 
 [node name="Dica7" type="Node2D" parent="Dicas" unique_id=906545920 instance=ExtResource("20_x6vwi")]
 position = Vector2(1056, 224)
 script = ExtResource("21_coeiu")
-texto = "A BANDEIRA GUARDA|SEU PROGRESSO"
+texto = "A BANDEIRA GUARDA|ONDE VOCÊ CHEGOU"
 alcance = 40.0
 
 [node name="Dica8" type="Node2D" parent="Dicas" unique_id=544312883 instance=ExtResource("20_x6vwi")]
 position = Vector2(1176, 224)
 script = ExtResource("21_coeiu")
-texto = "PULE EM CIMA|DOS INIMIGOS!"
+texto = "PULE NA CABEÇA|DOS INIMIGOS!"
 
 [node name="Jogador" type="Node2D" parent="." unique_id=2110047458]
 z_index = -500

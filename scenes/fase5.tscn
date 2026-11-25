@@ -182,12 +182,12 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=1809349692 instance=ExtResource("28_8ftmm")]
 position = Vector2(600, 768)
 script = ExtResource("29_2mjch")
-texto = "A ÁGUIA MERGULHA|ONDE VOCÊ ESTÁ"
+texto = "A ÁGUIA MERGULHA|ONDE VOCÊ ESTIVER"
 
 [node name="Dica2" type="Node2D" parent="Dicas" unique_id=1885880976 instance=ExtResource("28_8ftmm")]
 position = Vector2(376, 768)
 script = ExtResource("29_2mjch")
-texto = "BICO PRESO NO CHÃO:|HORA DE PISAR!"
+texto = "BICO PRESO NO CHÃO?|É HORA DE PISAR!"
 
 [node name="Jogador" type="Node2D" parent="." unique_id=325532238]
 z_index = -500

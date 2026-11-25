@@ -221,7 +221,7 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=1437164367 instance=ExtResource("26_hjowg")]
 position = Vector2(88, 576)
 script = ExtResource("27_v34rc")
-texto = "LÁ EM CIMA FICA O|NINHO DO GAVIÃO"
+texto = "FALTA POUCO! O NINHO|DO GAVIÃO É LOGO ACIMA"
 
 [node name="Jogador" type="Node2D" parent="." unique_id=1077252124]
 z_index = -500

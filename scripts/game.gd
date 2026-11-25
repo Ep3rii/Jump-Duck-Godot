@@ -14,16 +14,16 @@ const Sfx := preload("res://scripts/sfx.gd")
 ## "name" = nome nas telas. (E "var" so para os testes trocarem pela fase de testes.)
 ## Para adicionar uma fase: crie a cena (ver README) e acrescente uma linha aqui.
 var levels: Array = [
-	{"id": "tutorial", "name": "TUTORIAL"},
-	{"id": "fase1", "name": "FASE 1"},
-	{"id": "fase2", "name": "FASE 2"},
-	{"id": "fase3", "name": "FASE 3"},
-	{"id": "fase4", "name": "FASE 4"},
-	{"id": "fase5", "name": "FASE 5"},
-	{"id": "fase6", "name": "FASE 6"},
-	{"id": "fase7", "name": "FASE 7"},
-	{"id": "fase8", "name": "FASE 8"},
-	{"id": "fase_final", "name": "FASE FINAL"},
+	{"id": "tutorial", "name": "A FAZENDA"},        # tutorial
+	{"id": "fase1", "name": "O CAMINHO"},
+	{"id": "fase2", "name": "O LAGO"},
+	{"id": "fase3", "name": "O JACARÉ GIGANTE"},
+	{"id": "fase4", "name": "A PORTA DA TORRE"},
+	{"id": "fase5", "name": "A ÁGUIA"},
+	{"id": "fase6", "name": "VENTO FORTE"},
+	{"id": "fase7", "name": "O POÇO ALTO"},
+	{"id": "fase8", "name": "QUASE NO TOPO"},
+	{"id": "fase_final", "name": "O GAVIÃO"},
 ]
 
 ## Fase de testes com todas as mecanicas (nao conta progresso; so aparece em build de debug).
@@ -548,56 +548,52 @@ func ui_rect(cy: int, w: int, h: int, label: String, extra: Dictionary = {}) -> 
 func ui_layout() -> Array:
 	match game_state:
 		"main":
-			var labels := []
-			if has_progress():
-				labels.append("CONTINUAR")
-			labels.append("NOVO JOGO" if has_progress() else "JOGAR")
-			labels.append_array(["FASES", "CONFIGURAÇÕES", "CRÉDITOS", "SAIR"])
-			var out := []
-			var cy := 84 if labels.size() == 6 else 90
-			for label: String in labels:
-				out.append(ui_rect(cy, 150, 13, label))
-				cy += 15
-			return out
+			# Menu simples: um botao grande (JOGAR, ou CONTINUAR com progresso salvo) e tres
+			# pequenos. Recomecar do zero: FASES -> TUTORIAL. Creditos ficam em OPCOES.
+			return [ui_rect(70, 164, 24, "CONTINUAR" if has_progress() else "JOGAR", {"big": true}),
+				ui_rect(97, 112, 16, "FASES"),
+				ui_rect(117, 112, 16, "OPÇÕES"),
+				ui_rect(137, 112, 16, "SAIR")]
 		"levels":
 			var out := []
 			# linhas compactas: cabem as 10 fases + o laboratorio acima do VOLTAR
 			for i in levels.size():
 				var label: String = levels[i]["name"] if is_level_unlocked(i) else "BLOQUEADA"
-				out.append(ui_rect(42 + i * 11, 220, 10, label, {"level": i}))
+				out.append(ui_rect(35 + i * 12, 220, 11, label, {"level": i}))
 			if OS.is_debug_build():
-				out.append(ui_rect(42 + levels.size() * 11, 220, 10, "LABORATÓRIO",
+				out.append(ui_rect(35 + levels.size() * 12, 220, 11, "LABORATÓRIO",
 					{"room": LAB_LEVEL}))
-			out.append(ui_rect(167, 120, 14, "VOLTAR"))
+			out.append(ui_rect(169, 120, 12, "VOLTAR"))
 			return out
 		"credits", "controls":
 			return [ui_rect(158, 120, 16, "VOLTAR")]
 		"settings":
-			return [ui_rect(54, 220, 16, "TELA"),
-				ui_rect(73, 220, 16, "JANELA"),
-				ui_rect(92, 220, 16, "MÚSICA"),
-				ui_rect(111, 220, 16, "EFEITOS"),
-				ui_rect(132, 120, 16, "CONTROLES"),
-				ui_rect(151, 120, 16, "VOLTAR")]
+			return [ui_rect(46, 220, 14, "TELA"),
+				ui_rect(62, 220, 14, "TAMANHO"),
+				ui_rect(78, 220, 14, "MÚSICA"),
+				ui_rect(94, 220, 14, "SONS"),
+				ui_rect(112, 120, 14, "CONTROLES"),
+				ui_rect(128, 120, 14, "CRÉDITOS"),
+				ui_rect(146, 120, 14, "VOLTAR")]
 		"pause":
 			return [ui_rect(76, 150, 18, "CONTINUAR"),
-				ui_rect(98, 150, 18, "REINICIAR FASE"),
-				ui_rect(120, 150, 18, "CONFIGURAÇÕES"),
-				ui_rect(142, 150, 18, "MENU PRINCIPAL")]
+				ui_rect(98, 150, 18, "RECOMEÇAR"),
+				ui_rect(120, 150, 18, "OPÇÕES"),
+				ui_rect(142, 150, 18, "MENU")]
 		"complete":
 			if not next_level_id().is_empty():
 				return [ui_rect(128, 150, 16, "PRÓXIMA FASE"),
-					ui_rect(146, 150, 16, "JOGAR NOVAMENTE"),
-					ui_rect(164, 150, 16, "MENU PRINCIPAL")]
+					ui_rect(146, 150, 16, "JOGAR DE NOVO"),
+					ui_rect(164, 150, 16, "MENU")]
 			if current_level_name == FINAL_LEVEL:
 				return [ui_rect(128, 150, 16, "VER O FINAL"),
-					ui_rect(146, 150, 16, "JOGAR NOVAMENTE"),
-					ui_rect(164, 150, 16, "MENU PRINCIPAL")]
-			return [ui_rect(137, 150, 18, "MENU PRINCIPAL"),
-				ui_rect(158, 150, 18, "JOGAR NOVAMENTE")]
+					ui_rect(146, 150, 16, "JOGAR DE NOVO"),
+					ui_rect(164, 150, 16, "MENU")]
+			return [ui_rect(137, 150, 18, "MENU"),
+				ui_rect(158, 150, 18, "JOGAR DE NOVO")]
 		"gameover":
-			return [ui_rect(118, 150, 20, "TENTAR NOVAMENTE"),
-				ui_rect(142, 150, 20, "MENU PRINCIPAL")]
+			return [ui_rect(118, 150, 20, "TENTAR DE NOVO"),
+				ui_rect(142, 150, 20, "MENU")]
 	return []
 
 
@@ -730,14 +726,21 @@ func _handle_back() -> bool:
 			game_state = "playing"
 		"settings":
 			game_state = "pause" if pause_origin == "pause" else "main"
-			ui_selection = 0
+			ui_selection = 2  # volta em cima de OPCOES
 		"controls":
 			game_state = "settings"
 			ui_selection = 4
-		"levels", "credits":
+		"levels":
 			game_state = "main"
-			ui_selection = 0
-			credits_after_ending = false
+			ui_selection = 1
+		"credits":
+			if credits_after_ending:  # veio do fim da cutscene: volta ao menu principal
+				credits_after_ending = false
+				game_state = "main"
+				ui_selection = 0
+			else:  # veio de OPCOES
+				game_state = "settings"
+				ui_selection = 5
 		"gameover", "complete":
 			go_to_menu()
 		_:
@@ -786,7 +789,7 @@ func _run_menu_action(label: String) -> void:
 		"CRÉDITOS":
 			ui_selection = 0
 			game_state = "credits"
-		"CONFIGURAÇÕES":
+		"OPÇÕES", "CONFIGURAÇÕES":
 			pause_origin = "pause" if game_state == "pause" else "main"
 			ui_selection = 0
 			game_state = "settings"
@@ -797,10 +800,10 @@ func _run_menu_action(label: String) -> void:
 			get_tree().quit()
 		"VOLTAR":
 			_handle_back()
-		"REINICIAR FASE", "JOGAR NOVAMENTE", "TENTAR NOVAMENTE":
+		"RECOMEÇAR", "JOGAR DE NOVO", "TENTAR DE NOVO":
 			# Fim de jogo recomeca a fase com vidas cheias (decisao D3).
 			restart_level()
-		"MENU PRINCIPAL":
+		"MENU":
 			go_to_menu()
 		"PRÓXIMA FASE":
 			go_to_next_level()

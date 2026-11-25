@@ -192,7 +192,7 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=2053324821 instance=ExtResource("24_0bho7")]
 position = Vector2(88, 1088)
 script = ExtResource("25_6qn0e")
-texto = "SUBA RÁPIDO:|AS PEDRAS CAEM!"
+texto = "SUBA DEPRESSA:|AS PEDRAS CAEM!"
 
 [node name="Jogador" type="Node2D" parent="." unique_id=947174501]
 z_index = -500

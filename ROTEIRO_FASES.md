@@ -148,11 +148,25 @@ Sem acessórios no pato e sem tema medieval: o estilo é o do original, só que 
 | Pato pulando, no ápice e caindo | `pato_pulando.png` (4 quadros, 8/s), `pato_apice.png` (2, 6/s), `pato_caindo.png` (6, 8/s) | subindo: pés encolhendo, sem asa; ápice: transição em que a asa pequena bate e os pés começam a descer; caindo: pernas penduradas e asa batendo. A asa se separa do corpo por cores leves (sombra `#e2e2e2` embaixo, tom `#f0f0f0` na parte de baixo dela), com contorno escuro só na borda de fora. |
 | Pato levando dano e morrendo | `pato_dano.png` (4 quadros, 12/s), `pato_morte.png` (4, 8/s) | dano: olhos fechados de dor, piscando vermelho e rosa; morte: de barriga para cima, cinza, olhos em X, pés mexendo (o pulinho é da física do jogo). Com isso, todas as animações do pato usam a arte nova |
 | Tileset de grama | `assets/sprites/arte/tileset_grama.png` (4x9 blocos de 128) | os 16 blocos originais ampliados com todas as bordas finas (1 px) e suaves (`#1d6b22`), mais 20 novos: 4 variações do topo (sem flores, flores amarelas, pedrinha, cogumelo), 4 da terra (pedrinhas, raiz, camada, pontinhos), canto interno dos dois lados, coluna de 1 bloco (topo, meio, base), teto de terra (esq., meio, dir.), bloquinho sozinho, tronco (esq., meio, dir.) e ponte. O jogo escolhe sozinho o bloco de cada célula (`Level._retile_grass`), com as variações pela posição; tronco e ponte são colocados à mão (linha 8 do tileset) |
+| Fonte | `assets/sprites/arte/fonte.png` + `scripts/fonte_meta.gd` (gerados por `tools/arte/fonte.py`) | maiúsculas de 7 px, traço grosso e arredondado, largura proporcional; acentos em cima da letra inteira (a letra acentuada tem o mesmo tamanho das outras). Usada em todos os textos (`scripts/pixel_font.gd`) |
 
 Os geradores estão em `tools/arte/` (Python, sem dependências): `pato.py` (animações do pato),
 `tileset.py` e `tileset_novos.py` (tileset de grama) e `tileset_cena.py` (cena de prévia). Cada sprite novo só entra
 no jogo depois de aprovado; o pé do pato fica apoiado sobre a borda do chão (o contorno de baixo
 do pato é desenhado por cima da borda do terreno).
+
+### Menus e textos (25/11/2026)
+
+- **Menu inicial:** cenário vivo (chão do tileset novo, moinho, árvore, o pato novo passeando e
+  pulando quando a seleção muda), título grande e 4 botões: JOGAR (ou CONTINUAR, com progresso
+  salvo), FASES, OPÇÕES e SAIR. Recomeçar do zero: FASES → A FAZENDA. CRÉDITOS e CONTROLES
+  ficam em OPÇÕES.
+- **Botões e painéis:** arredondados, com sombra; o selecionado fica amarelo com uma florzinha
+  pulando ao lado. Vale para pausa, fase concluída, fim de jogo, fases e opções.
+- **Nomes das fases** na lista: A FAZENDA (tutorial), O CAMINHO, O LAGO, O JACARÉ GIGANTE,
+  A PORTA DA TORRE, A ÁGUIA, VENTO FORTE, O POÇO ALTO, QUASE NO TOPO, O GAVIÃO.
+- **Textos reescritos:** mais curtos e diretos, em tom amigável (dicas das placas, controles,
+  opções, resultado da fase, fim de jogo e créditos).
 
 ### Padrão para exportar
 - PNG em **tira horizontal** (todos os quadros lado a lado), fundo transparente, em `assets/sprites/`.

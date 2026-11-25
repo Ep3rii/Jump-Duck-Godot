@@ -144,7 +144,7 @@ func _run() -> void:
 	print("-- menu sem progresso")
 	check(not Game.has_progress(), "save novo: sem progresso")
 	var labels := Game.ui_layout().map(func(r): return r["label"])
-	check(labels == ["JOGAR", "FASES", "CONFIGURAÇÕES", "CRÉDITOS", "SAIR"],
+	check(labels == ["JOGAR", "FASES", "OPÇÕES", "SAIR"],
 		"menu principal: %s" % [labels])
 
 	print("-- inicio do jogo com fade")
@@ -163,7 +163,7 @@ func _run() -> void:
 	await press_key(KEY_ESCAPE)
 	check(Game.game_state == "pause", "ESC pausa a fase")
 	check(get_tree().paused, "arvore pausada")
-	check(Game.ui_layout().map(func(r): return r["label"]).has("REINICIAR FASE"),
+	check(Game.ui_layout().map(func(r): return r["label"]).has("RECOMEÇAR"),
 		"pausa tem REINICIAR FASE")
 	var p_pos := player().position
 	var r_pos := raposa().position
@@ -339,7 +339,7 @@ func _run() -> void:
 	check(Game.best == saved_best, "save carregado de volta igual")
 	check(Game.has_progress(), "agora ha progresso")
 
-	Game._run_menu_action("JOGAR NOVAMENTE")
+	Game._run_menu_action("JOGAR DE NOVO")
 	await wait_level()
 	check(Game.in_level and Game.game_state == "playing", "JOGAR NOVAMENTE recomeca a fase")
 	check(Game.level_history.size() == 0, "resultado anterior descartado da partida")
@@ -349,7 +349,7 @@ func _run() -> void:
 	await frames(3)
 	check(not Game.last_result_is_record, "resultado pior nao e recorde")
 	check(Game.best[FIXTURE]["score"] == score, "recorde mantido")
-	Game._run_menu_action("JOGAR NOVAMENTE")
+	Game._run_menu_action("JOGAR DE NOVO")
 	await wait_level()
 
 	print("-- morte e fim de jogo (D3)")
@@ -359,7 +359,7 @@ func _run() -> void:
 	await frames(DEATH_FRAMES)
 	check(Game.game_state == "gameover", "sem vidas -> FIM DE JOGO")
 	check(get_tree().paused, "fim de jogo pausa a fase")
-	Game._run_menu_action("TENTAR NOVAMENTE")
+	Game._run_menu_action("TENTAR DE NOVO")
 	await wait_level()
 	check(Game.current_level_name == FIXTURE, "TENTAR NOVAMENTE fica na mesma fase")
 	check(Game.player_lives == Game.max_lives and Game.game_state == "playing", "com vidas cheias")
@@ -381,7 +381,7 @@ func _run() -> void:
 	await wait_room("menu")
 	check(not Game.in_level and not get_tree().paused, "menu: fora da fase e sem pausa")
 	labels = Game.ui_layout().map(func(r): return r["label"])
-	check(labels[0] == "CONTINUAR" and labels[1] == "NOVO JOGO", "com progresso: CONTINUAR e NOVO JOGO")
+	check(labels == ["CONTINUAR", "FASES", "OPÇÕES", "SAIR"], "com progresso: CONTINUAR no lugar de JOGAR (%s)" % [labels])
 	Game._run_menu_action("FASES")
 	check(Game.game_state == "levels", "FASES abre a selecao")
 	var lv: Array = Game.ui_layout()
@@ -390,7 +390,9 @@ func _run() -> void:
 		"lista de fases (+ laboratorio em debug) + VOLTAR")
 	Game._handle_back()
 	check(Game.game_state == "main", "ESC na selecao volta ao menu")
-	Game._run_menu_action("CONFIGURAÇÕES")
+	Game._run_menu_action("OPÇÕES")
+	check(Game.ui_layout().map(func(r): return r["label"]) == ["TELA", "TAMANHO", "MÚSICA", "SONS",
+		"CONTROLES", "CRÉDITOS", "VOLTAR"], "OPÇÕES: ajustes, CONTROLES, CRÉDITOS e VOLTAR")
 	Game._run_menu_action("CONTROLES")
 	check(Game.game_state == "controls", "CONTROLES abre pelas configuracoes")
 	Game._handle_back()
@@ -399,10 +401,12 @@ func _run() -> void:
 	Game._adjust_setting(2, -1)
 	check(Game.music_volume == music_before - 1, "volume da musica ajustavel")
 	check(Game.sfx_volume == 8, "volume dos efeitos separado")
-	Game._handle_back()
 	Game._run_menu_action("CRÉDITOS")
-	check(Game.game_state == "credits", "CRÉDITOS abre")
+	check(Game.game_state == "credits", "CRÉDITOS abre pelas opcoes")
 	Game._handle_back()
+	check(Game.game_state == "settings" and Game.ui_selection == 5, "ESC nos creditos volta as opcoes")
+	Game._handle_back()
+	check(Game.game_state == "main", "ESC nas opcoes volta ao menu")
 	Game._run_menu_action("CONTINUAR")
 	await wait_level()
 	check(Game.in_level and Game.current_level_name == FIXTURE, "CONTINUAR entra na fase")

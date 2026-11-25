@@ -201,17 +201,17 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=27335184 instance=ExtResource("22_7sdy2")]
 position = Vector2(88, 768)
 script = ExtResource("23_4lxo1")
-texto = "PEDRA RACHADA CAI|LOGO DEPOIS DE PISAR"
+texto = "PEDRA RACHADA CAI|LOGO DEPOIS DO PISÃO"
 
 [node name="Dica2" type="Node2D" parent="Dicas" unique_id=82942048 instance=ExtResource("22_7sdy2")]
 position = Vector2(392, 768)
 script = ExtResource("23_4lxo1")
-texto = "RAJADA DE VENTO:|ESPERE ACALMAR"
+texto = "VENTO FORTE!|ESPERE ELE ACALMAR"
 
 [node name="Dica3" type="Node2D" parent="Dicas" unique_id=1852182804 instance=ExtResource("22_7sdy2")]
 position = Vector2(504, 768)
 script = ExtResource("23_4lxo1")
-texto = "A CORRENTE DE AR|LEVA PARA CIMA"
+texto = "ESTE VENTO SOPRA|PARA CIMA: ENTRE NELE!"
 
 [node name="Jogador" type="Node2D" parent="." unique_id=1824691677]
 z_index = -500

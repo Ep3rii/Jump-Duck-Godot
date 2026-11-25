@@ -7,6 +7,7 @@ extends Node2D
 
 const Sprites := preload("res://scripts/sprites.gd")
 const PixelFont := preload("res://scripts/pixel_font.gd")
+const PlayerScript := preload("res://scripts/player.gd")
 
 const DURATION := 22.0
 const FLOOR_Y := 140.0
@@ -50,10 +51,8 @@ func _enter_tree() -> void:
 func _ready() -> void:
 	if Game.game_state != "cutscene":
 		Game.game_state = "cutscene"
-	_duck = AnimatedSprite2D.new()
-	_duck.sprite_frames = load("res://assets/frames/player.tres")
-	_duck.centered = false
-	_duck.offset = Vector2(-16, -23)
+	# o pato com a arte nova (as mesmas animacoes do jogador)
+	_duck = Sprites.make_art_sprite(Sprites.art_frames(PlayerScript.ART_ANIMS), PlayerScript.ART_ORIGIN)
 	_duck.position = Vector2(-16, FLOOR_Y)
 	_duck.play("run")
 	add_child(_duck)

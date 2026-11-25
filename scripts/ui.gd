@@ -55,42 +55,87 @@ func _text(x: float, y: float, s: String, col: Color, halign: int, scale_: float
 	_text_plain(x, y, s, col, halign, scale_)
 
 
+## Retangulo de cantos arredondados (em degraus de pixel), incluindo x2/y2.
+func _round(x1: float, y1: float, x2: float, y2: float, col: Color, r: int = 2) -> void:
+	if y2 - y1 < r * 2.0 or x2 - x1 < r * 2.0:
+		_fill(x1, y1, x2, y2, col)
+		return
+	_fill(x1, y1 + r, x2, y2 - r, col)
+	for i in r:
+		var inset := float(r - i)
+		_fill(x1 + inset, y1 + i, x2 - inset, y1 + i, col)
+		_fill(x1 + inset, y2 - i, x2 - inset, y2 - i, col)
+
+
+## Botao "almofadinha": arredondado, com sombra embaixo; o selecionado fica amarelo e ganha
+## uma florzinha pulando ao lado.
 func _button(r: Dictionary, selected: bool, now: int) -> void:
 	var x1: float = r["x1"]
 	var y1: float = r["y1"]
 	var x2: float = r["x2"]
 	var y2: float = r["y2"]
-	_fill(x1, y1, x2, y2, COL_DARK)
-	_fill(x1 + 1, y1 + 1, x2 - 1, y2 - 1, COL_YELLOW if selected else COL_MID)
-	_fill(x1 + 1, y1 + 1, x2 - 1, y1 + 2, Color.WHITE if selected else COL_LIGHT)
-	_fill(x1 + 1, y2 - 2, x2 - 1, y2 - 1, COL_YELLOW_DARK if selected else COL_DARK)
+	var small := y2 - y1 < 13.0
+	var rad := 1 if small else 2
+	var drop := 1.0 if small else 2.0
+	_round(x1, y1 + drop, x2, y2 + drop, COL_DARK, rad)  # sombra
+	_round(x1, y1, x2, y2, COL_YELLOW_DARK if selected else COL_DARK, rad)  # borda
+	_round(x1 + 1, y1 + 1, x2 - 1, y2 - 1, COL_YELLOW if selected else COL_MID, rad)
+	_fill(x1 + 1 + rad, y1 + 1, x2 - 1 - rad, y1 + 1, Color(1, 1, 1, 0.9) if selected else COL_LIGHT)
 	if selected:
-		var bob := floorf(sin(now / 140.0) * 1.5 + 1.5)
-		_text(x1 - 9 + bob, (y1 + y2) / 2.0, ">", Color.WHITE, CENTER)
-		_text(x2 + 10 - bob, (y1 + y2) / 2.0, "<", Color.WHITE, CENTER)
+		var hop := floorf(absf(sin(now / 180.0)) * 3.0)
+		var fs := 0.75 if small else 1.0
+		Sprites.draw(self, "spr_flor01", (now / 200) % Sprites.frame_count("spr_flor01"),
+			x1 - 10.0, (y1 + y2) / 2.0 + 7.0 * fs - hop, fs, fs)
 
 
-## Botao com o texto centralizado.
+## Botao com o texto centralizado (texto em dobro nos botoes marcados com "big").
 func _plain_button(r: Dictionary, on: bool, now: int) -> void:
 	_button(r, on, now)
 	var ty: float = (r["y1"] + r["y2"]) / 2.0
+	var tx: float = (r["x1"] + r["x2"] + 1.0) / 2.0
+	var sc := 2.0 if r.get("big", false) else 1.0
 	if on:
-		_text_plain(160, ty, r["label"], COL_YELLOW_DARK, CENTER)
+		_text_plain(tx, ty, r["label"], COL_YELLOW_DARK, CENTER, sc)
 	else:
-		_text(160, ty, r["label"], Color.WHITE, CENTER)
+		_text(tx, ty, r["label"], Color.WHITE, CENTER, sc)
 
 
 func _panel(x1: float, y1: float, x2: float, y2: float) -> void:
 	var fill := COL_DARK
-	fill.a = 0.88
-	_fill(x1, y1, x2, y2, fill)
-	_outline(x1, y1, x2, y2, COL_HI)
-	_outline(x1 + 1, y1 + 1, x2 - 1, y2 - 1, COL_MID)
+	fill.a = 0.9
+	_round(x1, y1, x2, y2, COL_HI, 3)
+	_round(x1 + 1, y1 + 1, x2 - 1, y2 - 1, COL_MID, 3)
+	_round(x1 + 2, y1 + 2, x2 - 2, y2 - 2, Color8(13, 80, 0), 2)
+	_round(x1 + 2, y1 + 2, x2 - 2, y2 - 2, fill, 2)
 
 
+## Titulo da tela: plaquinha amarela arredondada.
 func _title_banner(y: float, title: String) -> void:
-	Sprites.draw_tl(self, "spr_banner02", 0, 160 - 64, y)
-	_text_plain(160, y + 16, title, COL_YELLOW_DARK, CENTER)
+	var half := PixelFont.width(title) / 2.0 + 12.0
+	_round(160 - half, y + 6, 160 + half, y + 24, COL_DARK, 3)
+	_round(160 - half, y + 4, 160 + half, y + 22, COL_YELLOW_DARK, 3)
+	_round(160 - half + 1, y + 5, 160 + half - 1, y + 21, COL_YELLOW, 3)
+	_fill(160 - half + 4, y + 5, 160 + half - 4, y + 5, Color(1, 1, 1, 0.9))
+	_text_plain(160, y + 13, title, COL_YELLOW_DARK, CENTER)
+
+
+## Titulo do jogo: letras grandes balancando em onda ("JUMP" branco, "DUCK" amarelo).
+func _game_title(cx: float, y: float, now: int) -> void:
+	var title := "JUMP DUCK"
+	var sc := 3.0
+	var x := cx - PixelFont.width(title, sc) / 2.0
+	for i in title.length():
+		var ch := title[i]
+		if ch != " ":
+			var wave := floorf(sin(now / 260.0 + i * 0.7) * 2.0)
+			var col := Color.WHITE if i < 4 else COL_YELLOW
+			# contorno escuro em volta (le bem em cima das nuvens) e sombra embaixo
+			for o in [Vector2(-1, -1), Vector2(0, -1), Vector2(1, -1), Vector2(-1, 0), Vector2(1, 0),
+					Vector2(-1, 1), Vector2(0, 1), Vector2(1, 1), Vector2(0, 2), Vector2(1, 2), Vector2(-1, 2),
+					Vector2(0, 3)]:
+				_text_plain(x + o.x, y + wave + o.y, ch, COL_DARK, LEFT, sc)
+			_text_plain(x, y + wave, ch, col, LEFT, sc)
+		x += (PixelFont.width(ch, sc) + PixelFont.SPACING * sc)
 
 
 func _volume_bar(x: float, ty: float, level: int, on: bool) -> void:
@@ -113,7 +158,7 @@ func _draw() -> void:
 
 	# ---------- HUD ----------
 	if Game.in_level and (state == "playing" or state == "pause"
-			or (state in ["settings", "controls"] and Game.pause_origin == "pause")):
+			or (state in ["settings", "controls", "credits"] and Game.pause_origin == "pause")):
 		_draw_hud(w, h)
 
 	# ---------- Menus ----------
@@ -134,33 +179,28 @@ func _draw() -> void:
 
 	match state:
 		"main":
-			Sprites.draw_tl(self, "spr_bannerVerdeGrande", 0, cx - 129, 6)
-			_text(cx, 37, "JUMP DUCK", Color.WHITE, CENTER, 2.0)
-			Sprites.draw(self, "spr_playerAnima", (now / 300) % Sprites.frame_count("spr_playerAnima"),
-				40, 150, 2.0, 2.0)
-			Sprites.draw(self, "spr_flor01", (now / 200) % Sprites.frame_count("spr_flor01"),
-				w - 40, 150, 2.0, 2.0)
-			_text_plain(cx, 175, "SETAS: ESCOLHER  ENTER: CONFIRMAR", COL_HINT, CENTER)
+			# o cenario (chao, pato andando, moinho) e da cena do menu (menu.gd)
+			_game_title(cx, 28, now)
 
 		"levels":
-			_panel(30, 6, 290, 176)
-			_title_banner(10, "FASES")
+			_panel(30, 2, 290, 178)
+			_title_banner(2, "FASES")
 			for i in layout.size() - 1:
 				var r: Dictionary = layout[i]
 				var on := sel == i
 				var ty: float = (r["y1"] + r["y2"]) / 2.0
 				if r.has("room"):  # laboratorio (so em debug)
 					_button(r, on, now)
-					_text_plain(r["x1"] + 10, ty, r["label"] + " (DEBUG)",
+					_text_plain(r["x1"] + 10, ty + 1, r["label"] + " (TESTE)",
 						COL_YELLOW_DARK if on else COL_HINT, LEFT)
 					continue
 				var unlocked: bool = Game.is_level_unlocked(r["level"])
 				_button(r, on, now)
 				var fg := COL_YELLOW_DARK if on else (Color.WHITE if unlocked else COL_DIM)
-				_text_plain(r["x1"] + 10, ty, "%d. %s" % [i + 1, r["label"]], fg, LEFT)
+				_text_plain(r["x1"] + 10, ty + 1, "%d. %s" % [i + 1, r["label"]], fg, LEFT)
 				var rec: Dictionary = Game.best.get(Game.levels[r["level"]]["id"], {})
 				if not rec.is_empty():
-					_text_plain(r["x2"] - 50, ty, str(rec["score"]), fg, RIGHT)
+					_text_plain(r["x2"] - 52, ty + 1, str(rec["score"]), fg, RIGHT)
 					for s in 3:
 						Sprites.draw(self, "spr_estrela", 0 if s < int(rec["stars"]) else 1,
 							r["x2"] - 40 + s * 12, ty, 0.7, 0.7)
@@ -169,51 +209,53 @@ func _draw() -> void:
 		"credits":
 			_panel(30, 6, 290, 176)
 			_title_banner(10, "CRÉDITOS")
-			_text(cx, 56, "JUMP DUCK", COL_YELLOW, CENTER)
-			_text(cx, 68, "UM PATO EM BUSCA DE SUA AMADA", Color.WHITE, CENTER)
-			_text(cx, 88, "CRIAÇÃO E DESENVOLVIMENTO", COL_YELLOW, CENTER)
-			_text(cx, 100, "EUZÉBIO P. DA SILVA FILHO", Color.WHITE, CENTER)
-			_text(cx, 120, "FEITO COM GODOT ENGINE", Color.WHITE, CENTER)
-			_text(cx, 132, "MÚSICA: GRASSLANDS", Color.WHITE, CENTER)
+			_text(cx, 48, "JUMP DUCK", COL_YELLOW, CENTER, 2.0)
+			_text(cx, 66, "UM PATO EM BUSCA DO SEU AMOR", Color.WHITE, CENTER)
+			_text(cx, 86, "FEITO POR", COL_YELLOW, CENTER)
+			_text(cx, 98, "EUZÉBIO P. DA SILVA FILHO", Color.WHITE, CENTER)
+			_text(cx, 116, "MÚSICA: GRASSLANDS", Color.WHITE, CENTER)
+			_text(cx, 128, "MOTOR: GODOT", Color.WHITE, CENTER)
 			if Game.credits_after_ending:
-				_text(cx, 145, "FIM! OBRIGADO POR JOGAR!", COL_HI, CENTER)
+				_text(cx, 143, "FIM! OBRIGADO POR JOGAR!", COL_HI, CENTER)
 
 		"controls":
 			_panel(30, 6, 290, 176)
 			_title_banner(10, "CONTROLES")
-			var rows := [["MOVER", "SETAS OU A/D"], ["PULAR", "ESPAÇO"], ["PULO DUPLO", "ESPAÇO NO AR"],
-				["PEGAR/ARREMESSAR", "X OU J"], ["POUSAR CAIXA", "BAIXO + X"],
-				["ESCALAR CIPÓ", "CIMA/BAIXO"], ["MERGULHAR", "BAIXO NA ÁGUA"],
-				["DERROTAR INIMIGO", "PULE EM CIMA"], ["PAUSAR", "ESC"]]
+			var rows := [["ANDAR", "SETAS OU A E D"], ["PULAR", "ESPAÇO"],
+				["PULO DUPLO", "ESPAÇO NO AR"], ["PEGAR E JOGAR A CAIXA", "X OU J"],
+				["SOLTAR A CAIXA", "BAIXO + X"], ["SUBIR NO CIPÓ", "CIMA E BAIXO"],
+				["MERGULHAR", "BAIXO NA ÁGUA"], ["VENCER UM INIMIGO", "PULE EM CIMA"],
+				["PAUSAR", "ESC"]]
 			for i in rows.size():
-				var y := 46 + i * 10
-				_text(44, y, rows[i][0], Color.WHITE, LEFT)
-				_text(276, y, rows[i][1], COL_YELLOW, RIGHT)
-			_text_plain(cx, 139, "MENUS: SETAS, ENTER OU MOUSE", COL_HINT, CENTER)
+				var y := 42 + i * 11
+				_text(52, y, rows[i][0], Color.WHITE, LEFT)
+				_text(268, y, rows[i][1], COL_YELLOW, RIGHT)
+			_text_plain(cx, 143, "NOS MENUS: SETAS, ENTER OU MOUSE", COL_HINT, CENTER)
 
 		"settings":
 			_panel(30, 6, 290, 176)
-			_title_banner(10, "CONFIGURAÇÕES")
+			_title_banner(10, "OPÇÕES")
 			_draw_settings_rows(layout, sel, now)
 			generic_from = Game.SETTINGS_ADJUST_ROWS
 			if sel == 1 and Game.screen_mode == "fullscreen":
-				_text_plain(cx, 168, "RESOLUÇÃO: SOMENTE EM JANELA", Color.WHITE, CENTER)
+				_text_plain(cx, 165, "O TAMANHO SÓ MUDA NO MODO JANELA", Color.WHITE, CENTER)
 			else:
-				_text_plain(cx, 168, "ESQ/DIR: ALTERAR  ESC: VOLTAR", COL_HINT, CENTER)
+				_text_plain(cx, 165, "ESQUERDA E DIREITA MUDAM   ESC VOLTA", COL_HINT, CENTER)
 
 		"pause":
 			_panel(70, 22, 250, 156)
-			_title_banner(28, "PAUSADO")
+			_title_banner(28, "PAUSA")
 
 		"complete":
 			_panel(50, 8, 270, 176 if layout.size() > 2 else 170)
-			_title_banner(12, "FASE CONCLUÍDA")
+			_title_banner(12, "VOCÊ CONSEGUIU!")
 			_draw_result(now)
 
 		"gameover":
-			Sprites.draw_tl(self, "spr_gameOver", (now / 450) % 2, cx - 32, 8, 0.5)
-			_text(cx, 82, "FIM DE JOGO", Color.WHITE, CENTER)
-			_text(cx, 96, "FLORES: %d/%d" % [Game.current_collectibles, Game.total_collectibles],
+			var wob := floorf(sin(now / 200.0) * 2.0)
+			_text(cx, 46 + wob, "QUACK!", COL_YELLOW, CENTER, 4.0)
+			_text(cx, 82, "NÃO FOI DESSA VEZ...", Color.WHITE, CENTER, 1.0)
+			_text(cx, 98, "FLORES: %d DE %d" % [Game.current_collectibles, Game.total_collectibles],
 				COL_YELLOW, CENTER)
 
 	for i in range(generic_from, layout.size()):
@@ -225,12 +267,12 @@ func _draw_hud(w: int, h: int) -> void:
 	hud_bg.a = 0.6
 	var hearts_x2 := 5 + Game.max_lives * 18
 	_fill(2, 2, hearts_x2, 21, hud_bg)
-	_fill(w - 92, 2, w - 2, 29, hud_bg)
+	_fill(w - 76, 2, w - 2, 29, hud_bg)
 	_outline(2, 2, hearts_x2, 21, COL_MID)
-	_outline(w - 92, 2, w - 2, 29, COL_MID)
+	_outline(w - 76, 2, w - 2, 29, COL_MID)
 
 	if Game.debug_invincible:
-		_text(4, h - 8, "DEBUG: INVENCÍVEL", COL_YELLOW, LEFT)
+		_text(4, h - 8, "TESTE: INVENCÍVEL", COL_YELLOW, LEFT)
 
 	if Game.boss_visible and Game.boss_max > 0:
 		# barra de vida do chefe, no topo entre os coracoes e as flores (embaixo fica a agua)
@@ -275,9 +317,9 @@ func _draw_hud(w: int, h: int) -> void:
 	var sec_text := str(sec % 60)
 	if sec % 60 < 10:
 		sec_text = "0" + sec_text
-	_text(w - 88, 10, "FLORES %d/%d" % [Game.current_collectibles, Game.total_collectibles],
+	_text(w - 71, 10, "FLORES %d/%d" % [Game.current_collectibles, Game.total_collectibles],
 		Color.WHITE, LEFT)
-	_text(w - 88, 22, "TEMPO %d:%s" % [sec / 60, sec_text], COL_YELLOW, LEFT)
+	_text(w - 71, 22, "TEMPO %d:%s" % [sec / 60, sec_text], COL_YELLOW, LEFT)
 
 
 ## Linhas ajustaveis das configuracoes: TELA, JANELA (texto) e MUSICA, EFEITOS (barras).
@@ -322,7 +364,7 @@ func _draw_result(now: int) -> void:
 		return
 	if Game.last_result_is_record:
 		var blink := (now / 300) % 2 == 0
-		_text(cx, 49, "NOVO RECORDE!", COL_YELLOW if blink else Color.WHITE, CENTER)
+		_text(cx, 47, "NOVO RECORDE!", COL_YELLOW if blink else Color.WHITE, CENTER)
 	var stars := Game.stars_for(result["score"])
 	for s in 3:
 		var bounce := 0.0
@@ -330,13 +372,13 @@ func _draw_result(now: int) -> void:
 			bounce = floorf(sin(now / 220.0 + s) * 1.5)
 		Sprites.draw(self, "spr_estrela", 0 if s < stars else 1,
 			cx - 40 + s * 40, 70 + bounce, 2.0, 2.0)
-	_text(cx, 92, "TEMPO: %.1fS  +%d" % [result["time_seconds"], result["time_points"]],
+	_text(cx, 90, "TEMPO: %.1f S   +%d" % [result["time_seconds"], result["time_points"]],
 		Color.WHITE, CENTER)
-	_text(cx, 104, "FLORES: %d/%d  +%d" % [result["collectibles"],
+	_text(cx, 101, "FLORES: %d DE %d   +%d" % [result["collectibles"],
 		result["collectible_total"], result["collectible_points"]], Color.WHITE, CENTER)
 	# Pontos da fase (0..100); com mais de uma fase jogada, mostra tambem o total do jogo.
 	if Game.level_history.size() > 1:
-		_text(cx, 116, "FASE: %d/100  JOGO: %d" % [result["score"], Game.total_score],
+		_text(cx, 113, "PONTOS: %d DE 100   TOTAL: %d" % [result["score"], Game.total_score],
 			COL_YELLOW, CENTER)
 	else:
-		_text(cx, 116, "TOTAL: %d / 100" % result["score"], COL_YELLOW, CENTER)
+		_text(cx, 113, "PONTOS: %d DE 100" % result["score"], COL_YELLOW, CENTER)

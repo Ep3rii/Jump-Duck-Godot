@@ -200,18 +200,18 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=1146918213 instance=ExtResource("26_wshhu")]
 position = Vector2(104, 304)
 script = ExtResource("27_74gaq")
-texto = "A TORRE DO GAVIÃO|FICA ADIANTE!"
+texto = "A TORRE DO GAVIÃO|FICA LOGO ALI!"
 
 [node name="Dica2" type="Node2D" parent="Dicas" unique_id=1410759941 instance=ExtResource("26_wshhu")]
 position = Vector2(776, 224)
 script = ExtResource("27_74gaq")
-texto = "ALGO PESADO|ABRE A PORTA"
+texto = "ALGO PESADO NO BOTÃO|ABRE A PORTA"
 alcance = 40.0
 
 [node name="Dica3" type="Node2D" parent="Dicas" unique_id=2072532683 instance=ExtResource("26_wshhu")]
 position = Vector2(1000, 272)
 script = ExtResource("27_74gaq")
-texto = "X OU J: PEGAR|X OU J: ARREMESSAR"
+texto = "X OU J PEGA A CAIXA.|DE NOVO, JOGA LONGE!"
 
 [node name="Jogador" type="Node2D" parent="." unique_id=1362364277]
 z_index = -500
