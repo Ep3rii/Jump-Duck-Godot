@@ -23,6 +23,7 @@ var levels: Array = [
 	{"id": "fase6", "name": "FASE 6"},
 	{"id": "fase7", "name": "FASE 7"},
 	{"id": "fase8", "name": "FASE 8"},
+	{"id": "fase_final", "name": "FASE FINAL"},
 ]
 
 ## Fase de testes com todas as mecanicas (nao conta progresso; so aparece em build de debug).
@@ -101,6 +102,8 @@ var room_width := 320
 var room_height := 180
 var cam_pos := Vector2.ZERO  # canto superior esquerdo da "view" (camera.gd)
 var camera_offset_y := -50.0  # Level.camera_offset_y da fase atual
+## Faixa de x que a camera pode mostrar (vazio = a sala toda). O chefe trava na arena.
+var camera_limit := Rect2()
 var in_level := false  # true enquanto uma cena de fase (level.gd) esta ativa
 var current_level_name := ""
 var has_checkpoint := false
@@ -321,6 +324,7 @@ func begin_level(level: Level) -> void:
 	show_air = false
 	boss_visible = false
 	keys = 0
+	camera_limit = Rect2()
 	current_collectibles = 0
 	has_checkpoint = false
 	var flowers := 0

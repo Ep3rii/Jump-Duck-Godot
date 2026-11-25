@@ -255,6 +255,41 @@ func _run() -> void:
 	p.position = Vector2(200, 192)
 	await frames(40)
 	await shot("23f_fase8_vao_final")
+
+	# Fase Final: chefe gaviao
+	Game.game_state = "playing"
+	Game.room_goto("fase_final")
+	await wait_ready()
+	await frames(30)
+	await shot("23g_final_corredor")
+	p = get_tree().get_first_node_in_group("player")
+	var hawk := get_tree().current_scene.get_node("Entidades/Gaviao")
+	p.position = Vector2(300, 160)
+	await _wait_state(hawk, "aviso")
+	await frames(10)
+	await shot("23h_final_aviso_mergulho")
+	await _wait_state(hawk, "mergulho")
+	await frames(8)
+	await shot("23i_final_mergulho")
+	hawk.position = Vector2(222, 151)
+	hawk.dir = 1
+	hawk.force_state("carga_aviso", 20)
+	p.position = Vector2(248, 112)
+	await frames(10)
+	await shot("23j_final_carga_aviso")
+	await _wait_state(hawk, "investida")
+	await frames(16)
+	await shot("23k_final_investida")
+	await _wait_state(hawk, "atordoado")
+	await frames(10)
+	await shot("23l_final_atordoado")
+	hawk.hp = 6
+	hawk._hurt_until = -1
+	hawk.force_state("atordoado", 999)
+	p.position = Vector2(hawk.position.x, 118)
+	p.spdv = 2.0
+	await frames(30)
+	await shot("23m_final_etapa2")
 	Game.debug_invincible = false
 
 	# Laboratorio de mecanicas (Fase 4)

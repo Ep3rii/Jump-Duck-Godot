@@ -1,6 +1,7 @@
 extends Camera2D
 ## obj_camera: segue o jogador com suavizacao (lerp 0.8 em X, 0.1 em Y), limitado a sala.
-## A altura do enquadramento vem de Level.camera_offset_y (Game.camera_offset_y).
+## A altura do enquadramento vem de Level.camera_offset_y (Game.camera_offset_y), e o
+## Game.camera_limit (arena do chefe) pode prender a camera numa faixa da sala.
 ## A posicao do canto superior esquerdo da view tambem vai para Game.cam_pos (parallax).
 
 const VIEW_W := 320.0
@@ -31,6 +32,9 @@ func _update_camera() -> void:
 		(player.position.x + OFF_X) - VIEW_W / 2.0,
 		(player.position.y + Game.camera_offset_y) - VIEW_H / 2.0)
 	target.x = clampf(target.x, 0.0, Game.room_width - VIEW_W)
+	if Game.camera_limit.has_area():  # arena do chefe: a camera nao sai dela
+		target.x = clampf(target.x, Game.camera_limit.position.x,
+			maxf(Game.camera_limit.position.x, Game.camera_limit.end.x - VIEW_W))
 	target.y = clampf(target.y, 0.0, Game.room_height - VIEW_H)
 
 	var new_pos := Vector2(lerpf(_cur.x, target.x, 0.8), lerpf(_cur.y, target.y, 0.1))

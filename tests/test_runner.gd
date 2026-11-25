@@ -1310,6 +1310,145 @@ func _test_fase8() -> void:
 	player().position = Vector2(712, 192)
 	await frames(3)
 	check(Game.game_state == "complete" and Game.best.has("fase8"), "saida conclui a fase 8 e salva")
+	check(Game.ui_layout()[0]["label"] == "PRÓXIMA FASE", "fase 8 leva a fase final")
+	Game._run_menu_action("PRÓXIMA FASE")
+	await wait_level()
+	await _test_fase_final()
+
+
+## Espera o chefe chegar num estado (ate n frames). Devolve se chegou.
+func wait_boss(boss: Node2D, s: String, n := 600) -> bool:
+	for i in n:
+		if not is_instance_valid(boss) or boss.state == s:
+			return is_instance_valid(boss)
+		await frames(1)
+	return false
+
+
+func _test_fase_final() -> void:
+	print("-- fase final (chefe gaviao)")
+	check(Game.current_level_name == "fase_final" and Game.total_collectibles == 3, "fase final carregada com 3 flores")
+	var boss: Node2D = node("Entidades/Gaviao")
+	var entrada: Node2D = node("Mecanicas/PortaEntrada")
+	var saida: Node2D = node("Mecanicas/PortaSaida")
+	await frames(5)
+	check(boss.state == "espera" and not Game.boss_visible and entrada.is_open and not saida.is_open,
+		"gaviao espera; entrada aberta, saida fechada")
+
+	print("-- comeco da luta")
+	reset_player(Vector2(248, 160))
+	await frames(10)
+	check(boss.state != "espera" and Game.boss_visible and Game.boss_hp == 10 and Game.boss_max == 10,
+		"pato na arena: a luta comeca com a barra de 10")
+	await frames(10)
+	check(not entrada.is_open, "a porta da entrada fecha atras do pato")
+	check(Game.camera_limit.has_area() and Game.cam_pos.x == 192.0,
+		"camera presa na arena (x=%.0f)" % Game.cam_pos.x)
+
+	print("-- ciclo de ataques sozinho")
+	Game.debug_invincible = true
+	var seen := {}
+	for i in 1500:
+		await frames(1)
+		seen[boss.state] = true
+		if boss.state == "atordoado":
+			break
+	Game.debug_invincible = false
+	check(seen.has("aviso") and seen.has("mergulho") and seen.has("subida") and seen.has("preparar")
+		and seen.has("carga_aviso") and seen.has("investida") and seen.has("atordoado"),
+		"mergulhos, investida e atordoado (%s)" % [seen.keys()])
+	check(absf(boss.position.x - 222.0) < 2.0 or absf(boss.position.x - 482.0) < 2.0,
+		"a investida termina batendo numa parede (x=%.0f)" % boss.position.x)
+	await frames(1)
+	check(boss.position.y == 152.0 and not boss.harmful() and boss.stompable, "atordoado no chao: nao machuca e pode ser pisado")
+
+	print("-- mergulho e investida acertam o pato")
+	reset_player(Vector2(300, 160))
+	boss.position = Vector2(300, 60)
+	boss.force_state("aviso", 1)
+	await frames(60)
+	check(Game.player_lives == Game.max_lives - 1, "mergulho acerta o pato parado")
+	reset_player(Vector2(370, 160))
+	boss.position = Vector2(222, 151)
+	boss.dir = 1
+	boss.force_state("carga_aviso", 1)
+	await frames(60)
+	check(Game.player_lives == Game.max_lives - 1, "investida acerta o pato no chao")
+	reset_player(Vector2(248, 112))  # em cima do ressalto
+	boss.position = Vector2(222, 151)
+	boss.dir = 1
+	boss.force_state("carga_aviso", 1)
+	await frames(90)
+	check(Game.player_lives == Game.max_lives, "no ressalto a investida passa por baixo")
+	check(boss.state == "atordoado", "e ele bate na parede do outro lado")
+
+	print("-- golpes so com ele atordoado")
+	boss.position = Vector2(370, 90)
+	boss.force_state("aviso", 999)
+	reset_player(Vector2(370, 50))
+	player().spdv = 3.0
+	await frames(25)
+	check(boss.hp == 10 and Game.player_lives == Game.max_lives - 1, "pular nele voando machuca o pato")
+	boss.position = Vector2(370, 152)
+	boss.force_state("atordoado", 999)
+	reset_player(Vector2(370, 118))
+	player().spdv = 2.0
+	await frames(12)
+	check(boss.hp == 9 and Game.boss_hp == 9 and Game.player_lives == Game.max_lives, "pisao com ele atordoado tira 1")
+	await frames(45)
+	reset_player(Vector2(370, 118))
+	player().spdv = 2.0
+	await frames(12)
+	check(boss.hp == 8 and boss.state == "subida", "2o golpe: ele levanta voo")
+	# caixa arremessada
+	boss.position = Vector2(400, 152)
+	boss.force_state("atordoado", 999)
+	boss._hurt_until = -1
+	var caixa: Node2D = node("Itens/Caixa1")
+	caixa.position = Vector2(344, 160)
+	caixa.vel = Vector2.ZERO
+	caixa.state = "idle"
+	reset_player(Vector2(328, 160))
+	player().xscale = 1
+	await frames(2)
+	await press_key(KEY_X)
+	await frames(2)
+	await press_key(KEY_X)
+	await frames(30)
+	check(boss.hp == 7, "caixa arremessada acerta o gaviao atordoado (hp %d)" % boss.hp)
+
+	print("-- etapa 2")
+	boss.hp = 6
+	Game.boss_hp = 6
+	boss._hurt_until = -1
+	boss.position = Vector2(400, 152)
+	boss.force_state("atordoado", 999)
+	reset_player(Vector2(400, 118))
+	player().spdv = 2.0
+	await frames(12)
+	check(boss.hp == 5 and boss.state == "transicao" and boss.stage == 2, "com 5 de vida perdida vai para a etapa 2")
+	check(get_tree().get_nodes_in_group("item").filter(func(n): return n.get_script() == VidaScene.instantiate().get_script()).size() >= 1,
+		"deixa cair um coracao")
+	await wait_boss(boss, "voo", 200)
+	check(boss.dives_left == 5 and boss._dive_speed() > 4.0, "etapa 2: 5 mergulhos e mais rapido")
+
+	print("-- derrota")
+	for k in 5:
+		if not is_instance_valid(boss) or boss.is_queued_for_deletion():
+			break
+		boss._hurt_until = -1
+		boss.position = Vector2(400, 152)
+		boss.force_state("atordoado", 999)
+		reset_player(Vector2(400, 118))
+		player().spdv = 2.0
+		await frames(50)
+	check(not is_instance_valid(boss) or boss.is_queued_for_deletion(), "10 golpes derrotam o gaviao")
+	await frames(5)
+	check(saida.is_open and not Game.boss_visible and not Game.camera_limit.has_area(),
+		"porta da saida abre, a barra some e a camera solta")
+	player().position = Vector2(536, 160)
+	await frames(3)
+	check(Game.game_state == "complete" and Game.best.has("fase_final"), "saida conclui a fase final e salva")
 	check(Game.ui_layout()[0]["label"] == "MENU PRINCIPAL", "ultima fase: sem PROXIMA FASE")
 
 

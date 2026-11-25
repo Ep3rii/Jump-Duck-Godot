@@ -50,6 +50,11 @@ os PNGs e o MP3 sozinho.
   cima levanta o pato até o andar de cima, e dentro dela cair não machuca.
 - **Pedra rachada:** treme quando o pato (ou uma caixa) pisa, cai depois de meio segundo e volta
   para o lugar uns 3 segundos depois.
+- **Chefe gavião (Fase Final):** paira no alto e ataca em sequências de mergulhos; no fim de
+  cada sequência desce até uma parede e atravessa a arena rente ao chão (pule por cima ou suba
+  num ressalto) até bater na parede do outro lado e ficar **atordoado**. Só então leva golpe
+  (pisão ou caixa arremessada; 2 por vez). São 2 etapas de 5 golpes; na segunda ele fica mais
+  rápido, mergulha mais vezes e deixa cair um coração. A câmera fica presa na arena durante a luta.
 
 ## Fases
 
@@ -64,6 +69,7 @@ os PNGs e o MP3 sozinho.
 | Fase 6 | `scenes/fase6.tscn` | torre (3/6): apresenta as pedras que caem (sobre um poço sem fundo), a rajada de vento contra (esperar acalmar para pular o vão) e a corrente de ar que sobe; depois pedras sobre vãos, rajadas e gaviões em 4 andares |
 | Fase 7 | `scenes/fase7.tscn` | torre (4/6), um poço estreito e alto: escada de pedras que caem, corrente de ar, travessia com vento a favor e gavião, cipó, pedras com rajada contra e a águia, e a última corrente até a saída |
 | Fase 8 | `scenes/fase8.tscn` | torre (5/6), tudo junto: rajada com vãos sem fundo, duas chaves e portas trancadas, pedras sobre poços, correntes de ar, águia e gaviões; vento a favor sobre um vão enorme no fim |
+| Fase Final | `scenes/fase_final.tscn` | a última sala antes do topo: corredor com coração e dica, e a arena do **gavião** (do tamanho da tela, dois ressaltos com caixas); a porta da entrada fecha na luta e a da saída abre quando ele cai |
 
 O roteiro das fases seguintes está em [ROTEIRO_FASES.md](ROTEIRO_FASES.md). Toda a decoração
 (moinho, celeiro, cerca, árvores, placas, caixa/feno) é provisória, desenhada em código, até
@@ -116,7 +122,7 @@ godot --path . res://tests/screenshots.tscn
    `trancada` (abre com a chave), `gaviaozinho` (`alcance` da patrulha), `aguia` (circula em
    volta de onde foi posta), `vento` (direção Direita/Esquerda/Cima, `forca`, `rajada` com
    tempos e `atraso`), `plataforma_cai` (pedra rachada; `tempo_tremendo`, `tempo_volta`),
-   `jacare_chefe` (use
+   `gaviao_chefe` (limites da arena, `porta_entrada` que fecha na luta), `jacare_chefe` (use
    `alvos_ao_derrotar` para abrir a porta da arena; todo inimigo tem esse campo) e `jacare` (vive numa
    `agua`; `comeca_mergulhado` alterna o ciclo entre jacarés). A paralaxe tem
    `mostrar_torre` para a torre aparecer ao fundo e `cenario` = "Torre por dentro" (parede de

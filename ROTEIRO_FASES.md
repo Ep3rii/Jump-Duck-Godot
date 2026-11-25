@@ -28,7 +28,7 @@ São 10 fases jogáveis + 1 cutscene.
 | **Fase 6** | Torre (subida 3/6) | **vento** e **plataformas que caem** (novos) | gaviãozinho | ✅ jogável (`scenes/fase6.tscn`); falta a arte definitiva |
 | **Fase 7** | Torre (subida 4/6) | vento, plataformas que caem | gaviãozinho + águia | ✅ jogável (`scenes/fase7.tscn`); falta a arte definitiva |
 | **Fase 8** | Torre (subida 5/6) | vento, plataformas que caem, chaves | gaviãozinho + águia | ✅ jogável (`scenes/fase8.tscn`); falta a arte definitiva |
-| **Fase Final** | Última sala antes do topo (subida 6/6) | luta contra o gavião em 2 etapas | **gavião (chefe)** | chefe |
+| **Fase Final** | Última sala antes do topo (subida 6/6) | luta contra o gavião em 2 etapas | **gavião (chefe)** | ✅ jogável (`scenes/fase_final.tscn`); falta a arte definitiva |
 | **Cutscene** | Topo da torre | o pato encontra a **Pata** e os dois olham o pôr do sol | — | cutscene, arte |
 
 ## Como cada coisa nova funciona (decidido)
@@ -79,12 +79,16 @@ Inimigos voadores da família do gavião, em dois tipos:
 - **Plataforma que cai** (`plataforma_cai.gd`, pedra rachada): treme meio segundo ao ser pisada,
   despenca e volta 3 segundos depois (só se o lugar estiver livre).
 
-### Chefe gavião (Fase Final)
+### Chefe gavião (Fase Final) — feito (`gaviao_chefe.gd`)
 - Ataca em **sequências de mergulhos**. No fim da sequência **bate na parede da torre e fica atordoado**.
 - Atordoado, pode ser atingido **das duas formas**: pisão ou caixa arremessada.
 - **Etapa 1:** 5 acertos. **Etapa 2:** mais 5 acertos, com ele mais agressivo
   (*proposta:* mergulhos mais rápidos e mais mergulhos por sequência).
 - Só 2 etapas. Barra de vida no HUD durante a luta.
+- Como ficou: cada sequência tem 3 mergulhos (5 na etapa 2) e termina com uma **investida** rente
+  ao chão de uma parede à outra; a batida na parede deixa ele atordoado. Atordoado, aceita até
+  2 golpes e levanta voo. Na troca de etapa ele fica vermelho e deixa cair um coração. A arena
+  tem o tamanho exato da tela, com dois ressaltos (fogem da investida) e uma caixa em cada um.
 
 ### Cutscene final
 - No topo da torre, o pato encontra a **Pata**; os dois olham o pôr do sol. Termina nos créditos.
@@ -139,7 +143,7 @@ Cada fase vira uma entrega jogável, com a mecânica dela feita logo antes:
 2. ✅ **Nado + jacaré comum → Fase 2**, e depois **mini-chefe jacaré → Fase 3**.
 3. ✅ **Chave + aves de rapina → Fases 4 e 5**.
 4. ✅ **Vento + plataformas que caem → Fases 6, 7 e 8**.
-5. **Chefe gavião → Fase Final**, e depois **cutscene com a Pata**.
+5. **Chefe gavião → Fase Final** (✅ feito), e depois **cutscene com a Pata** (falta).
 6. Trocar a arte provisória pela definitiva conforme ela for ficando pronta; ajuste geral de dificuldade e de pontuação.
 
 ## Ainda para confirmar
