@@ -100,7 +100,8 @@ Inimigos voadores da família do gavião, em dois tipos:
 
 ## Arte
 
-**Como fazer:** você desenha no Aseprite, em **pixel art detalhada**. Enquanto a arte não chega,
+**Como fazer:** pixel art na categoria "plana crocante" descrita abaixo; cada sprite novo só entra
+no jogo depois de aprovado. Enquanto a arte não chega,
 o jogo usa desenhos provisórios em código. Quando um sprite ficar pronto, é só me avisar: eu ligo
 ele no jogo e apago o provisório.
 
@@ -121,6 +122,34 @@ O jogo continua do mesmo tamanho na tela; os desenhos novos só têm mais detalh
 Os inimigos comuns foram reduzidos para o tamanho do pato e os chefes para 2 blocos (colisões e
 testes já ajustados), então os desenhos novos encaixam sem mexer nas fases.
 
+### Categoria de arte: pixel art plana "crocante"
+
+Definida a partir do pato e do tileset originais (25/11/2026). Vale para todos os sprites novos.
+
+| Regra | Como é |
+|---|---|
+| **Grade** | 32 px de desenho por bloco (o dobro do original, que tem 16), ampliados 4x para o quadro de 128: cada pixel vira um quadrado 4x4. Chefes: grade de 64 no quadro de 256. Nada de meio pixel, rotação ou escala quebrada. |
+| **Contorno** | 1 pixel, contínuo, seguindo só as bordas (sem pixel sobrando nos cantos de dentro), numa cor escura do próprio material, nunca preto puro: cinza `#636363` no pato, verde-escuro suave `#1d6b22` na borda do terreno. |
+| **Preenchimento** | Cor chapada, mais no máximo 1 ou 2 tons de sombra onde o volume dobra (barriga do pato `#e2e2e2`, base da terra `#d89d40` / `#99692c`). Sem degradê, sem pontilhado, sem suavização e sem textura de ruído. |
+| **Paleta** | Viva e limpa, como a original: branco `#ffffff`, amarelo `#ffff00` / `#fff200`, verdes `#31dc31` `#2ecf2e` `#28b228` `#2ba024`, terra `#e59f43` `#d89d40`, flores brancas com miolo laranja `#f28b57`. Poucas cores por sprite (o pato usa 5). |
+| **Formas** | Silhuetas simples e fáceis de ler, degraus de pixel limpos (sem pixel solto), cantos arredondados por 1 ou 2 pixels. Detalhe mínimo: o olho é um ponto 2x2, sem pupila nem brilho. |
+| **Luz** | Vem de cima: tom claro em cima, sombra na base. |
+| **Blocos** | Faixa de grama com franja de folhas em dentes e florzinhas; terra lisa em duas faixas; borda de 1 px verde-escura; cantos arredondados nas pontas e na base das plataformas. Tudo se repete a cada 8 ou 16 px para emendar sem costura. |
+| **Animação** | Poucos quadros (3 a 6), com movimentos de 1 a 2 pixels: pés e cabeça mexem, o corpo quase não. |
+
+Sem acessórios no pato e sem tema medieval: o estilo é o do original, só que com mais detalhe.
+
+### Arte nova aprovada e já no jogo
+
+| Sprite | Arquivo | Observação |
+|---|---|---|
+| Pato parado | `assets/sprites/arte/pato_parado.png` | o original ampliado com contorno de 1 px; as outras animações do pato ainda usam os quadros antigos |
+| Topo do chão de grama (meio) | bloco (1,1) de `assets/sprites/arte/tileset_grama.png` | o original ampliado com a borda de cima fina (1 px) e mais suave (`#1d6b22`); os outros blocos do tileset são os antigos ampliados 8x até serem refeitos |
+
+O gerador do pato está em `tools/arte/` (Python, sem dependências). Cada sprite novo só entra
+no jogo depois de aprovado; o pé do pato fica apoiado sobre a borda do chão (o contorno de baixo
+do pato é desenhado por cima da borda do terreno).
+
 ### Padrão para exportar
 - PNG em **tira horizontal** (todos os quadros lado a lado), fundo transparente, em `assets/sprites/`.
 - O personagem deve **ocupar o quadro**, com uma folga pequena (uns 4 a 8 px do desenho) nas bordas:
@@ -129,7 +158,6 @@ testes já ajustados), então os desenhos novos encaixam sem mexer nas fases.
 - **Tileset:** 512x512 (4x4 blocos de 128), na mesma grade do `spr_tileSetGrama01` atual: linha 2 =
   topo do chão grosso (esquerda, meio, direita) + plataforma de 1 bloco; linha 3 = plataforma fina
   (esquerda, meio, direita); linha 4 = interior (esquerda, meio, direita).
-- Paleta: a mesma do jogo (verdes do HUD, amarelo, contorno escuro). Sem suavização nas bordas (pixel art).
 - Para cada sprite, anote **quantos quadros** e o **FPS**; o resto eu configuro (origem, animações, mipmaps).
 - O jogo reduz a arte 8x com filtro suave para não picotar os pixels. Ela aparece perfeitamente
   nítida com a janela em 2560x1440; em 1920x1080 fica levemente suavizada.

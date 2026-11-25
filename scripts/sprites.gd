@@ -7,9 +7,9 @@ const Meta := preload("res://scripts/sprites_meta.gd")
 ## Arte nova (ver "Arte" no ROTEIRO_FASES.md): 8 pixels do desenho = 1 pixel do jogo.
 ## Bloco e entidade pequena: 128x128 -> 16 px no jogo. Chefe: 256x256 -> 32 px.
 const ART_SCALE := 1.0 / 8.0
-## Filtro da arte nova (pixel art reduzida): suave com mipmaps para nao "picotar" os pixels
-## ao reduzir. Fica perfeitamente nitida com a janela em 2560x1440 (8x).
-const ART_FILTER := CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+## Filtro da arte nova: vizinho mais proximo, para os pixels ficarem nitidos ("crocantes",
+## como o original). Em 4K cada pixel da grade de 32 vira exatamente 5x5 pixels da tela.
+const ART_FILTER := CanvasItem.TEXTURE_FILTER_NEAREST
 
 static var _frames: Dictionary = {}
 static var _strips: Dictionary = {}
@@ -67,3 +67,22 @@ static func make_art_sprite(sprite_frames: SpriteFrames, origin_art: Vector2) ->
 	s.scale = Vector2(ART_SCALE, ART_SCALE)
 	s.texture_filter = ART_FILTER
 	return s
+
+
+## SpriteFrames da arte nova a partir de tiras horizontais de quadros de 'frame_size' px.
+## anims = {"nome": [caminho_png, quadros, fps, repete]}
+static func art_frames(anims: Dictionary, frame_size := 128) -> SpriteFrames:
+	var sf := SpriteFrames.new()
+	sf.remove_animation("default")
+	for anim_name: String in anims:
+		var a: Array = anims[anim_name]
+		var strip_tex: Texture2D = load(a[0])
+		sf.add_animation(anim_name)
+		sf.set_animation_speed(anim_name, a[2])
+		sf.set_animation_loop(anim_name, a[3] if a.size() > 3 else true)
+		for i in int(a[1]):
+			var at := AtlasTexture.new()
+			at.atlas = strip_tex
+			at.region = Rect2(i * frame_size, 0, frame_size, frame_size)
+			sf.add_frame(anim_name, at)
+	return sf

@@ -10,6 +10,15 @@ extends Node2D
 const Solids := preload("res://scripts/solids.gd")
 const Vento := preload("res://scripts/vento.gd")
 const Particulas := preload("res://scripts/particulas.gd")
+const Sprites := preload("res://scripts/sprites.gd")
+
+## Animacoes que ja tem arte nova aprovada (128x128 por quadro, categoria "plana crocante").
+## As outras continuam com os quadros antigos ate serem redesenhadas e aprovadas.
+const ART_ANIMS := {
+	"idle": ["res://assets/sprites/arte/pato_parado.png", 1, 1.0],
+}
+## Ponto do quadro de 128 que fica nos pes: a ultima linha de contorno cai sobre a borda do chao.
+const ART_ORIGIN := Vector2(64, 124)
 
 const HURT_TIME := 30  # frames parado no estado "hurt"
 const DEATH_TIME := 60  # frames da animacao de morte ate a tela de fim de jogo
@@ -55,6 +64,7 @@ var _run_dust := 0
 var _solids: Array = []
 
 @onready var sprite: AnimatedSprite2D = $Sprite
+var _art: AnimatedSprite2D  # sprite da arte nova (mostrado quando a animacao ja tem arte nova)
 
 
 func _ready() -> void:
@@ -63,7 +73,11 @@ func _ready() -> void:
 	start_x = position.x
 	start_y = position.y
 	invulnerability_timer = Game.invulnerability_remaining
+	_art = Sprites.make_art_sprite(Sprites.art_frames(ART_ANIMS), ART_ORIGIN)
+	_art.name = "Arte"
+	add_child(_art)
 	sprite.play(_anim)
+	_show_art_for(_anim)
 
 
 # ------------------------------------------------------------------ colisao
@@ -150,6 +164,16 @@ func _set_anim(anim_name: String) -> void:
 	if anim_name != _anim:
 		_anim = anim_name
 		sprite.play(anim_name)
+		_show_art_for(anim_name)
+
+
+## Mostra a arte nova se esta animacao ja tem quadros aprovados; senao, o sprite antigo.
+func _show_art_for(anim_name: String) -> void:
+	var has_art := ART_ANIMS.has(anim_name)
+	_art.visible = has_art
+	sprite.visible = not has_art
+	if has_art:
+		_art.play(anim_name)
 
 
 # --------------------------------------------------------------------- Step
@@ -466,8 +490,10 @@ func _check_out_of_bounds() -> void:
 
 func _update_sprite() -> void:
 	sprite.flip_h = xscale < 0
+	_art.flip_h = xscale < 0
 	if player_state != "alive":
 		sprite.scale = Vector2.ONE
+		_art.scale = Vector2.ONE * Sprites.ART_SCALE
 		_set_anim("dead" if player_state == "dead" else "hurt")
 		sprite.speed_scale = 0.2
 		sprite.modulate.a = 1.0
@@ -496,8 +522,10 @@ func _update_sprite() -> void:
 	# estica/achata a partir dos pes e volta ao normal
 	_squash = _squash.lerp(Vector2.ONE, 0.2)
 	sprite.scale = _squash
+	_art.scale = _squash * Sprites.ART_SCALE
 	var blink := invulnerability_timer > 0 and invulnerability_timer % 12 < 6
 	sprite.modulate.a = 0.35 if blink else 1.0
+	_art.modulate.a = sprite.modulate.a
 
 
 # ---------------------------------------------------------- eventos de colisao
