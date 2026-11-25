@@ -123,6 +123,38 @@ func _run() -> void:
 		await frames(30)
 		await shot(spot[1])
 
+	# Fase 3: arena do jacare gigante
+	Game.game_state = "playing"
+	Game.room_goto("fase3")
+	await wait_ready()
+	await frames(30)
+	await shot("22g_fase3_inicio")
+	p = get_tree().get_first_node_in_group("player")
+	var boss := get_tree().current_scene.get_node("Entidades/JacareGigante")
+	Game.debug_invincible = true
+	p.position = Vector2(1072, 256)
+	await frames(60)
+	boss.position.x = 1010.0
+	boss.force_state("aviso", 999)
+	boss.position.y = boss._surface() + boss.DEEP
+	await frames(20)
+	await shot("22h_fase3_bolhas")
+	boss._target_x = 1072.0
+	boss.position.x = 1072.0
+	boss._start_leap(p)
+	await frames(14)
+	await shot("22i_fase3_salto")
+	p.position = Vector2(944, 256)
+	boss.position.x = 1010.0
+	boss.dir = -1
+	boss.force_state("mordida_aviso", 999)
+	await frames(50)
+	await shot("22j_fase3_mordida")
+	boss.force_state("dor", 999)
+	await frames(10)
+	await shot("22k_fase3_dor_de_dente")
+	Game.debug_invincible = false
+
 	# Laboratorio de mecanicas (Fase 4)
 	Game.game_state = "playing"
 	Game.room_goto(Game.LAB_LEVEL)

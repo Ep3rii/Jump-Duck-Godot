@@ -33,6 +33,7 @@
 script = ExtResource("1_kasyk")
 level_id = "fase2"
 room_size = Vector2i(1792, 416)
+camera_offset_y = 0.0
 
 [node name="Parallax" type="Node2D" parent="." unique_id=1552973298]
 z_index = -990

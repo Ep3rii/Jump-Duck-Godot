@@ -48,6 +48,7 @@ os PNGs e o MP3 sozinho.
 | Tutorial | `scenes/tutorial.tscn` | fazenda e moinho; placas de dica ensinam andar, pular, flores, pulo duplo, queda alta + cipó, empurrar o feno, checkpoint e, no fim, a raposa |
 | Fase 1 | `scenes/fase1.tscn` | caminho até a torre (torre ao fundo): raposa entre buracos, caixa empurrada do ressalto para subir o paredão, placa + porta, arremesso na raposa do patamar, plataforma móvel |
 | Fase 2 | `scenes/fase2.tscn` | o lago: nadar e mergulhar (flor no fundo), caixa que boia empurrada pelo lago até virar degrau, jacarés, parede que só se passa mergulhando |
+| Fase 3 | `scenes/fase3.tscn` | lago com jacarés e túnel submerso, depois a arena do **jacaré gigante** (mini-chefe): bolhas avisam o salto contra as plataformas, mordida forte e "dor de dente", a hora do pisão; 5 pisões abrem a porta da saída |
 
 O roteiro das fases seguintes está em [ROTEIRO_FASES.md](ROTEIRO_FASES.md). Toda a decoração
 (moinho, celeiro, cerca, árvores, placas, caixa/feno) é provisória, desenhada em código, até
@@ -96,13 +97,15 @@ godot --path . res://tests/screenshots.tscn
    velocidade, espera; desligue `ativa` para só andar com a placa), `escalavel` (cipó;
    alinhe o topo com o chão de cima), `dica` (placa com texto; `|` quebra a linha) e
    `decoracao` (moinho, celeiro, cerca, árvore, arbusto, seta de saída, junco), `agua` (água
-   nadável, desenhada translúcida na frente do pato; caixas boiam nela) e `jacare` (vive numa
+   nadável, desenhada translúcida na frente do pato; caixas boiam nela), `jacare_chefe` (use
+   `alvos_ao_derrotar` para abrir a porta da arena; todo inimigo tem esse campo) e `jacare` (vive numa
    `agua`; `comeca_mergulhado` alterna o ciclo entre jacarés). A paralaxe tem
    `mostrar_torre` para a torre aparecer ao fundo.
    Alturas de referência: pulo simples sobe ~34 px (2 tiles), pulo duplo ~68 px (4 tiles);
    5 tiles só com uma caixa embaixo; queda de 6 tiles (96 px) ou mais machuca.
 6. Inimigo novo: script com `extends Enemy` (`scripts/enemy.gd` explica o contrato).
-7. A câmera olha 50 px para cima do pato (como no original): perigos muito abaixo de uma
+7. A câmera olha 50 px para cima do pato (como no original; `camera_offset_y` no nó raiz da fase
+   muda isso, as fases de lago usam 0): perigos muito abaixo de uma
    plataforma ficam fora da tela.
 
 ## Mapa GameMaker → Godot

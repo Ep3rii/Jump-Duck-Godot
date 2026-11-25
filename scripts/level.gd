@@ -14,6 +14,9 @@ const Sprites := preload("res://scripts/sprites.gd")
 @export var level_id := ""
 ## Tamanho da sala em pixels (limite da camera e da rede de seguranca do jogador).
 @export var room_size := Vector2i(320, 180)
+## Quanto a camera olha acima (negativo) ou abaixo (positivo) do pato. O original usa -50
+## (mais ceu); fases com agua embaixo das plataformas ficam melhores com 0.
+@export var camera_offset_y := -50.0
 
 
 # _enter_tree roda antes do _ready dos filhos (a camera precisa do tamanho da sala).
@@ -23,6 +26,7 @@ func _enter_tree() -> void:
 	Game.room = level_id
 	Game.room_width = room_size.x
 	Game.room_height = room_size.y
+	Game.camera_offset_y = camera_offset_y
 
 
 func _ready() -> void:

@@ -23,6 +23,8 @@ const EfeitoScene := preload("res://scenes/efeito.tscn")
 @export var effect_offset := Vector2(0, -16)
 ## Frames sem levar novo golpe nem causar dano depois de ser atingido (so importa com max_hp > 1).
 @export var hurt_frames := 30
+## Nos que recebem set_active(true) quando ele e derrotado (ex.: a porta da saida da arena).
+@export var alvos_ao_derrotar: Array[NodePath] = []
 
 var hp := 1
 var _hurt_until := -1
@@ -76,6 +78,10 @@ func hit(damage: int = 1) -> void:
 func defeat() -> void:
 	hp = 0
 	Game.play_sfx("stomp")
+	for path in alvos_ao_derrotar:
+		var target := get_node_or_null(path)
+		if target != null and target.has_method("set_active"):
+			target.set_active(true)
 	var fx := EfeitoScene.instantiate()
 	fx.position = position + effect_offset
 	get_parent().add_child(fx)

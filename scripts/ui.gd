@@ -229,6 +229,18 @@ func _draw_hud(w: int, h: int) -> void:
 	if Game.debug_invincible:
 		_text(4, h - 8, "DEBUG: INVENCÍVEL", COL_YELLOW, LEFT)
 
+	if Game.boss_visible and Game.boss_max > 0:
+		# barra de vida do chefe, no topo entre os coracoes e as flores (embaixo fica a agua)
+		_fill(66, 2, 222, 23, hud_bg)
+		_outline(66, 2, 222, 23, COL_MID)
+		_text(144, 9, Game.boss_label, Color.WHITE, CENTER)
+		var seg_w := floorf(146.0 / Game.boss_max)
+		for i in Game.boss_max:
+			var x := 72.0 + i * seg_w
+			_fill(x, 15, x + seg_w - 3, 20, COL_DARK)
+			if i < Game.boss_hp:
+				_fill(x + 1, 16, x + seg_w - 4, 19, Color8(220, 60, 50))
+
 	if Game.show_air:
 		# folego: 5 bolhas que somem conforme o ar acaba (piscam no fim)
 		_fill(2, 23, 55, 34, hud_bg)

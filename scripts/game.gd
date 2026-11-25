@@ -17,6 +17,7 @@ var levels: Array = [
 	{"id": "tutorial", "name": "TUTORIAL"},
 	{"id": "fase1", "name": "FASE 1"},
 	{"id": "fase2", "name": "FASE 2"},
+	{"id": "fase3", "name": "FASE 3"},
 ]
 
 ## Fase de testes com todas as mecanicas (nao conta progresso; so aparece em build de debug).
@@ -80,11 +81,18 @@ var debug_invincible := false
 var air_ratio := 1.0
 var show_air := false
 
+# --- barra de vida do chefe da fase (o chefe chama set_boss / clear_boss) -----
+var boss_visible := false
+var boss_label := ""
+var boss_hp := 0
+var boss_max := 0
+
 # --- sala atual (preenchido por menu.gd / level.gd) ------------------------
 var room := "menu"
 var room_width := 320
 var room_height := 180
 var cam_pos := Vector2.ZERO  # canto superior esquerdo da "view" (camera.gd)
+var camera_offset_y := -50.0  # Level.camera_offset_y da fase atual
 var in_level := false  # true enquanto uma cena de fase (level.gd) esta ativa
 var current_level_name := ""
 var has_checkpoint := false
@@ -303,6 +311,7 @@ func begin_level(level: Level) -> void:
 	level_elapsed_seconds = 0.0
 	air_ratio = 1.0
 	show_air = false
+	boss_visible = false
 	current_collectibles = 0
 	has_checkpoint = false
 	var flowers := 0
@@ -315,6 +324,17 @@ func begin_level(level: Level) -> void:
 	if game_state == "main":
 		game_state = "playing"
 	_update_pause()
+
+
+func set_boss(label: String, hp: int, hp_max: int) -> void:
+	boss_visible = true
+	boss_label = label
+	boss_hp = hp
+	boss_max = hp_max
+
+
+func clear_boss() -> void:
+	boss_visible = false
 
 
 func set_checkpoint(pos: Vector2) -> void:

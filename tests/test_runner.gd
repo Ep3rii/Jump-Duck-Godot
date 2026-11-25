@@ -714,6 +714,91 @@ func _test_fase2() -> void:
 	player().position = Vector2(1704, 304)
 	await frames(3)
 	check(Game.game_state == "complete" and Game.best.has("fase2"), "saida conclui a fase 2 e salva")
+	check(Game.ui_layout()[0]["label"] == "PRÓXIMA FASE", "fase 2 leva a fase 3")
+	Game._run_menu_action("PRÓXIMA FASE")
+	await wait_level()
+	await _test_fase3()
+
+
+func _test_fase3() -> void:
+	print("-- fase 3 (mini-chefe jacare)")
+	check(Game.current_level_name == "fase3" and Game.total_collectibles == 4, "fase 3 carregada com 4 flores")
+	var boss: Node2D = node("Entidades/JacareGigante")
+	var porta: Node2D = node("Mecanicas/Porta1")
+	for j in [node("Entidades/Jacare1"), node("Entidades/Jacare2")]:
+		j.set_physics_process(false)
+		j.position = Vector2(-500, 0)
+	await frames(5)
+	check(boss.state == "espera" and not Game.boss_visible, "chefe espera e a barra esta escondida")
+	check(not porta.is_open, "porta da saida trancada")
+
+	# entrar na arena acorda o chefe
+	reset_player(Vector2(944, 256))  # plataforma 1
+	await frames(5)
+	check(boss.state != "espera" and Game.boss_visible and Game.boss_hp == 5,
+		"pato na arena: chefe acorda e a barra aparece (%s)" % boss.state)
+
+	# ciclo completo sozinho (pato invencivel numa plataforma)
+	Game.debug_invincible = true
+	reset_player(Vector2(1072, 256))
+	var seen := {}
+	for i in 1200:
+		await frames(1)
+		seen[boss.state] = true
+		if seen.has("dor"):
+			break
+	Game.debug_invincible = false
+	check(seen.has("aviso") and seen.has("salto") and seen.has("mordida_aviso") and seen.has("mordida")
+		and seen.has("dor"), "ciclo: bolhas, salto, mordida e dor de dente (%s)" % [seen.keys()])
+
+	# salto acerta quem esta na plataforma
+	reset_player(Vector2(944, 256))
+	boss.position = Vector2(944, boss.position.y)
+	boss._target_x = 944.0
+	boss.leaps_left = 1
+	boss.force_state("aviso", 1)
+	await frames(80)
+	check(Game.player_lives == Game.max_lives - 1, "salto do chefe acerta o pato na plataforma")
+
+	# fora da dor de dente, pular nele machuca o pato
+	reset_player(Vector2(1000, 230))
+	boss.position = Vector2(1000, boss.position.y)
+	boss.force_state("mordida_aviso", 999)
+	await frames(1)
+	player().spdv = 3.0
+	await frames(25)
+	check(Game.player_lives == Game.max_lives - 1 and boss.hp == 5, "pisar fora da dor de dente machuca o pato")
+
+	# mordida pega quem nada perto
+	reset_player(Vector2(1180, 310))
+	boss.position = Vector2(1150, boss.position.y)
+	boss.dir = 1
+	boss.force_state("mordida_aviso", 5)
+	await frames(30)
+	check(Game.player_lives == Game.max_lives - 1, "mordida pega quem esta perto")
+
+	# 5 pisoes com dor de dente derrotam e abrem a porta
+	for k in 5:
+		if not is_instance_valid(boss) or boss.is_queued_for_deletion():
+			break
+		boss.position = Vector2(1000, boss.position.y)
+		boss.force_state("dor", 999)
+		await frames(2)
+		reset_player(Vector2(1000, 260))
+		player().spdv = 3.0
+		await frames(12)
+		if k == 0:
+			check(boss.hp == 4 and boss.state == "ferido" and Game.boss_hp == 4,
+				"pisao com dor de dente tira 1 de vida")
+			check(Game.player_lives == Game.max_lives, "pisao certo nao machuca")
+		await frames(60)
+	check(not is_instance_valid(boss) or boss.is_queued_for_deletion(), "5 pisoes derrotam o jacare gigante")
+	await frames(5)
+	check(porta.is_open and not Game.boss_visible, "porta da saida abre e a barra some")
+
+	player().position = Vector2(1480, 304)
+	await frames(3)
+	check(Game.game_state == "complete" and Game.best.has("fase3"), "saida conclui a fase 3 e salva")
 	check(Game.ui_layout()[0]["label"] == "MENU PRINCIPAL", "ultima fase: sem PROXIMA FASE")
 
 
