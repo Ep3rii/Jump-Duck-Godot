@@ -1,6 +1,7 @@
 # Jump Duck — Roteiro de fases
 
-Montado a partir das ideias da conversa de 25/11/2026. Complementa o [PLANO.md](PLANO.md) (Fase 6).
+Montado a partir das ideias e respostas da conversa de 25/11/2026. Complementa o
+[PLANO.md](PLANO.md) (Fase 6).
 
 **Estrutura:** Tutorial → Fases 1 a 8 → Fase Final (chefe) → cutscene no topo da torre.
 São 10 fases jogáveis + 1 cutscene.
@@ -12,57 +13,125 @@ São 10 fases jogáveis + 1 cutscene.
 - **Puzzles inteligentes, ligados ao cenário:** empurrar algo para alcançar uma parte mais alta,
   ou para destravar uma porta. Nada de puzzle "solto" sem motivo na fase.
 - **Cada mecânica nova é apresentada com segurança antes de ser cobrada com perigo.**
+- **Chefes e mini-chefes:** 5 acertos por chefe (ou por etapa de chefe).
 
 ## As fases
 
-| Fase | Onde | Mecânicas | Inimigos | Situação |
+| Fase | Onde | Mecânicas | Inimigos | Precisa de |
 |---|---|---|---|---|
-| **Tutorial** | Fazenda, saindo de perto do moinho | andar, pulo, pulo duplo, flores, queda; no fim, a primeira raposa | raposa (perto do fim) | ✅ jogável: o layout atual já termina com a raposa. Falta o tema fazenda/moinho |
-| **Fase 1** | Caminho até a torre | primeiro puzzle de empurrar caixa para subir | raposas | ✅ dá para montar só com o que já existe |
-| **Fase 2** | Caminho até a torre (lago) | **nadar** (novo), caixas | jacarés? (ver P2) | precisa: nado, jacaré |
-| **Fase 3** | Caminho até a torre (lago) | nadar | **mini-chefe jacaré** | precisa: nado, mini-chefe |
-| **Fase 4** | Torre (subida 1/6) | **chaves** (novo), cipó, placas | ver P3 | precisa: chave e porta trancada |
-| **Fase 5** | Torre (subida 2/6) | chaves, puzzles com caixa | ver P3 | precisa: chave |
-| **Fase 6** | Torre (subida 3/6) | **vento** e **plataformas que caem** (novos) | ver P3 | precisa: vento, plataforma que cai |
-| **Fase 7** | Torre (subida 4/6) | vento, plataformas que caem | ver P3 | idem |
-| **Fase 8** | Torre (subida 5/6) | vento, plataformas que caem, chaves | ver P3 | idem |
-| **Fase Final** | Última sala antes do topo (subida 6/6) | luta contra o **gavião**: mergulhos em padrão; depois da sequência ele bate na parede e fica vulnerável; caixas arremessadas também acertam | gavião (chefe) | precisa: chefe |
-| **Cutscene** | Topo da torre | encontro com a amada | — | precisa: sistema de cutscene, arte |
+| **Tutorial** | Fazenda, saindo de perto do moinho | andar, pulo, pulo duplo, flores, queda; empurrar um fardo de feno (a "caixa" da fazenda); no fim, a primeira raposa | raposa (perto do fim) | **refazer** o layout com o tema certo (decidido) + arte da fazenda |
+| **Fase 1** | Caminho até a torre | primeiro puzzle de empurrar caixa para subir | raposas | nada novo |
+| **Fase 2** | Caminho até a torre (lago) | **nadar** (novo), caixas | jacarés comuns | nado, jacaré |
+| **Fase 3** | Caminho até a torre (lago) | nadar | jacarés + **mini-chefe jacaré** | nado, mini-chefe |
+| **Fase 4** | Torre (subida 1/6) | **chaves** (novo), cipó, placas | aves de rapina | chave, porta trancada, aves |
+| **Fase 5** | Torre (subida 2/6) | chaves, puzzles com caixa | aves de rapina | chave, aves |
+| **Fase 6** | Torre (subida 3/6) | **vento** e **plataformas que caem** (novos) | aves de rapina | vento, plataforma que cai |
+| **Fase 7** | Torre (subida 4/6) | vento, plataformas que caem | aves de rapina | idem |
+| **Fase 8** | Torre (subida 5/6) | vento, plataformas que caem, chaves | aves de rapina | idem |
+| **Fase Final** | Última sala antes do topo (subida 6/6) | luta contra o gavião em 2 etapas | **gavião (chefe)** | chefe |
+| **Cutscene** | Topo da torre | o pato encontra a **Pata** e os dois olham o pôr do sol | — | cutscene, arte |
 
-## Mecânicas e conteúdo novos
+## Como cada coisa nova funciona (decidido)
 
-| O quê | Para | Esboço | Tamanho |
+### Nado (Fases 2 e 3)
+- O pato **boia na superfície** e anda nadando de um lado para o outro.
+- **BAIXO mergulha**; debaixo d'água ele nada nas 4 direções e sobe sozinho ao soltar.
+- **Fôlego limitado** debaixo d'água, mostrado no HUD (bolhas). Na superfície o fôlego volta.
+- *Proposta (confirmar):* sem fôlego, o pato perde 1 coração e volta à superfície com o fôlego cheio.
+- Água nadável é diferente da água-perigo (`perigo.tscn`), que continua existindo para outros lugares.
+
+### Jacaré comum (Fases 2 e 3)
+- Inimigo da água, herda `enemy.gd`.
+- *Proposta (confirmar):* patrulha nadando; morde quem passa perto. Pode ser pisado quando está
+  com a cabeça fora d'água; encostar nele machuca.
+
+### Mini-chefe jacaré (Fase 3)
+- De tempos em tempos **salta da água e ataca as plataformas** (onde o pato está).
+- Quando fica na superfície, dá **uma mordida forte** e depois fica um tempo parado
+  **"com dor de dente"**. É a janela para pisar na cabeça dele.
+- **5 pisões** para vencer.
+
+### Aves de rapina (Fases 4 a 8)
+Inimigos voadores da família do gavião. Proposta de dois tipos, para variar:
+- **Gaviãozinho:** voa num trajeto fixo e dá um **rasante** quando o pato passa embaixo. Pode ser pisado.
+- **Águia:** circula alto e **mergulha em diagonal** em direção ao pato, depois sobe de volta. Pode ser pisada e atingida por caixas.
+
+### Chave e porta trancada (Fases 4, 5 e 8)
+- A chave é um item; as chaves que o pato carrega aparecem no HUD.
+- A `porta.gd` ganha o modo "trancada": encostar com uma chave abre e gasta a chave.
+
+### Vento e plataformas que caem (Fases 6 a 8)
+- **Vento:** área que empurra o pato (e as caixas) numa direção, constante ou em rajadas, com partículas mostrando a direção.
+- **Plataforma que cai:** treme ao ser pisada, cai depois de um tempo e volta alguns segundos depois.
+
+### Chefe gavião (Fase Final)
+- Ataca em **sequências de mergulhos**. No fim da sequência **bate na parede da torre e fica atordoado**.
+- Atordoado, pode ser atingido **das duas formas**: pisão ou caixa arremessada.
+- **Etapa 1:** 5 acertos. **Etapa 2:** mais 5 acertos, com ele mais agressivo
+  (*proposta:* mergulhos mais rápidos e mais mergulhos por sequência).
+- Só 2 etapas. Barra de vida no HUD durante a luta.
+
+### Cutscene final
+- No topo da torre, o pato encontra a **Pata**; os dois olham o pôr do sol. Termina nos créditos.
+- Pode ser pulada. Precisa de: sprite da Pata, fundo de pôr do sol.
+
+## Arte: sugestão
+
+**Como fazer:** você desenha no Aseprite, que já está instalado, no mesmo estilo dos sprites atuais.
+Enquanto a arte não chega, eu sigo com desenhos provisórios em código (como a caixa e as bandeiras),
+então a programação não fica esperando. Quando um sprite ficar pronto, é só me avisar: eu ligo ele
+no jogo e apago o provisório.
+
+**Padrão para exportar (igual ao que o jogo já usa):**
+- PNG em **tira horizontal** (todos os quadros lado a lado), fundo transparente, em `assets/sprites/`.
+- Mesma grade dos atuais: tiles de **16x16**, tileset de **64x64** (4x4 tiles), pato e aves de **32x32**,
+  bichos grandes de **64x64**.
+- Paleta: a mesma do jogo (verdes do HUD, amarelo, contorno escuro).
+- Para cada sprite, anote **quantos quadros** e o **FPS**; o resto eu configuro (origem, animações).
+
+**O que desenhar, na ordem em que as fases vão precisar:**
+
+| Para | Sprite | Tamanho | Quadros |
 |---|---|---|---|
-| Nado | Fases 2 e 3 | área de água "nadável" (diferente do perigo): gravidade menor, pulo vira braçada; ver P1 | M |
-| Jacaré (inimigo) | Fases 2 e 3 | herda `enemy.gd`; vive na água; ver P2 | M |
-| Mini-chefe jacaré | Fase 3 | padrão de ataque + janela de vulnerabilidade; barra de vida | G |
-| Chave + porta trancada | Fases 4, 5 e 8 | chave é um item (aparece no HUD); a `porta.gd` ganha o modo "trancada", que abre gastando uma chave | P |
-| Vento | Fases 6 a 8 | área que empurra o pato (e caixas) numa direção, com ou sem rajadas | P–M |
-| Plataforma que cai | Fases 6 a 8 | treme ao ser pisada, cai depois de um tempo e volta depois de alguns segundos | P |
-| Gavião (chefe) | Final | mergulhos em sequência → bate na parede → atordoado (vulnerável); caixas arremessadas acertam | G |
-| Câmera vertical | Fases 4 a Final | as fases da torre são "para cima": conferir o enquadramento (hoje a câmera olha 50 px acima do pato) | P |
-| Cutscene | Final | sequência roteirizada (`AnimationPlayer`) + caixa de diálogo; dá para pular | M |
-| Arte | todas | moinho e fazenda, lago, interior da torre, jacaré, gavião, amada, chave, animação de nado | — |
+| Tutorial | moinho (pás girando) | ~64x96 | 4 |
+| Tutorial | celeiro, cerca, feno (decoração) | livre | 1 |
+| Tutorial | fardo de feno (substitui a caixa na fazenda) | 16x16 | 1 |
+| Tutorial | tileset da fazenda (terra, grama, cerca) | 64x64 | — |
+| Fase 1 | caixa de madeira (substitui a provisória) | 16x16 | 1 |
+| Fases 2–3 | pato nadando (boiando / mergulhando) | 32x32 | 2–4 cada |
+| Fases 2–3 | bolhas do fôlego (HUD) | 8x8 | 1–2 |
+| Fases 2–3 | jacaré comum (nadando, mordendo) | 64x32 | 4 + 3 |
+| Fase 3 | jacaré mini-chefe (nadando, saltando, mordendo, dor de dente) | ~96x48 | 4 + 2 + 3 + 2 |
+| Fases 4–8 | tileset de pedra da torre | 64x64 | — |
+| Fases 4–8 | chave (brilhando) | 16x16 | 2–4 |
+| Fases 4–8 | porta trancada (com fechadura) | 16x48 | 1 |
+| Fases 4–8 | gaviãozinho (voo, rasante) | 32x32 | 4 + 2 |
+| Fases 4–8 | águia (voo, mergulho) | 32x32 ou 48x48 | 4 + 2 |
+| Fases 6–8 | plataforma que cai (normal, rachada) | 16x16 | 2 |
+| Final | gavião chefe (voo, mergulho, batida na parede, atordoado, dano) | 64x64 | 4 + 2 + 1 + 3 + 2 |
+| Cutscene | Pata (parada, andando) | 32x32 | 3 + 4 |
+| Cutscene | céu de pôr do sol e sol grande (fundo) | 320x180 | 1 |
+| Geral | pato escalando o cipó | 32x32 | 2 |
 
-## Ordem sugerida: construir fase por fase
+**Alternativa:** pacotes de pixel art prontos (itch.io etc.) aceleram, mas como o jogo tem licença
+proprietária, só servem pacotes com licença que permita uso comercial. Confira a licença de cada um.
+
+## Ordem de construção
 
 Cada fase vira uma entrega jogável, com a mecânica dela feita logo antes:
 
-1. **Fase 1**: só mecânicas que já existem. Serve para validar o processo (montar, testar, ajustar a dificuldade).
-2. **Nado + jacaré → Fase 2**, e depois **mini-chefe → Fase 3**.
-3. **Chaves → Fases 4 e 5**.
+1. **Tutorial novo** (fazenda/moinho, com arte provisória) e **Fase 1**: os dois só usam mecânicas que já existem.
+2. **Nado + jacaré comum → Fase 2**, e depois **mini-chefe jacaré → Fase 3**.
+3. **Chave + aves de rapina → Fases 4 e 5**.
 4. **Vento + plataformas que caem → Fases 6, 7 e 8**.
-5. **Gavião → Fase Final**, e depois **cutscene**.
-6. **Tutorial com tema de fazenda e moinho** (quando houver arte), ajuste geral de dificuldade e de pontuação.
+5. **Chefe gavião → Fase Final**, e depois **cutscene com a Pata**.
+6. Trocar a arte provisória pela definitiva conforme ela for ficando pronta; ajuste geral de dificuldade e de pontuação.
 
-## Perguntas em aberto
+## Ainda para confirmar
 
-| # | Pergunta | Por que importa |
-|---|---|---|
-| P1 | **Nado:** o pato boia na superfície e mergulha (como um pato de verdade) ou nada livre debaixo d'água? Tem limite de fôlego? | Muda a física e o desenho das fases 2 e 3 |
-| P2 | **Jacaré:** aparece como inimigo comum nas fases 2 e 3, ou só como mini-chefe? Como o mini-chefe ataca e como é derrotado? | Define quantos comportamentos programar |
-| P3 | **Inimigos na torre (fases 4 a 8):** há gaviões menores, raposas, outra coisa? Ou a torre é mais puzzle e plataforma? | O resumo só cita gavião, raposa e jacaré |
-| P4 | **Chefe gavião:** quantos acertos para vencer? Atordoado, ele pode ser pisado, ou só as caixas acertam? Fica mais agressivo com menos vida? | Define a luta final |
-| P5 | **Cutscene:** o que acontece no topo (só o encontro? o gavião foge ou cai?) e qual a duração? | Define o sistema e a arte necessária |
-| P6 | **Arte:** você vai desenhar os sprites novos (vi o Aseprite instalado)? Enquanto isso, sigo com desenhos provisórios em código | Define se a programação espera a arte ou não |
-| P7 | **Tutorial:** mantém o layout atual (vindo do GameMaker) e só troca a decoração, ou refaz pensando no moinho? | O layout atual já termina com a raposa |
+| # | Pergunta |
+|---|---|
+| C1 | Sem fôlego debaixo d'água: perde 1 coração e volta à superfície (proposta acima)? |
+| C2 | Jacaré comum: pode ser pisado quando está com a cabeça fora d'água (proposta acima)? |
+| C3 | "5 hits em cada mini-boss": existe outro mini-chefe além do jacaré, ou é só ele? |
+| C4 | Aves da torre: gaviãozinho e águia, como proposto acima, servem? |
