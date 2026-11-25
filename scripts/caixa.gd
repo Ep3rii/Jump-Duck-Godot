@@ -79,8 +79,8 @@ func push(dx: float) -> bool:
 	if state != "idle" or dx == 0.0:
 		return false
 	var snap := Solids.snapshot(get_tree())
-	if not Solids.hits(snap, _rect_at(position + Vector2(0, 1)), [self]):
-		return false  # caindo: nao empurra
+	if not Solids.hits(snap, _rect_at(position + Vector2(0, 1)), [self]) and _water_here() == null:
+		return false  # caindo: nao empurra (boiando pode)
 	var start := position.x
 	var step := signf(dx)
 	var remaining := absf(dx)
@@ -178,7 +178,23 @@ func _physics_process(_delta: float) -> void:
 		_land()
 
 
+## Agua em que a caixa esta (a base 4 px abaixo da linha d'agua ja conta).
+func _water_here() -> Node2D:
+	var p := position + Vector2(0, -4)
+	for w in get_tree().get_nodes_in_group("agua"):
+		if w.get_rect().has_point(p):
+			return w
+	return null
+
+
 func _fall() -> void:
+	var water := _water_here()
+	if water != null:
+		# boia: a base fica 4 px abaixo da linha d'agua (da para subir nela nadando)
+		var target: float = water.surface_y() + 4.0
+		position.y = move_toward(position.y, target, 1.0 if position.y > target else maxf(1.0, vel.y))
+		vel.y = 0.0
+		return
 	var snap := Solids.snapshot(get_tree())
 	if _blocked(_rect_at(position + Vector2(0, 1)), snap):
 		vel.y = 0.0

@@ -17,6 +17,10 @@ const HURT_HOP := -2.0  # pulinho ao levar dano
 const KNOCKBACK_SPEED := 1.5  # recuo horizontal inicial ao levar dano
 const PUSH_SPEED := 1.0  # velocidade andando contra uma caixa
 const CLIMB_SPEED := 1.0  # subindo/descendo cipo
+const SWIM_SPEED := 1.5  # nadando na superficie
+const DIVE_SPEED := 1.2  # nadando debaixo d'agua
+const FLOAT_DEPTH := 6.0  # o pe fica 6 px abaixo da linha d'agua (meio pato submerso)
+const AIR_MAX := 300  # folego: 5 s debaixo d'agua
 
 var spdh := 0.0
 var spdv := 0.0
@@ -39,6 +43,8 @@ var move := 0
 var knockback_dir := 0
 var carrying: Node2D = null  # caixa acima da cabeca
 var climbing := false
+var swim := "none"  # none | surface (boiando) | dive (mergulhado)
+var air := AIR_MAX
 
 var _anim := "idle"
 var _solids: Array = []
@@ -159,6 +165,11 @@ func _physics_process(_delta: float) -> void:
 	if is_queued_for_deletion():
 		return
 
+	if swim != "dive":
+		air = mini(AIR_MAX, air + 4)  # respira na superficie / fora d'agua
+	Game.air_ratio = float(air) / AIR_MAX
+	Game.show_air = swim == "dive" or air < AIR_MAX
+
 	_check_out_of_bounds()
 	_collisions()
 	_update_sprite()
@@ -166,6 +177,11 @@ func _physics_process(_delta: float) -> void:
 
 func _step_alive() -> void:
 	move = int(Input.is_action_pressed("right")) - int(Input.is_action_pressed("left"))
+	var water := _water_here()
+	if water != null:
+		_step_swim(water)
+		return
+	swim = "none"
 	spdh = move * spd_player
 	if carrying == null and spdh != 0.0:
 		_push_boxes()
@@ -260,6 +276,80 @@ func _drop_carried() -> void:
 	carrying = null
 
 
+# -------------------------------------------------------------------- agua
+## Agua em que o pe do pato esta (3 px abaixo da linha d'agua ja conta).
+func _water_here() -> Node2D:
+	var feet := Vector2(position.x, position.y - 3.0)
+	for w in get_tree().get_nodes_in_group("agua"):
+		if w.get_rect().has_point(feet):
+			return w
+	return null
+
+
+## Nado: boia na superficie (ESPACO sai, BAIXO mergulha); mergulhado nada nas 4 direcoes e,
+## sem apertar nada, sobe devagar. O folego so gasta mergulhado; acabou, perde 1 coracao.
+func _step_swim(water: Node2D) -> void:
+	_drop_carried()
+	climbing = false
+	fall_start_y = -1.0  # cair na agua nao machuca
+	pulos = 2
+	var surf: float = water.surface_y() + FLOAT_DEPTH
+	var down := Input.is_action_pressed("down")
+	var up := Input.is_action_pressed("up")
+	if swim == "none":  # acabou de cair na agua
+		swim = "dive" if down else "surface"
+		spdv = minf(spdv, 1.5)
+		Game.play_sfx("splash")
+
+	if swim == "surface":
+		spdh = move * SWIM_SPEED
+		if spdh != 0.0:
+			_push_boxes()
+		_move_x()
+		if _jump_pressed():
+			swim = "none"
+			spdv = spd_pulo
+			pulos = 1
+			Game.play_sfx("jump")
+			_move_y()
+			if move != 0:
+				xscale = move
+			return
+		if down:
+			swim = "dive"
+			Game.play_sfx("dive")
+		else:
+			spdv = clampf(surf - position.y, -1.5, 1.5)
+			_move_y()
+	if swim == "dive":
+		spdh = move * DIVE_SPEED
+		_move_x()
+		spdv = (int(down) - int(up)) * DIVE_SPEED
+		if not down and not up:
+			spdv = -0.6
+		_move_y()
+		if position.y <= surf:
+			position.y = surf
+			swim = "surface"
+		air -= 1
+		if air <= 0:
+			_drown(surf)
+	if move != 0:
+		xscale = move
+
+
+## Sem folego: perde 1 coracao e volta a superficie (ou ao checkpoint, se em cima for parede).
+func _drown(surf: float) -> void:
+	air = AIR_MAX
+	if _place_meeting(position.x, surf):
+		respawn(true)
+		return
+	position.y = surf
+	swim = "surface"
+	spdv = 0.0
+	take_damage()
+
+
 # -------------------------------------------------------------------- cipo
 ## grow: conta tambem o cipo logo abaixo do pe (no topo o pe so encosta na ponta do cipo).
 func _vine_here(grow: bool) -> Node2D:
@@ -322,7 +412,10 @@ func _step_hurt_or_dead() -> void:
 	else:
 		spdh = 0.0
 	_move_x()
-	if not _place_meeting(position.x, position.y + 1.0):
+	var water := _water_here()
+	if water != null:  # machucado na agua: boia ate a superficie
+		spdv = clampf(water.surface_y() + FLOAT_DEPTH - position.y, -1.0, 1.0)
+	elif not _place_meeting(position.x, position.y + 1.0):
 		spdv = minf(spdv + gravidade, max_fall_speed)
 	fall_start_y = -1.0
 	_move_y()
@@ -359,7 +452,11 @@ func _update_sprite() -> void:
 	var next_anim := "idle"
 	if move != 0:
 		next_anim = "run"
-	if climbing:
+	if swim == "surface":
+		pass  # boiando: parado ou "andando" (sem sprite de nado ainda)
+	elif swim == "dive":
+		next_anim = "fall"  # mergulhado: quadro de queda (sem sprite de mergulho ainda)
+	elif climbing:
 		next_anim = "jump"  # sem sprite de escalar ainda: quadro do pulo, parado
 	elif spdv < 0.0:
 		next_anim = "jump"
@@ -424,6 +521,8 @@ func respawn(lose_life: bool) -> void:
 		carrying.reset_to_start()
 	carrying = null
 	climbing = false
+	swim = "none"
+	air = AIR_MAX
 	position = at
 	spdh = 0.0
 	spdv = 0.0

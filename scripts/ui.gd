@@ -180,9 +180,10 @@ func _draw() -> void:
 			_title_banner(10, "CONTROLES")
 			var rows := [["MOVER", "SETAS OU A/D"], ["PULAR", "ESPAÇO"], ["PULO DUPLO", "ESPAÇO NO AR"],
 				["PEGAR/ARREMESSAR", "X OU J"], ["POUSAR CAIXA", "BAIXO + X"],
-				["ESCALAR CIPÓ", "CIMA/BAIXO"], ["DERROTAR INIMIGO", "PULE EM CIMA"], ["PAUSAR", "ESC"]]
+				["ESCALAR CIPÓ", "CIMA/BAIXO"], ["MERGULHAR", "BAIXO NA ÁGUA"],
+				["DERROTAR INIMIGO", "PULE EM CIMA"], ["PAUSAR", "ESC"]]
 			for i in rows.size():
-				var y := 48 + i * 11
+				var y := 46 + i * 10
 				_text(44, y, rows[i][0], Color.WHITE, LEFT)
 				_text(276, y, rows[i][1], COL_YELLOW, RIGHT)
 			_text_plain(cx, 139, "MENUS: SETAS, ENTER OU MOUSE", COL_HINT, CENTER)
@@ -227,6 +228,20 @@ func _draw_hud(w: int, h: int) -> void:
 
 	if Game.debug_invincible:
 		_text(4, h - 8, "DEBUG: INVENCÍVEL", COL_YELLOW, LEFT)
+
+	if Game.show_air:
+		# folego: 5 bolhas que somem conforme o ar acaba (piscam no fim)
+		_fill(2, 23, 55, 34, hud_bg)
+		_outline(2, 23, 55, 34, COL_MID)
+		var left := ceili(Game.air_ratio * 5.0 - 0.001)
+		var blink := Game.air_ratio < 0.25 and (Time.get_ticks_msec() / 150) % 2 == 0
+		for i in 5:
+			var c := Vector2(9 + i * 10, 28.5)
+			if i < left and not blink:
+				draw_circle(c, 3.5, Color8(200, 235, 255))
+				draw_circle(c + Vector2(-1, -1), 1.0, Color.WHITE)
+			else:
+				draw_arc(c, 3.0, 0.0, TAU, 12, Color8(70, 110, 140), 1.0)
 
 	for heart in Game.max_lives:
 		var heart_sprite := "spr_vidaCheia" if heart < Game.player_lives else "spr_vidaVazia"

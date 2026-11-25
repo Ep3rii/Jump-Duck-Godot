@@ -1,0 +1,50 @@
+@tool
+extends Node2D
+## Agua em que da para nadar (Fases 2 e 3). Diferente do perigo.tscn: aqui o pato boia na
+## superficie, mergulha com BAIXO e tem folego limitado. Caixas boiam; jacares vivem aqui.
+## Origem no canto INFERIOR esquerdo (como o Block), tamanho em tiles de 16 px.
+## Desenhada na frente do pato e translucida: ele aparece "dentro" d'agua.
+
+const Sprites := preload("res://scripts/sprites.gd")
+
+@export var tiles_w: int = 4:
+	set(v):
+		tiles_w = v
+		queue_redraw()
+@export var tiles_h: int = 3:
+	set(v):
+		tiles_h = v
+		queue_redraw()
+
+const COL_BODY := Color(0.12, 0.42, 0.80, 0.45)
+const COL_DEEP := Color(0.05, 0.25, 0.60, 0.35)
+
+var _time := 0.0
+
+
+func _ready() -> void:
+	add_to_group("agua")
+
+
+func get_rect() -> Rect2:
+	return Rect2(global_position.x, global_position.y - 16.0 * tiles_h,
+		16.0 * tiles_w, 16.0 * tiles_h)
+
+
+func surface_y() -> float:
+	return global_position.y - 16.0 * tiles_h
+
+
+func _process(delta: float) -> void:
+	_time += delta
+	queue_redraw()
+
+
+func _draw() -> void:
+	var w := 16.0 * tiles_w
+	var h := 16.0 * tiles_h
+	draw_rect(Rect2(0, -h + 4, w, h - 4), COL_BODY)
+	draw_rect(Rect2(0, -h * 0.5, w, h * 0.5), COL_DEEP)
+	var frame := int(_time * Sprites.meta("spr_agua01Anima")[5])
+	for i in tiles_w:
+		Sprites.draw(self, "spr_agua01Anima", frame + i, i * 16.0, -h, 1.0, 1.0, Color(1, 1, 1, 0.85))

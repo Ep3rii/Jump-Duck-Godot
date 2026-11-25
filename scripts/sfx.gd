@@ -50,6 +50,12 @@ static func _make(sfx_name: String) -> AudioStreamWAV:
 			return _build([[220.0, 220.0, 0.03], [330.0, 330.0, 0.04]], "square", 0.15)
 		"door":
 			return _build([[120.0, 90.0, 0.18]], "noise_square", 0.22)
+		"splash":
+			return _build([[700.0, 200.0, 0.16]], "noise_square", 0.22)
+		"dive":
+			return _build([[500.0, 300.0, 0.08]], "triangle", 0.2)
+		"bite":
+			return _build([[180.0, 120.0, 0.05], [260.0, 90.0, 0.07]], "noise_square", 0.3)
 	push_warning("Sfx: som desconhecido '%s'" % sfx_name)
 	return _build([[440.0, 440.0, 0.05]], "square", 0.1)
 

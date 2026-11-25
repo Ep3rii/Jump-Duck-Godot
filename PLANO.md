@@ -16,7 +16,7 @@ Base: resumo do Notion (`jump-duck-resumo.md`) + leitura completa do código atu
 | 1 — Bugs e base | ✅ B1–B6 e E1, E2, E3, E6, E7, E8 corrigidos; 40 testes automáticos passando (`tests/test_runner.tscn`). E4 e E5 feitos na Fase 2 |
 | 2 — Sistemas | ✅ Saída (D4), checkpoint, perigo, vida extra, `enemy.gd` com raposa por cima, fim de jogo recomeça a fase (D3), recorde/estrelas/fases liberadas salvos, menu com CONTINUAR, FASES, CRÉDITOS e CONTROLES, volumes de música e efeitos separados, efeitos sonoros sintetizados (provisórios), fade entre cenas; 76 testes passando. Ficou para a Fase 4: arremesso de objetos (D2), que depende dos objetos carregáveis |
 | 4 — Mecânicas | ✅ Caixa (empurrar, subir, pegar, arremessar e pousar), placa de pressão, porta, plataforma móvel, cipó escalável, perigo com aparência de água, laboratório de mecânicas (`scenes/laboratorio.tscn`), cena modelo `fase_base.tscn` com TileSet sólido pronto para pintar; 106 testes passando |
-| 6 — Fases | Em andamento: Tutorial (fazenda e moinho) e Fase 1 jogáveis, com placas de dica, decoração provisória e testes de cada trecho (139 testes). Próximo: nado + jacaré → Fase 2 (ver [ROTEIRO_FASES.md](ROTEIRO_FASES.md)) |
+| 6 — Fases | Em andamento: Tutorial (fazenda e moinho), Fase 1 e Fase 2 (lago, com nado e jacaré) jogáveis, com placas de dica, decoração provisória e testes de cada trecho (163 testes). Próximo: mini-chefe jacaré → Fase 3 (ver [ROTEIRO_FASES.md](ROTEIRO_FASES.md)) |
 | 3 e 5 | Feitas junto com as fases que as usam |
 
 ---

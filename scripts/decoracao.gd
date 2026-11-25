@@ -4,7 +4,7 @@ extends Node2D
 ## Nao colide com nada. Origem = base, no chao (centro para moinho/celeiro/arvore/arbusto,
 ## canto esquerdo para a cerca).
 
-@export_enum("Moinho", "Celeiro", "Cerca", "Árvore", "Arbusto", "Placa de saída") var tipo := 0:
+@export_enum("Moinho", "Celeiro", "Cerca", "Árvore", "Arbusto", "Placa de saída", "Junco") var tipo := 0:
 	set(v):
 		tipo = v
 		queue_redraw()
@@ -52,6 +52,8 @@ func _draw() -> void:
 			_draw_arbusto()
 		5:
 			_draw_placa_saida()
+		6:
+			_draw_junco()
 
 
 func _r(x: float, y: float, w: float, h: float, c: Color) -> void:
@@ -152,3 +154,14 @@ func _draw_placa_saida() -> void:
 	for i in 5:
 		_r(8 + i, -26 + i, 1, 9 - i * 2, OUTLINE if i == 4 else WOOD)
 	_r(-6, -22, 10, 1, WOOD_LIGHT)
+
+
+func _draw_junco() -> void:
+	# moita de juncos/taboas da beira do lago
+	var stems := [[-6, 22], [-3, 28], [0, 20], [3, 26], [6, 18]]
+	for s in stems:
+		_r(s[0], -s[1], 1, s[1], LEAF_DARK)
+		_r(s[0] + 1, -s[1] + 2, 1, s[1] - 2, LEAF)
+	for s in [[-3, 28], [3, 26]]:
+		_r(s[0] - 1, -s[1] - 1, 3, 7, OUTLINE)
+		_r(s[0], -s[1], 1, 5, WOOD)

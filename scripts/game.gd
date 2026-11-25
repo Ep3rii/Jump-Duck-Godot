@@ -16,6 +16,7 @@ const Sfx := preload("res://scripts/sfx.gd")
 var levels: Array = [
 	{"id": "tutorial", "name": "TUTORIAL"},
 	{"id": "fase1", "name": "FASE 1"},
+	{"id": "fase2", "name": "FASE 2"},
 ]
 
 ## Fase de testes com todas as mecanicas (nao conta progresso; so aparece em build de debug).
@@ -74,6 +75,10 @@ var best := {}  # id da fase -> {"score": int, "stars": int, "time": float}
 
 # --- depuracao (so em builds de debug: F1..F4) ------------------------------
 var debug_invincible := false
+
+# --- folego do pato (player.gd escreve; ui.gd desenha as bolhas) -------------
+var air_ratio := 1.0
+var show_air := false
 
 # --- sala atual (preenchido por menu.gd / level.gd) ------------------------
 var room := "menu"
@@ -296,6 +301,8 @@ func begin_level(level: Level) -> void:
 	in_level = true
 	current_level_name = level.level_id
 	level_elapsed_seconds = 0.0
+	air_ratio = 1.0
+	show_air = false
 	current_collectibles = 0
 	has_checkpoint = false
 	var flowers := 0

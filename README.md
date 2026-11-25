@@ -13,6 +13,7 @@ os PNGs e o MP3 sozinho.
 | Pegar / arremessar caixa | X ou J |
 | Pousar caixa na frente | Baixo + X/J |
 | Escalar cipó | Cima / Baixo (Espaço solta) |
+| Nadar | boia sozinho; Baixo mergulha (fôlego de 5 s, bolhas no HUD); Espaço sai da água |
 | Pausar | Esc |
 | Menus | Setas/W/S, Enter ou Espaço, mouse |
 
@@ -46,6 +47,7 @@ os PNGs e o MP3 sozinho.
 |---|---|---|
 | Tutorial | `scenes/tutorial.tscn` | fazenda e moinho; placas de dica ensinam andar, pular, flores, pulo duplo, queda alta + cipó, empurrar o feno, checkpoint e, no fim, a raposa |
 | Fase 1 | `scenes/fase1.tscn` | caminho até a torre (torre ao fundo): raposa entre buracos, caixa empurrada do ressalto para subir o paredão, placa + porta, arremesso na raposa do patamar, plataforma móvel |
+| Fase 2 | `scenes/fase2.tscn` | o lago: nadar e mergulhar (flor no fundo), caixa que boia empurrada pelo lago até virar degrau, jacarés, parede que só se passa mergulhando |
 
 O roteiro das fases seguintes está em [ROTEIRO_FASES.md](ROTEIRO_FASES.md). Toda a decoração
 (moinho, celeiro, cerca, árvores, placas, caixa/feno) é provisória, desenhada em código, até
@@ -93,7 +95,9 @@ godot --path . res://tests/screenshots.tscn
    `raposa`, `caixa`, `placa` (ligue os `alvos`), `porta`, `plataforma` (deslocamento,
    velocidade, espera; desligue `ativa` para só andar com a placa), `escalavel` (cipó;
    alinhe o topo com o chão de cima), `dica` (placa com texto; `|` quebra a linha) e
-   `decoracao` (moinho, celeiro, cerca, árvore, arbusto, seta de saída). A paralaxe tem
+   `decoracao` (moinho, celeiro, cerca, árvore, arbusto, seta de saída, junco), `agua` (água
+   nadável, desenhada translúcida na frente do pato; caixas boiam nela) e `jacare` (vive numa
+   `agua`; `comeca_mergulhado` alterna o ciclo entre jacarés). A paralaxe tem
    `mostrar_torre` para a torre aparecer ao fundo.
    Alturas de referência: pulo simples sobe ~34 px (2 tiles), pulo duplo ~68 px (4 tiles);
    5 tiles só com uma caixa embaixo; queda de 6 tiles (96 px) ou mais machuca.

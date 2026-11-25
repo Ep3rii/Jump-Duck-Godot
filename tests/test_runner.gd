@@ -602,9 +602,119 @@ func _test_levels() -> void:
 	player().position = Vector2(2152, 256)
 	await frames(3)
 	check(Game.game_state == "complete" and Game.best.has("fase1"), "saida conclui a fase 1 e salva")
-	check(Game.ui_layout()[0]["label"] == "MENU PRINCIPAL", "ultima fase: sem PROXIMA FASE")
+	check(Game.ui_layout()[0]["label"] == "PRÓXIMA FASE", "fase 1 leva a fase 2")
+	Game._run_menu_action("PRÓXIMA FASE")
+	await wait_level()
+	await _test_fase2()
 	Game.go_to_menu()
 	await wait_room("menu")
+
+
+func _test_fase2() -> void:
+	print("-- fase 2 (lago)")
+	check(Game.current_level_name == "fase2" and Game.total_collectibles == 4, "fase 2 carregada com 4 flores")
+	var j1: Node2D = node("Entidades/Jacare1")
+	var j2: Node2D = node("Entidades/Jacare2")
+	# jacares fora do caminho enquanto testa o nado
+	for j in [j1, j2]:
+		j.set_physics_process(false)
+		j.position = Vector2(-500, 0)
+
+	# boiar: cair de 100 px na agua nao machuca e o pato fica na linha d'agua
+	reset_player(Vector2(300, 200))
+	await frames(90)
+	check(player().swim == "surface" and absf(player().position.y - 310.0) < 0.6,
+		"cai na agua e boia (y=%.1f, %s)" % [player().position.y, player().swim])
+	check(Game.player_lives == Game.max_lives, "cair na agua nao machuca")
+
+	# mergulhar, gastar folego, voltar e respirar
+	await play(40, [KEY_DOWN])
+	check(player().swim == "dive" and player().position.y > 330.0, "BAIXO mergulha (y=%.0f)" % player().position.y)
+	check(player().air < player().AIR_MAX and Game.show_air, "folego gasta mergulhado e aparece no HUD")
+	await frames(120)
+	check(player().swim == "surface", "sem apertar nada volta a superficie")
+	await frames(100)
+	check(player().air == player().AIR_MAX, "na superficie o folego volta")
+
+	# flor no fundo do lago
+	reset_player(Vector2(328, 310))
+	var before := Game.current_collectibles
+	await play(80, [KEY_DOWN])
+	check(Game.current_collectibles == before + 1, "mergulhando pega a flor do fundo")
+	await frames(120)
+
+	# sem folego: perde 1 coracao e volta a superficie
+	reset_player(Vector2(250, 310))
+	await play(10, [KEY_DOWN])
+	player().air = 8
+	await play(20, [KEY_DOWN])
+	check(Game.player_lives == Game.max_lives - 1, "sem folego perde 1 coracao")
+	check(player().swim == "surface" and player().air == player().AIR_MAX, "e volta a superficie com folego")
+	await frames(130)
+
+	# sair da agua pulando para a margem
+	reset_player(Vector2(220, 310))
+	await play(40, [KEY_LEFT], {2: KEY_SPACE})
+	check(player().swim == "none" and player().position.y == 304.0 and player().position.x < 208.0,
+		"ESPACO sai da agua para a margem (%s)" % [player().position])
+
+	# caixa boia e vira degrau para o patamar
+	var cx: Node2D = node("Itens/Caixa1")
+	reset_player(Vector2(484, 304))
+	await play(70, [KEY_RIGHT])
+	await frames(60)
+	check(absf(cx.position.y - 308.0) < 0.6 and cx.is_in_group("solid"), "caixa empurrada para o lago boia (y=%.1f)" % cx.position.y)
+	reset_player(Vector2(cx.position.x - 15.0, 310))
+	await play(260, [KEY_RIGHT])
+	check(cx.position.x > 780.0, "nadando empurra a caixa pelo lago (x=%.0f)" % cx.position.x)
+	reset_player(Vector2(796, 310))
+	cx.position = Vector2(-300, 308)  # tira a caixa para testar sem ela
+	await frames(2)
+	await double_jump_right(70)
+	check(player().position.y > 245.0, "da agua, sem caixa, nao alcanca o patamar (y=%.0f)" % player().position.y)
+	cx.position = Vector2(808, 308)
+	await frames(10)
+	reset_player(Vector2(808, 292))
+	await frames(2)
+	await double_jump_right(70)
+	check(player().position.y == 240.0, "de cima da caixa boiando alcanca o patamar (y=%.0f)" % player().position.y)
+
+	# parede do lago C: so mergulhando
+	reset_player(Vector2(1060, 310))
+	await play(60, [KEY_RIGHT])
+	check(player().position.x < 1082.0, "parede bloqueia na superficie (x=%.0f)" % player().position.x)
+	await play(150, [KEY_DOWN, KEY_RIGHT])
+	await frames(60)
+	check(player().position.x > 1120.0, "mergulhando passa por baixo da parede (x=%.0f)" % player().position.x)
+
+	# jacare: pisao na superficie derrota; mergulhado nao pode ser pisado; encostar morde
+	j1.position = Vector2(664, 310)
+	j1.state = "surface"
+	j1.set_physics_process(true)
+	await frames(3)
+	check(j1.stompable, "jacare na superficie pode ser pisado")
+	reset_player(Vector2(j1.position.x, 270))
+	player().spdv = 3.0
+	await frames(10)
+	check(not is_instance_valid(j1) or j1.is_queued_for_deletion(), "pisao derrota o jacare")
+	check(Game.player_lives == Game.max_lives, "pisao no jacare nao machuca")
+	j2.position = Vector2(1208, 310)
+	j2.state = "dive"
+	j2._timer = 300
+	j2.velocidade = 0.0
+	j2.set_physics_process(true)
+	await frames(60)
+	check(not j2.stompable, "jacare mergulhado nao pode ser pisado")
+	j2.state = "surface"
+	await frames(60)
+	reset_player(Vector2(1180, 310))
+	await frames(10)
+	check(Game.player_lives == Game.max_lives - 1, "encostar no jacare machuca")
+
+	player().position = Vector2(1704, 304)
+	await frames(3)
+	check(Game.game_state == "complete" and Game.best.has("fase2"), "saida conclui a fase 2 e salva")
+	check(Game.ui_layout()[0]["label"] == "MENU PRINCIPAL", "ultima fase: sem PROXIMA FASE")
 
 
 # -------------------------------------------------- Fase 4: laboratorio

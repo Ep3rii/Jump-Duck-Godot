@@ -21,7 +21,7 @@ São 10 fases jogáveis + 1 cutscene.
 |---|---|---|---|---|
 | **Tutorial** | Fazenda, saindo de perto do moinho | andar, pulo, pulo duplo, flores, queda; empurrar um fardo de feno (a "caixa" da fazenda); no fim, a primeira raposa | raposa (perto do fim) | ✅ jogável (`scenes/tutorial.tscn`); falta a arte definitiva |
 | **Fase 1** | Caminho até a torre | caixa empurrada do ressalto para subir, placa + porta, arremesso, plataforma móvel | raposas | ✅ jogável (`scenes/fase1.tscn`); falta a arte definitiva |
-| **Fase 2** | Caminho até a torre (lago) | **nadar** (novo), caixas | jacarés comuns | nado, jacaré |
+| **Fase 2** | Caminho até a torre (lago) | **nadar** (novo), caixa que boia, mergulho por baixo de parede | jacarés comuns | ✅ jogável (`scenes/fase2.tscn`); falta a arte definitiva |
 | **Fase 3** | Caminho até a torre (lago) | nadar | jacarés + **mini-chefe jacaré** | nado, mini-chefe |
 | **Fase 4** | Torre (subida 1/6) | **chaves** (novo), cipó, placas | aves de rapina | chave, porta trancada, aves |
 | **Fase 5** | Torre (subida 2/6) | chaves, puzzles com caixa | aves de rapina | chave, aves |
@@ -131,7 +131,7 @@ Cada fase vira uma entrega jogável, com a mecânica dela feita logo antes:
 
 | # | Pergunta |
 |---|---|
-| C1 | Sem fôlego debaixo d'água: perde 1 coração e volta à superfície (proposta acima)? |
-| C2 | Jacaré comum: pode ser pisado quando está com a cabeça fora d'água (proposta acima)? |
+| C1 | ✅ Sem fôlego: perde 1 coração e volta à superfície (ou ao checkpoint, se houver parede em cima). |
+| C2 | ✅ Jacaré comum: pode ser pisado na superfície; mergulhado, não. |
 | C3 | "5 hits em cada mini-boss": existe outro mini-chefe além do jacaré, ou é só ele? |
 | C4 | Aves da torre: gaviãozinho e águia, como proposto acima, servem? |
