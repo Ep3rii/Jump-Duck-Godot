@@ -76,3 +76,9 @@ O código de saída é o número de falhas. Rode depois de cada mudança na joga
   usados em nenhuma sala, então não foram convertidos. A água da fase é só decoração (tiles).
 - Sprites não usados (`spr_agua01Anima`, `spr_BBg01Anima`, `spr_voltar`, `spr_fechar`...) foram
   exportados para `assets/` caso queira usá-los.
+
+## Direitos autorais
+
+Copyright (c) 2026 Euzébio Pereira da Silva Filho. Todos os direitos reservados.
+
+Consulte o arquivo [LICENSE](./LICENSE) para conhecer as condições de uso.
