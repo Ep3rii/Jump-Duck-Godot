@@ -40,6 +40,11 @@ os PNGs e o MP3 sozinho.
   arremessada derrota inimigos. Caixa que cai para fora do mapa volta ao lugar inicial.
 - **Placa de pressão:** fica apertada com o pato ou uma caixa em cima e liga seus `alvos`
   (portas e plataformas móveis).
+- **Chave e porta trancada:** a chave vai para o bolso (aparece no HUD, embaixo dos corações);
+  encostar numa porta com fechadura gasta 1 chave e abre a porta para sempre.
+- **Aves de rapina:** o gaviãozinho patrulha no alto e dá um rasante em arco onde o pato estava
+  quando ele gritou (correr depois do grito escapa); a águia circula, grita, mergulha em
+  diagonal e, se bate no chão, fica com o bico preso (2 golpes). Pisão ou caixa arremessada.
 
 ## Fases
 
@@ -49,6 +54,8 @@ os PNGs e o MP3 sozinho.
 | Fase 1 | `scenes/fase1.tscn` | caminho até a torre (torre ao fundo): raposa entre buracos, caixa empurrada do ressalto para subir o paredão, placa + porta, arremesso na raposa do patamar, plataforma móvel |
 | Fase 2 | `scenes/fase2.tscn` | o lago: nadar e mergulhar (flor no fundo), caixa que boia empurrada pelo lago até virar degrau, jacarés, parede que só se passa mergulhando |
 | Fase 3 | `scenes/fase3.tscn` | lago com jacarés e túnel submerso, depois a arena do **jacaré gigante** (mini-chefe): bolhas avisam o salto contra as plataformas, mordida forte e "dor de dente", a hora do pisão; 5 pisões abrem a porta da saída |
+| Fase 4 | `scenes/fase4.tscn` | dentro da torre (1/6), 4 andares ligados por cipós: a primeira chave e porta trancada, um gaviãozinho por andar, caixa empurrada para um buraco segurando a placa da sala da 2ª chave, saída numa sacada no alto |
+| Fase 5 | `scenes/fase5.tscn` | torre (2/6), de baixo à direita: paredão de 5 tiles (empurrar a caixa para subir), a águia, chave num ressalto alto (levar a caixa até embaixo), derrubar a caixa de um ressalto até a placa, porta trancada antes da saída |
 
 O roteiro das fases seguintes está em [ROTEIRO_FASES.md](ROTEIRO_FASES.md). Toda a decoração
 (moinho, celeiro, cerca, árvores, placas, caixa/feno) é provisória, desenhada em código, até
@@ -63,8 +70,8 @@ FASES → LABORATÓRIO (só aparece rodando pelo editor). Ele não grava recorde
 ## Testes automáticos
 
 Jogam sozinhos, sem abrir janela: a fase de testes `scenes/testes/fase_teste.tscn` (o tutorial
-original do GameMaker, mantido só para os testes), o laboratório e trechos do tutorial e da
-Fase 1 (cada pulo, paredão, puzzle e inimigo que precisa ser possível, ou impossível, de passar):
+original do GameMaker, mantido só para os testes), o laboratório e trechos de cada fase
+do jogo (cada pulo, paredão, puzzle e inimigo que precisa ser possível, ou impossível, de passar):
 
 ```
 godot --headless --path . res://tests/test_runner.tscn
@@ -97,10 +104,14 @@ godot --path . res://tests/screenshots.tscn
    velocidade, espera; desligue `ativa` para só andar com a placa), `escalavel` (cipó;
    alinhe o topo com o chão de cima), `dica` (placa com texto; `|` quebra a linha) e
    `decoracao` (moinho, celeiro, cerca, árvore, arbusto, seta de saída, junco), `agua` (água
-   nadável, desenhada translúcida na frente do pato; caixas boiam nela), `jacare_chefe` (use
+   nadável, desenhada translúcida na frente do pato; caixas boiam nela), `chave`, `porta` com
+   `trancada` (abre com a chave), `gaviaozinho` (`alcance` da patrulha), `aguia` (circula em
+   volta de onde foi posta), `jacare_chefe` (use
    `alvos_ao_derrotar` para abrir a porta da arena; todo inimigo tem esse campo) e `jacare` (vive numa
    `agua`; `comeca_mergulhado` alterna o ciclo entre jacarés). A paralaxe tem
-   `mostrar_torre` para a torre aparecer ao fundo.
+   `mostrar_torre` para a torre aparecer ao fundo e `cenario` = "Torre por dentro" (parede de
+   tijolos com janelas e tochas). Para as fases da torre use o TileSet
+   `assets/tilesets/pedra_solida.tres` (mesma grade do de grama).
    Alturas de referência: pulo simples sobe ~34 px (2 tiles), pulo duplo ~68 px (4 tiles);
    5 tiles só com uma caixa embaixo; queda de 6 tiles (96 px) ou mais machuca.
 6. Inimigo novo: script com `extends Enemy` (`scripts/enemy.gd` explica o contrato).

@@ -18,6 +18,8 @@ var levels: Array = [
 	{"id": "fase1", "name": "FASE 1"},
 	{"id": "fase2", "name": "FASE 2"},
 	{"id": "fase3", "name": "FASE 3"},
+	{"id": "fase4", "name": "FASE 4"},
+	{"id": "fase5", "name": "FASE 5"},
 ]
 
 ## Fase de testes com todas as mecanicas (nao conta progresso; so aparece em build de debug).
@@ -80,6 +82,9 @@ var debug_invincible := false
 # --- folego do pato (player.gd escreve; ui.gd desenha as bolhas) -------------
 var air_ratio := 1.0
 var show_air := false
+
+# --- chaves no bolso do pato (chave.gd soma; porta trancada gasta; ui.gd desenha) ---
+var keys := 0
 
 # --- barra de vida do chefe da fase (o chefe chama set_boss / clear_boss) -----
 var boss_visible := false
@@ -312,6 +317,7 @@ func begin_level(level: Level) -> void:
 	air_ratio = 1.0
 	show_air = false
 	boss_visible = false
+	keys = 0
 	current_collectibles = 0
 	has_checkpoint = false
 	var flowers := 0
@@ -528,13 +534,14 @@ func ui_layout() -> Array:
 			return out
 		"levels":
 			var out := []
+			# linhas compactas: cabem as 10 fases + o laboratorio acima do VOLTAR
 			for i in levels.size():
 				var label: String = levels[i]["name"] if is_level_unlocked(i) else "BLOQUEADA"
-				out.append(ui_rect(52 + i * 20, 220, 18, label, {"level": i}))
+				out.append(ui_rect(42 + i * 11, 220, 10, label, {"level": i}))
 			if OS.is_debug_build():
-				out.append(ui_rect(52 + levels.size() * 20, 220, 18, "LABORATÓRIO",
+				out.append(ui_rect(42 + levels.size() * 11, 220, 10, "LABORATÓRIO",
 					{"room": LAB_LEVEL}))
-			out.append(ui_rect(158, 120, 16, "VOLTAR"))
+			out.append(ui_rect(167, 120, 14, "VOLTAR"))
 			return out
 		"credits", "controls":
 			return [ui_rect(158, 120, 16, "VOLTAR")]

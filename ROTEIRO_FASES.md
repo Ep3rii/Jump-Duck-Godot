@@ -23,8 +23,8 @@ São 10 fases jogáveis + 1 cutscene.
 | **Fase 1** | Caminho até a torre | caixa empurrada do ressalto para subir, placa + porta, arremesso, plataforma móvel | raposas | ✅ jogável (`scenes/fase1.tscn`); falta a arte definitiva |
 | **Fase 2** | Caminho até a torre (lago) | **nadar** (novo), caixa que boia, mergulho por baixo de parede | jacarés comuns | ✅ jogável (`scenes/fase2.tscn`); falta a arte definitiva |
 | **Fase 3** | Caminho até a torre (lago) | nadar, túnel submerso, arena com plataformas | jacarés + **mini-chefe jacaré** | ✅ jogável (`scenes/fase3.tscn`); falta a arte definitiva |
-| **Fase 4** | Torre (subida 1/6) | **chaves** (novo), cipó, placas | aves de rapina | chave, porta trancada, aves |
-| **Fase 5** | Torre (subida 2/6) | chaves, puzzles com caixa | aves de rapina | chave, aves |
+| **Fase 4** | Torre (subida 1/6) | **chaves** (novo), cipó, placas | gaviãozinho | ✅ jogável (`scenes/fase4.tscn`); falta a arte definitiva |
+| **Fase 5** | Torre (subida 2/6) | chaves, puzzles com caixa | águia + gaviãozinho | ✅ jogável (`scenes/fase5.tscn`); falta a arte definitiva |
 | **Fase 6** | Torre (subida 3/6) | **vento** e **plataformas que caem** (novos) | aves de rapina | vento, plataforma que cai |
 | **Fase 7** | Torre (subida 4/6) | vento, plataformas que caem | aves de rapina | idem |
 | **Fase 8** | Torre (subida 5/6) | vento, plataformas que caem, chaves | aves de rapina | idem |
@@ -51,14 +51,25 @@ São 10 fases jogáveis + 1 cutscene.
   **"com dor de dente"**. É a janela para pisar na cabeça dele.
 - **5 pisões** para vencer.
 
-### Aves de rapina (Fases 4 a 8)
-Inimigos voadores da família do gavião. Proposta de dois tipos, para variar:
-- **Gaviãozinho:** voa num trajeto fixo e dá um **rasante** quando o pato passa embaixo. Pode ser pisado.
-- **Águia:** circula alto e **mergulha em diagonal** em direção ao pato, depois sobe de volta. Pode ser pisada e atingida por caixas.
+### Aves de rapina (Fases 4 a 8) — feito
+Inimigos voadores da família do gavião, em dois tipos:
+- **Gaviãozinho** (`gaviaozinho.gd`): voa num trajeto fixo. Ao ver o pato abaixo e um pouco à frente,
+  grita, para no ar e dá um **rasante** em arco cujo ponto mais baixo é onde o pato estava no grito
+  (correr depois do grito escapa). 1 golpe (pisão ou caixa).
+- **Águia** (`aguia.gd`): circula no alto, grita e treme, e **mergulha em diagonal** em linha reta
+  até onde o pato estava. Se bate no chão ou na parede, fica com o **bico preso** um tempo (a hora
+  de pisar); depois sobe de volta. 2 golpes (pisão ou caixa).
+- Nenhuma das duas mergulha através de paredes: só ataca com o caminho livre.
 
-### Chave e porta trancada (Fases 4, 5 e 8)
-- A chave é um item; as chaves que o pato carrega aparecem no HUD.
-- A `porta.gd` ganha o modo "trancada": encostar com uma chave abre e gasta a chave.
+### Chave e porta trancada (Fases 4, 5 e 8) — feito
+- A chave (`chave.gd`) é um item; as chaves no bolso aparecem no HUD, embaixo dos corações.
+- `porta.gd` tem o modo `trancada`: encostar com uma chave abre (para sempre) e gasta a chave; sem
+  chave, toca o som de "negado". Porta trancada ignora placas.
+
+### Interior da torre (Fases 4 a 8)
+- TileSet de pedra provisório (`assets/tilesets/pedra_solida.tres`, gerado em código) e fundo
+  `cenario` = "Torre por dentro" na paralaxe (tijolos, janelas com céu e tochas).
+- Fases verticais: andares ligados por cipós, o pato sobe de baixo para cima.
 
 ### Vento e plataformas que caem (Fases 6 a 8)
 - **Vento:** área que empurra o pato (e as caixas) numa direção, constante ou em rajadas, com partículas mostrando a direção.
@@ -120,9 +131,9 @@ proprietária, só servem pacotes com licença que permita uso comercial. Confir
 
 Cada fase vira uma entrega jogável, com a mecânica dela feita logo antes:
 
-1. **Tutorial novo** (fazenda/moinho, com arte provisória) e **Fase 1**: os dois só usam mecânicas que já existem.
-2. **Nado + jacaré comum → Fase 2**, e depois **mini-chefe jacaré → Fase 3**.
-3. **Chave + aves de rapina → Fases 4 e 5**.
+1. ✅ **Tutorial novo** (fazenda/moinho, com arte provisória) e **Fase 1**: os dois só usam mecânicas que já existem.
+2. ✅ **Nado + jacaré comum → Fase 2**, e depois **mini-chefe jacaré → Fase 3**.
+3. ✅ **Chave + aves de rapina → Fases 4 e 5**.
 4. **Vento + plataformas que caem → Fases 6, 7 e 8**.
 5. **Chefe gavião → Fase Final**, e depois **cutscene com a Pata**.
 6. Trocar a arte provisória pela definitiva conforme ela for ficando pronta; ajuste geral de dificuldade e de pontuação.
@@ -134,4 +145,4 @@ Cada fase vira uma entrega jogável, com a mecânica dela feita logo antes:
 | C1 | ✅ Sem fôlego: perde 1 coração e volta à superfície (ou ao checkpoint, se houver parede em cima). |
 | C2 | ✅ Jacaré comum: pode ser pisado na superfície; mergulhado, não. |
 | C3 | "5 hits em cada mini-boss": existe outro mini-chefe além do jacaré, ou é só ele? (por enquanto, só ele) |
-| C4 | Aves da torre: gaviãozinho e águia, como proposto acima, servem? |
+| C4 | Aves da torre: gaviãozinho e águia (feitos nas Fases 4 e 5) servem? |

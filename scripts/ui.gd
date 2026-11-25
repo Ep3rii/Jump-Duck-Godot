@@ -15,6 +15,7 @@ const COL_DIM := Color8(150, 190, 130)
 const COL_HINT := Color8(215, 237, 183)
 
 const PixelFont := preload("res://scripts/pixel_font.gd")
+const Chave := preload("res://scripts/chave.gd")
 
 const LEFT := PixelFont.LEFT
 const CENTER := PixelFont.CENTER
@@ -159,10 +160,10 @@ func _draw() -> void:
 				_text_plain(r["x1"] + 10, ty, "%d. %s" % [i + 1, r["label"]], fg, LEFT)
 				var rec: Dictionary = Game.best.get(Game.levels[r["level"]]["id"], {})
 				if not rec.is_empty():
-					_text_plain(r["x2"] - 60, ty, str(rec["score"]), fg, RIGHT)
+					_text_plain(r["x2"] - 50, ty, str(rec["score"]), fg, RIGHT)
 					for s in 3:
 						Sprites.draw(self, "spr_estrela", 0 if s < int(rec["stars"]) else 1,
-							r["x2"] - 48 + s * 16, ty)
+							r["x2"] - 40 + s * 12, ty, 0.7, 0.7)
 			generic_from = layout.size() - 1
 
 		"credits":
@@ -241,14 +242,23 @@ func _draw_hud(w: int, h: int) -> void:
 			if i < Game.boss_hp:
 				_fill(x + 1, 16, x + seg_w - 4, 19, Color8(220, 60, 50))
 
+	var row_y := 23.0  # proxima linha livre embaixo dos coracoes
+	if Game.keys > 0:
+		# chaves no bolso: uma chave desenhada por unidade (cabem 4)
+		_fill(2, row_y, 55, row_y + 11, hud_bg)
+		_outline(2, row_y, 55, row_y + 11, COL_MID)
+		for i in mini(Game.keys, 4):
+			Chave.draw_key(self, Vector2(10 + i * 13, row_y + 5.5))
+		row_y += 13.0
+
 	if Game.show_air:
 		# folego: 5 bolhas que somem conforme o ar acaba (piscam no fim)
-		_fill(2, 23, 55, 34, hud_bg)
-		_outline(2, 23, 55, 34, COL_MID)
+		_fill(2, row_y, 55, row_y + 11, hud_bg)
+		_outline(2, row_y, 55, row_y + 11, COL_MID)
 		var left := ceili(Game.air_ratio * 5.0 - 0.001)
 		var blink := Game.air_ratio < 0.25 and (Time.get_ticks_msec() / 150) % 2 == 0
 		for i in 5:
-			var c := Vector2(9 + i * 10, 28.5)
+			var c := Vector2(9 + i * 10, row_y + 5.5)
 			if i < left and not blink:
 				draw_circle(c, 3.5, Color8(200, 235, 255))
 				draw_circle(c + Vector2(-1, -1), 1.0, Color.WHITE)

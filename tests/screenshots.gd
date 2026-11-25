@@ -32,6 +32,13 @@ func shot(file_name: String) -> void:
 	print("captura: ", file_name, " ", img.get_size())
 
 
+func _wait_state(n: Node, s: String) -> void:
+	for i in 300:
+		if not is_instance_valid(n) or n.state == s:
+			return
+		await frames(1)
+
+
 func wait_ready() -> void:
 	for i in 300:
 		await frames(1)
@@ -153,6 +160,59 @@ func _run() -> void:
 	boss.force_state("dor", 999)
 	await frames(10)
 	await shot("22k_fase3_dor_de_dente")
+
+	# Fase 4: torre por dentro, chave e gaviaozinho
+	Game.game_state = "playing"
+	Game.room_goto("fase4")
+	await wait_ready()
+	await frames(30)
+	await shot("22l_fase4_inicio")
+	p = get_tree().get_first_node_in_group("player")
+	Game.keys = 1
+	p.position = Vector2(232, 768)
+	await frames(40)
+	await shot("22m_fase4_porta_trancada")
+	Game.keys = 0
+	var g := get_tree().current_scene.get_node("Entidades/Gaviao1")
+	g._cooldown = 0
+	p.position = Vector2(450, 768)
+	await _wait_state(g, "aviso")
+	await shot("22n_fase4_gaviao_grito")
+	await _wait_state(g, "rasante")
+	await frames(14)
+	await shot("22o_fase4_rasante")
+	p.position = Vector2(440, 592)
+	await frames(40)
+	await shot("22p_fase4_caixa_placa")
+	p.position = Vector2(120, 96)
+	await frames(60)
+	await shot("22q_fase4_sacada")
+
+	# Fase 5: aguia e caixas
+	Game.game_state = "playing"
+	Game.room_goto("fase5")
+	await wait_ready()
+	await frames(30)
+	await shot("22r_fase5_inicio")
+	p = get_tree().get_first_node_in_group("player")
+	var a := get_tree().current_scene.get_node("Entidades/Aguia1")
+	p.position = Vector2(300, 768)
+	a._cooldown = 0
+	await _wait_state(a, "aviso")
+	await frames(10)
+	await shot("22s_fase5_aguia_grito")
+	await _wait_state(a, "mergulho")
+	await frames(8)
+	await shot("22t_fase5_mergulho")
+	await _wait_state(a, "presa")
+	await frames(10)
+	await shot("22u_fase5_bico_preso")
+	p.position = Vector2(264, 592)
+	await frames(40)
+	await shot("22v_fase5_chave_ressalto")
+	p.position = Vector2(392, 352)
+	await frames(40)
+	await shot("22w_fase5_caixa_ressalto")
 	Game.debug_invincible = false
 
 	# Laboratorio de mecanicas (Fase 4)

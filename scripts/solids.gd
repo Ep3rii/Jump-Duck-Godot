@@ -41,3 +41,13 @@ static func _layer_hits(layer: TileMapLayer, r: Rect2) -> bool:
 			if data != null and data.get_custom_data("solid"):
 				return true
 	return false
+
+
+## Caminho livre de a ate b para algo de 2*half px de lado (aves checam antes de mergulhar).
+static func line_clear(snap: Array, a: Vector2, b: Vector2, half := 4.0) -> bool:
+	var steps := maxi(1, ceili(a.distance_to(b) / 6.0))
+	for i in steps + 1:
+		var p := a.lerp(b, float(i) / steps)
+		if hits(snap, Rect2(p.x - half, p.y - half, half * 2.0, half * 2.0)):
+			return false
+	return true
