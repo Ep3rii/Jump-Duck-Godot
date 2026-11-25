@@ -8,6 +8,16 @@ Base: resumo do Notion (`jump-duck-resumo.md`) + leitura completa do código atu
 
 ---
 
+## Andamento
+
+| Fase | Status |
+|---|---|
+| 0 — Preparação | ✅ git local + `.gitignore`, teclas de debug F1–F4. **Pendente:** decidir como ligar ao GitHub (o repositório remoto tem o projeto GameMaker) |
+| 1 — Bugs e base | ✅ B1–B6 e E1, E2, E3, E6, E7, E8 corrigidos; 40 testes automáticos passando (`tests/test_runner.tscn`). E4 e E5 aguardam as decisões D3/D4 |
+| 2 a 6 | Não iniciadas |
+
+---
+
 ## Estado atual (o que já existe)
 
 | Item do escopo | Situação no código |

@@ -8,7 +8,12 @@ const VIEW_W := 320.0
 const VIEW_H := 180.0
 
 
-func _process(_delta: float) -> void:
+## Tempo proprio (para de contar quando o jogo pausa; as nuvens nao "pulam" ao despausar).
+var _time_ms := 0.0
+
+
+func _process(delta: float) -> void:
+	_time_ms += delta * 1000.0
 	queue_redraw()
 
 
@@ -17,7 +22,7 @@ func _draw() -> void:
 	var vy := floorf(Game.cam_pos.y)
 	var vw := VIEW_W
 	var vh := VIEW_H
-	var now := float(Time.get_ticks_msec())
+	var now := _time_ms
 
 	draw_texture_rect(Sprites.tex("spr_bgCeu", 0), Rect2(vx, vy, vw, vh), false)
 	Sprites.draw(self, "spr_bgSol", 0, vx + vw - 56.0, vy + 34.0)

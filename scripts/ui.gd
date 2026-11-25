@@ -110,16 +110,20 @@ func _draw() -> void:
 	var now := Time.get_ticks_msec()
 
 	# ---------- HUD ----------
-	if Game.room == "tutorial_fase1" and (state == "playing" or state == "pause"
+	if Game.in_level and (state == "playing" or state == "pause"
 			or (state == "settings" and Game.pause_origin == "pause")):
 		var hud_bg := COL_DARK
 		hud_bg.a = 0.6
-		_fill(2, 2, 59, 21, hud_bg)
+		var hearts_x2 := 5 + Game.max_lives * 18
+		_fill(2, 2, hearts_x2, 21, hud_bg)
 		_fill(w - 92, 2, w - 2, 29, hud_bg)
-		_outline(2, 2, 59, 21, COL_MID)
+		_outline(2, 2, hearts_x2, 21, COL_MID)
 		_outline(w - 92, 2, w - 2, 29, COL_MID)
 
-		for heart in 3:
+		if Game.debug_invincible:
+			_text(4, h - 8, "DEBUG: INVENCÍVEL", COL_YELLOW, LEFT)
+
+		for heart in Game.max_lives:
 			var heart_sprite := "spr_vidaCheia" if heart < Game.player_lives else "spr_vidaVazia"
 			Sprites.draw_tl(self, heart_sprite, 0, 5 + heart * 18, 5, 0.5)
 
@@ -209,27 +213,30 @@ func _draw() -> void:
 			_text_plain(cx, 44, "PAUSADO", COL_YELLOW_DARK, CENTER)
 
 		"complete":
-			_panel(50, 8, 270, 170)
+			_panel(50, 8, 270, 176 if layout.size() > 2 else 170)
 			Sprites.draw_tl(self, "spr_banner02", 0, cx - 64, 12)
 			_text_plain(cx, 28, "FASE CONCLUÍDA", COL_YELLOW_DARK, CENTER)
-			var stars := 1
-			if Game.total_score >= 90:
-				stars = 3
-			elif Game.total_score >= 60:
-				stars = 2
+			var result := {}
+			if Game.level_history.size() > 0:
+				result = Game.level_history[Game.level_history.size() - 1]
+			var stars := Game.stars_for(result.get("score", 0))
 			for s in 3:
 				var bounce := 0.0
 				if s < stars:
 					bounce = floorf(sin(now / 220.0 + s) * 1.5)
 				Sprites.draw(self, "spr_estrela", 0 if s < stars else 1,
 					cx - 40 + s * 40, 66 + bounce, 2.0, 2.0)
-			if Game.level_history.size() > 0:
-				var result: Dictionary = Game.level_history[Game.level_history.size() - 1]
+			if not result.is_empty():
 				_text(cx, 90, "TEMPO: %.1fS  +%d" % [result["time_seconds"], result["time_points"]],
 					Color.WHITE, CENTER)
 				_text(cx, 103, "FLORES: %d/%d  +%d" % [result["collectibles"],
 					result["collectible_total"], result["collectible_points"]], Color.WHITE, CENTER)
-			_text(cx, 117, "TOTAL: %d / 100" % Game.total_score, COL_YELLOW, CENTER)
+				# Pontos da fase (0..100); com mais de uma fase jogada, mostra tambem o total do jogo.
+				if Game.level_history.size() > 1:
+					_text(cx, 116, "FASE: %d/100  JOGO: %d" % [result["score"], Game.total_score],
+						COL_YELLOW, CENTER)
+				else:
+					_text(cx, 116, "TOTAL: %d / 100" % result["score"], COL_YELLOW, CENTER)
 
 		"gameover":
 			Sprites.draw_tl(self, "spr_gameOver", (now / 450) % 2, cx - 32, 8, 0.5)

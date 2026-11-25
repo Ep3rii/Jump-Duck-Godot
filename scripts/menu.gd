@@ -3,6 +3,7 @@ extends Node2D
 
 
 func _enter_tree() -> void:
+	Game.leave_level()
 	Game.room = "menu"
 	Game.room_width = 320
 	Game.room_height = 180

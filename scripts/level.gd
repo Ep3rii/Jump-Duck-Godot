@@ -1,30 +1,46 @@
+class_name Level
 extends Node2D
-## Sala "tutorial_fase1" (1680x640). Blocos, flor, raposa e jogador estao na propria cena;
-## os tiles vem de tile_data.gd (convertido da sala do GameMaker).
+## Base de toda fase. Cada fase e uma cena cujo no raiz usa este script (ou um que herda dele).
+## Ela avisa o Game quando entra (tamanho da sala) e quando fica pronta (begin_level),
+## entao o Game nao precisa saber o nome de nenhuma fase.
+##
+## Para uma fase nova: duplique uma cena de fase, ajuste os @export abaixo e, se precisar
+## montar algo em codigo (tiles gerados etc.), sobrescreva _build_level().
 
 const Sprites := preload("res://scripts/sprites.gd")
-const LevelTiles := preload("res://scripts/tile_data.gd")
 
-@onready var tiles_agua: TileMapLayer = $TilesAgua
-@onready var tiles_grama: TileMapLayer = $TilesGrama
+## Identificador da fase (padrao: nome do arquivo da cena, ex. "tutorial_fase1").
+@export var level_id := ""
+## Nome mostrado nas telas (ex. "TUTORIAL").
+@export var display_name := ""
+## Tamanho da sala em pixels (limite da camera e da rede de seguranca do jogador).
+@export var room_size := Vector2i(320, 180)
+## Nome da cena da proxima fase em res://scenes/ (vazio = ultima fase).
+@export var next_level := ""
 
 
 # _enter_tree roda antes do _ready dos filhos (a camera precisa do tamanho da sala).
 func _enter_tree() -> void:
-	Game.room = "tutorial_fase1"
-	Game.room_width = 1680
-	Game.room_height = 640
+	if level_id.is_empty():
+		level_id = scene_file_path.get_file().get_basename()
+	Game.room = level_id
+	Game.room_width = room_size.x
+	Game.room_height = room_size.y
 
 
 func _ready() -> void:
-	Game.level_started = false
-	_fill_layer(tiles_agua, "spr_objBAgua01", LevelTiles.AGUA)
-	_fill_layer(tiles_grama, "spr_tileSetGrama01", LevelTiles.GRAMA)
+	_build_level()
+	Game.begin_level(self)
+
+
+## Sobrescreva para montar partes da fase em codigo.
+func _build_level() -> void:
+	pass
 
 
 ## Cria um TileSet (tiles de 16x16, 4 colunas) a partir do sprite e preenche a camada.
-## Indice de tile do GameMaker -> atlas coords (indice % 4, indice / 4).
-func _fill_layer(layer: TileMapLayer, sprite_name: String, cells: Array) -> void:
+## Cada celula de 'cells' e [coluna, linha, indice]; indice -> atlas (indice % 4, indice / 4).
+func fill_layer(layer: TileMapLayer, sprite_name: String, cells: Array) -> void:
 	var source := TileSetAtlasSource.new()
 	source.texture = Sprites.strip(sprite_name)
 	source.texture_region_size = Vector2i(16, 16)
