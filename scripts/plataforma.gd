@@ -23,6 +23,12 @@ const Sprites := preload("res://scripts/sprites.gd")
 ## Desligada: so anda enquanto receber set_active(true).
 @export var ativa := true
 
+## Blocos do tileset de grama (linha * 4 + coluna): plataforma fina e bloquinho sozinho.
+const TILE_ESQ := 8
+const TILE_MEIO := 9
+const TILE_DIR := 10
+const TILE_SOZINHO := 7
+
 var last_delta := Vector2.ZERO
 var _origin := Vector2.ZERO
 var _t := 0.0  # 0 = inicio, 1 = fim
@@ -80,9 +86,20 @@ func _physics_process(_delta: float) -> void:
 		rider.carry_by(last_delta, self)
 
 
+## Desenhada com os blocos de plataforma fina do tileset de grama (ponta esquerda, meio e
+## ponta direita; o bloquinho sozinho quando tem 1 tile).
 func _draw() -> void:
+	var tiles := Sprites.art("tileset_grama")
 	for i in tiles_w:
-		Sprites.draw(self, "spr_piso01", 0, i * 16.0, 0.0)
+		var idx := TILE_MEIO
+		if tiles_w == 1:
+			idx = TILE_SOZINHO
+		elif i == 0:
+			idx = TILE_ESQ
+		elif i == tiles_w - 1:
+			idx = TILE_DIR
+		draw_texture_rect_region(tiles, Rect2(i * 16.0, -16.0, 16.0, 16.0),
+			Rect2((idx % 4) * 128.0, (idx / 4) * 128.0, 128.0, 128.0))
 	if Engine.is_editor_hint():
 		# caminho e posicao final
 		var end := deslocamento

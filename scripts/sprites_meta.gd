@@ -11,7 +11,6 @@ const META := {
 	"spr_flor01": [16, 16, 4, 8, 14, 5.0],
 	"spr_objBAgua01": [64, 64, 1, 0, 64, 3.0],
 	"spr_objBPiso01": [16, 16, 1, 0, 16, 1.0],
-	"spr_piso01": [16, 16, 1, 0, 16, 30.0],
 	"spr_raposaAnda": [64, 64, 4, 32, 48, 6.0],
 	"spr_tileSetGrama01": [64, 64, 1, 0, 0, 30.0],
 	"spr_vidaCheia": [32, 32, 1, 16, 16, 30.0],
