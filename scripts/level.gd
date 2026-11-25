@@ -1,22 +1,18 @@
 class_name Level
 extends Node2D
 ## Base de toda fase. Cada fase e uma cena cujo no raiz usa este script (ou um que herda dele).
-## Ela avisa o Game quando entra (tamanho da sala) e quando fica pronta (begin_level),
-## entao o Game nao precisa saber o nome de nenhuma fase.
+## Ela avisa o Game quando entra (tamanho da sala) e quando fica pronta (begin_level).
+## A ordem das fases e o nome mostrado nas telas ficam em Game.LEVELS.
 ##
 ## Para uma fase nova: duplique uma cena de fase, ajuste os @export abaixo e, se precisar
 ## montar algo em codigo (tiles gerados etc.), sobrescreva _build_level().
 
 const Sprites := preload("res://scripts/sprites.gd")
 
-## Identificador da fase (padrao: nome do arquivo da cena, ex. "tutorial_fase1").
+## Identificador da fase = id em Game.LEVELS (padrao: nome do arquivo da cena).
 @export var level_id := ""
-## Nome mostrado nas telas (ex. "TUTORIAL").
-@export var display_name := ""
 ## Tamanho da sala em pixels (limite da camera e da rede de seguranca do jogador).
 @export var room_size := Vector2i(320, 180)
-## Nome da cena da proxima fase em res://scenes/ (vazio = ultima fase).
-@export var next_level := ""
 
 
 # _enter_tree roda antes do _ready dos filhos (a camera precisa do tamanho da sala).

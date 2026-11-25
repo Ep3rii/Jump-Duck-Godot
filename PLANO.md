@@ -13,8 +13,9 @@ Base: resumo do Notion (`jump-duck-resumo.md`) + leitura completa do código atu
 | Fase | Status |
 |---|---|
 | 0 — Preparação | ✅ git + `.gitignore`, teclas de debug F1–F4, repositório privado [Ep3rii/Jump-Duck-Godot](https://github.com/Ep3rii/Jump-Duck-Godot) (o antigo `Jump-Duck` fica com o projeto GameMaker) |
-| 1 — Bugs e base | ✅ B1–B6 e E1, E2, E3, E6, E7, E8 corrigidos; 40 testes automáticos passando (`tests/test_runner.tscn`). E4 e E5 aguardam as decisões D3/D4 |
-| 2 a 6 | Não iniciadas |
+| 1 — Bugs e base | ✅ B1–B6 e E1, E2, E3, E6, E7, E8 corrigidos; 40 testes automáticos passando (`tests/test_runner.tscn`). E4 e E5 feitos na Fase 2 |
+| 2 — Sistemas | ✅ Saída (D4), checkpoint, perigo, vida extra, `enemy.gd` com raposa por cima, fim de jogo recomeça a fase (D3), recorde/estrelas/fases liberadas salvos, menu com CONTINUAR, FASES, CRÉDITOS e CONTROLES, volumes de música e efeitos separados, efeitos sonoros sintetizados (provisórios), fade entre cenas; 76 testes passando. Ficou para a Fase 4: arremesso de objetos (D2), que depende dos objetos carregáveis |
+| 3 a 6 | Não iniciadas |
 
 ---
 
@@ -147,9 +148,9 @@ Só depois das Fases 1–4 prontas. Esboço de estrutura para conversarmos:
 
 ---
 
-## Decisões que preciso de você
+## Decisões (respondidas em 25/11/2026: sugestões aceitas)
 
-| # | Pergunta | Minha sugestão |
+| # | Pergunta | Decidido |
 |---|---|---|
 | D1 | Objetos arrastáveis: o **pato empurra/carrega** ou o jogador **arrasta com o mouse**? (o código tem resto de "mirar com botão direito") | Pato empurra/carrega — mantém o jogo todo no teclado/controle |
 | D2 | O pato tem algum ataque além do pisão? | Pisão + arremessar objetos carregáveis na luta final (reaproveita os arrastáveis) |
@@ -158,4 +159,4 @@ Só depois das Fases 1–4 prontas. Esboço de estrutura para conversarmos:
 
 ## Próximo passo
 
-Começar pela **Fase 0 + Fase 1**: são independentes das decisões acima e deixam a base pronta para as mecânicas.
+**Fase 3 (inimigos)** ou **Fase 4 (mecânicas)**. A Fase 4 traz os objetos carregáveis, que o arremesso (D2) e os puzzles usam, e só precisa de código; a Fase 3 precisa dos sprites do jacaré e do gavião (dá para começar com placeholders).

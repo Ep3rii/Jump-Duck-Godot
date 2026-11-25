@@ -1,6 +1,6 @@
-extends Node2D
+extends Enemy
 ## obj_raposa: inimigo que patrulha ate 64 px para cada lado da posicao inicial.
-## Vira antes de bater numa parede ou de cair de uma beirada (B5).
+## Vira antes de bater numa parede ou de cair de uma beirada. Morre com um pisao.
 
 const Solids := preload("res://scripts/solids.gd")
 
@@ -13,7 +13,7 @@ var xscale := 1  # image_xscale: 1 = olhando p/ esquerda (como o sprite original
 @onready var sprite: AnimatedSprite2D = $Sprite
 
 
-func _ready() -> void:
+func _enemy_ready() -> void:
 	add_to_group("raposa")
 	start_x = position.x
 	dir = 1 if xscale < 0 else -1

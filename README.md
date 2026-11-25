@@ -22,26 +22,48 @@ os PNGs e o MP3 sozinho.
 | F3 | Recomeça a fase |
 | F4 | Conclui a fase na hora |
 
+## Regras do jogo
+
+- A fase termina ao encostar na **saída** (bandeira amarela). As flores valem pontos (até 50);
+  o tempo vale o resto (até 50). 90+ = 3 estrelas, 60+ = 2.
+- Encostar num inimigo tira 1 coração; pular em cima derrota (inimigos com `stompable`).
+- Perigos (`perigo.tscn`) e cair para fora do mapa tiram 1 coração e levam ao último
+  **checkpoint** (bandeirinha que fica verde) ou ao início da fase.
+- Sem corações: FIM DE JOGO, e TENTAR NOVAMENTE recomeça **a mesma fase** com vidas cheias.
+- Recorde e estrelas de cada fase e as fases liberadas ficam em `user://jump_duck_save.cfg`
+  (menu CONTINUAR e FASES).
+
 ## Testes automáticos
 
 Jogam a fase sozinhos, sem abrir janela (pausa, Espaço ao despausar, dano, queda, raposa,
-tiles sólidos, fim de fase, fim de jogo, teclas de debug):
+tiles sólidos, checkpoint, perigo, vida extra, saída, progresso salvo, menus, teclas de debug):
 
 ```
 godot --headless --path . res://tests/test_runner.tscn
 ```
 
 O código de saída é o número de falhas. Rode depois de cada mudança na jogabilidade.
+Os testes usam arquivos de save próprios e não mexem no seu progresso.
+
+Para revisar o visual das telas sem jogar, este comando abre uma janela por alguns segundos e
+salva uma captura de cada tela em `%APPDATA%\Godot\app_userdata\Jump Duck\screenshots\`:
+
+```
+godot --path . res://tests/screenshots.tscn
+```
 
 ## Criando uma fase nova
 
 1. Duplique `scenes/tutorial_fase1.tscn` (ou monte uma cena com o mesmo conjunto de nós).
-2. No nó raiz (script `level.gd` ou um que herde dele) ajuste `level_id`, `display_name`,
-   `room_size` e `next_level` (nome da cena da fase seguinte; vazio = última fase).
-3. Chão: nós `Block` **ou** um `TileMapLayer` no grupo `solid_tiles` cujo TileSet tenha a
+2. No nó raiz (script `level.gd` ou um que herde dele) ajuste `level_id` e `room_size`.
+3. Acrescente a fase em `Game.LEVELS` (`scripts/game.gd`), na ordem em que deve ser jogada,
+   com o nome que aparece nas telas. A seleção de fases, o CONTINUAR e o botão PRÓXIMA FASE
+   saem dessa lista.
+4. Chão: nós `Block` **ou** um `TileMapLayer` no grupo `solid_tiles` cujo TileSet tenha a
    camada de *custom data* `solid` (bool) marcada nos tiles que são chão/parede.
-4. Na fase anterior, aponte `next_level` para a nova. A tela de fase concluída ganha o botão
-   PRÓXIMA FASE sozinha.
+5. Objetos prontos em `scenes/`: `saida` (obrigatória), `checkpoint`, `perigo` (área com
+   `tiles_w`/`tiles_h`, invisível no jogo), `flor`, `vida` (coração extra), `raposa`.
+6. Inimigo novo: script com `extends Enemy` (`scripts/enemy.gd` explica o contrato).
 
 ## Mapa GameMaker → Godot
 
@@ -50,7 +72,7 @@ O código de saída é o número de falhas. Rode depois de cada mudança na joga
 | `obj_game_manager` (estado, menus, pontuação, ini) | `scripts/game.gd` (autoload `Game`) |
 | `Draw_64` do manager (menus e HUD) | `scripts/ui.gd` (desenha em código, grade 320x180) |
 | `obj_player` | `scenes/player.tscn` + `scripts/player.gd` |
-| `obj_raposa` | `scenes/raposa.tscn` + `scripts/raposa.gd` |
+| `obj_raposa` | `scenes/raposa.tscn` + `scripts/raposa.gd` (herda de `scripts/enemy.gd`) |
 | `obj_flor01` / `obj_efeito` | `scenes/flor.tscn` / `scenes/efeito.tscn` |
 | `obj_blocoPiso01` | `scenes/block.tscn` (`tiles_w` / `tiles_h` = image_xscale/yscale) |
 | `obj_camera` | `scripts/camera.gd` (Camera2D) |

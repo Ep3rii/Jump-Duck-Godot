@@ -1,4 +1,4 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=10 format=3]
 
 [ext_resource type="Script" path="res://scripts/levels/tutorial_fase1.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/parallax.gd" id="2"]
@@ -7,11 +7,12 @@
 [ext_resource type="PackedScene" path="res://scenes/raposa.tscn" id="5"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="6"]
 [ext_resource type="Script" path="res://scripts/camera.gd" id="7"]
+[ext_resource type="PackedScene" path="res://scenes/saida.tscn" id="8"]
+[ext_resource type="PackedScene" path="res://scenes/checkpoint.tscn" id="9"]
 
 [node name="Level" type="Node2D"]
 script = ExtResource("1")
 level_id = "tutorial_fase1"
-display_name = "TUTORIAL"
 room_size = Vector2i(1680, 640)
 
 [node name="Parallax" type="Node2D" parent="."]
@@ -165,6 +166,12 @@ position = Vector2(272, 624)
 
 [node name="Flor3" parent="Itens" instance=ExtResource("4")]
 position = Vector2(1360, 480)
+
+[node name="Checkpoint1" parent="Itens" instance=ExtResource("9")]
+position = Vector2(960, 352)
+
+[node name="Saida" parent="Itens" instance=ExtResource("8")]
+position = Vector2(1640, 480)
 
 [node name="Entidades" type="Node2D" parent="."]
 z_index = -600

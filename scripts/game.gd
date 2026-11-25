@@ -1,15 +1,23 @@
 extends Node
 ## Equivalente ao obj_game_manager do GameMaker (autoload "Game").
-## Guarda o estado global (global.* no GML), cuida de menus, pausa, pontuacao,
-## configuracoes de tela/volume e da musica. O desenho dos menus/HUD fica em ui.gd.
+## Guarda o estado global, cuida de menus, pausa, pontuacao, progresso salvo,
+## configuracoes de tela/volume, musica e efeitos sonoros. O desenho fica em ui.gd.
 ##
-## Pausa: quando estamos numa fase e o estado nao e "playing", a arvore inteira e pausada
+## Pausa: numa fase, fora do estado "playing", a arvore inteira e pausada
 ## (get_tree().paused). O Game e a UI rodam com PROCESS_MODE_ALWAYS; jogador, inimigos,
-## itens, efeitos e paralaxe param sozinhos.
+## itens, efeitos e paralaxe param sozinhos. Durante o fade entre cenas tambem.
 
 const UIScript := preload("res://scripts/ui.gd")
-const SETTINGS_PATH := "user://jump_duck_settings.cfg"
-const FIRST_LEVEL := "tutorial_fase1"
+const Sfx := preload("res://scripts/sfx.gd")
+
+## Ordem das fases do jogo. "id" = nome da cena em res://scenes/; "name" = nome nas telas.
+## Para adicionar uma fase: crie a cena (ver README) e acrescente uma linha aqui.
+const LEVELS := [
+	{"id": "tutorial_fase1", "name": "TUTORIAL"},
+]
+
+const FADE_TIME := 0.2
+const SETTINGS_ADJUST_ROWS := 4  # TELA, JANELA, MUSICA, EFEITOS (ajustaveis com esq/dir)
 
 const ACTIONS := {
 	"left": [KEY_LEFT, KEY_A],
@@ -21,16 +29,20 @@ const ACTIONS := {
 	"pause": [KEY_ESCAPE],
 }
 
-# --- estado global (global.* no GML) ---------------------------------------
-## main | settings | pause | playing | complete | gameover
+# --- arquivos (variaveis para os testes usarem arquivos proprios) -----------
+var settings_path := "user://jump_duck_settings.cfg"
+var save_path := "user://jump_duck_save.cfg"
+
+# --- estado global ----------------------------------------------------------
+## main | levels | credits | settings | controls | pause | playing | complete | gameover
 var game_state := "main":
 	set(value):
 		if value == "playing" and game_state != "playing":
-			# O mesmo aperto de ESPACO que confirmou o menu nao pode virar pulo (B1).
+			# O mesmo aperto de ESPACO que confirmou o menu nao pode virar pulo.
 			resume_frame = Engine.get_physics_frames()
 		game_state = value
 		_update_pause()
-var pause_origin := "playing"
+var pause_origin := "playing"  # de onde as configuracoes foram abertas: "pause" ou "main"
 var max_lives := 3
 var player_lives := 3
 var invulnerability_remaining := 0
@@ -38,15 +50,21 @@ var current_collectibles := 0
 var total_collectibles := 3
 var level_elapsed_seconds := 0.0
 var level_started := false  # fase em andamento (ainda nao concluida)
-var level_history: Array = []
+var level_history: Array = []  # resultados das fases desta partida
 var total_score := 0
+var last_result_is_record := false
 var ui_selection := 0
 var resolution_index := 2
-var volume_level := 8
+var music_volume := 8
+var sfx_volume := 8
 var screen_mode := "fullscreen"  # fullscreen | borderless | windowed
 
 ## Frame de fisica em que o jogo voltou para "playing" (o jogador ignora o pulo nesse frame).
 var resume_frame := -1
+
+# --- progresso salvo --------------------------------------------------------
+var unlocked_count := 1  # quantas fases (na ordem de LEVELS) estao liberadas
+var best := {}  # id da fase -> {"score": int, "stars": int, "time": float}
 
 # --- depuracao (so em builds de debug: F1..F4) ------------------------------
 var debug_invincible := false
@@ -58,40 +76,65 @@ var room_height := 180
 var cam_pos := Vector2.ZERO  # canto superior esquerdo da "view" (camera.gd)
 var in_level := false  # true enquanto uma cena de fase (level.gd) esta ativa
 var current_level_name := ""
-var next_level := ""
+var has_checkpoint := false
+var checkpoint_pos := Vector2.ZERO
+var transitioning := false
 
 var pending_resize := false
 var pending_window_size := Vector2i(1920, 1080)
 
 var _ui_last_mouse := Vector2(-1, -1)
 var _mouse_prev := false
+var _prev_state := ""
+var _prev_selection := -1
 var _music: AudioStreamPlayer
+var _sfx_players: Array[AudioStreamPlayer] = []
+var _sfx_next := 0
+var _fade: ColorRect
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	_setup_input()
+	_setup_buses()
 	_load_settings()
+	load_progress()
 
 	var screen := DisplayServer.screen_get_size()
 	DisplayServer.window_set_min_size(Vector2i(mini(960, screen.x), mini(540, screen.y)))
 
-	# Camada de GUI 320x180 (display_set_gui_size) onde menus e HUD sao desenhados.
+	# Camada de GUI 320x180 onde menus e HUD sao desenhados.
 	var layer := CanvasLayer.new()
 	layer.layer = 10
 	add_child(layer)
-	var ui := UIScript.new()
-	layer.add_child(ui)
+	layer.add_child(UIScript.new())
 
-	# Musica de fundo em loop (audio_play_sound(..., true, 0.6)).
+	# Cortina preta do fade entre cenas, acima de tudo.
+	var fade_layer := CanvasLayer.new()
+	fade_layer.layer = 20
+	add_child(fade_layer)
+	_fade = ColorRect.new()
+	_fade.color = Color(0, 0, 0, 0)
+	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	fade_layer.add_child(_fade)
+
+	# Musica de fundo em loop.
 	_music = AudioStreamPlayer.new()
 	var stream: AudioStream = load("res://assets/audio/MP3_SND_Grasslands.mp3")
 	if stream is AudioStreamMP3:
 		(stream as AudioStreamMP3).loop = true
 	_music.stream = stream
 	_music.volume_db = linear_to_db(0.6)
+	_music.bus = "Music"
 	add_child(_music)
 	_music.play()
+
+	for i in 6:
+		var p := AudioStreamPlayer.new()
+		p.bus = "SFX"
+		add_child(p)
+		_sfx_players.append(p)
 
 	apply_settings()
 
@@ -106,32 +149,109 @@ func _setup_input() -> void:
 			InputMap.action_add_event(action, ev)
 
 
+func _setup_buses() -> void:
+	for bus_name: String in ["Music", "SFX"]:
+		if AudioServer.get_bus_index(bus_name) < 0:
+			AudioServer.add_bus()
+			var idx := AudioServer.bus_count - 1
+			AudioServer.set_bus_name(idx, bus_name)
+			AudioServer.set_bus_send(idx, "Master")
+
+
+func play_sfx(sfx_name: String) -> void:
+	if _sfx_players.is_empty():
+		return
+	var p := _sfx_players[_sfx_next]
+	_sfx_next = (_sfx_next + 1) % _sfx_players.size()
+	p.stream = Sfx.get_stream(sfx_name)
+	p.play()
+
+
 func _update_pause() -> void:
 	if is_inside_tree():
-		get_tree().paused = in_level and game_state != "playing"
+		get_tree().paused = transitioning or (in_level and game_state != "playing")
+
+
+# ------------------------------------------------------------------- fases
+func level_index(id: String) -> int:
+	for i in LEVELS.size():
+		if LEVELS[i]["id"] == id:
+			return i
+	return -1
+
+
+func level_display_name(id: String) -> String:
+	var i := level_index(id)
+	return LEVELS[i]["name"] if i >= 0 else id.to_upper()
+
+
+## Proxima fase depois da atual ("" = era a ultima).
+func next_level_id() -> String:
+	var i := level_index(current_level_name)
+	if i >= 0 and i + 1 < LEVELS.size():
+		return LEVELS[i + 1]["id"]
+	return ""
+
+
+func is_level_unlocked(index: int) -> bool:
+	return index < unlocked_count
 
 
 # ---------------------------------------------------------------- utilidades
+## Troca de cena com fade. Pausa tudo enquanto a tela esta escura.
 func room_goto(room_name: String) -> void:
-	# Sai da fase atual ja: nada da cena antiga roda pausado/contado ate a troca acontecer.
+	if transitioning:
+		return
+	transitioning = true
 	in_level = false
 	level_started = false
 	_update_pause()
+	var tw := create_tween()
+	tw.tween_property(_fade, "color:a", 1.0, FADE_TIME)
+	await tw.finished
 	get_tree().change_scene_to_file("res://scenes/%s.tscn" % room_name)
+	await get_tree().scene_changed
+	transitioning = false
+	_update_pause()
+	var tw_in := create_tween()
+	tw_in.tween_property(_fade, "color:a", 0.0, FADE_TIME)
 
 
-func start_new_game() -> void:
+func _reset_run() -> void:
 	player_lives = max_lives
 	invulnerability_remaining = 0
 	current_collectibles = 0
 	total_score = 0
 	level_history.clear()
+
+
+func start_new_game() -> void:
+	play_level(0)
+
+
+## Comeca uma partida a partir da fase 'index' (selecao de fases / continuar).
+func play_level(index: int) -> void:
+	if index < 0 or index >= LEVELS.size():
+		return
+	_reset_run()
 	game_state = "playing"
-	room_goto(FIRST_LEVEL)
+	room_goto(LEVELS[index]["id"])
 
 
-## Recomeca a fase atual. Se ela ja tinha sido concluida, descarta aquele resultado.
+## Continua da fase liberada mais adiante.
+func continue_game() -> void:
+	play_level(clampi(unlocked_count - 1, 0, LEVELS.size() - 1))
+
+
+func has_progress() -> bool:
+	return unlocked_count > 1 or not best.is_empty()
+
+
+## Recomeca a fase atual (fim de jogo, pausa, "jogar novamente", F3).
+## Vidas cheias se tinham acabado; um resultado ja registrado desta fase e descartado.
 func restart_level() -> void:
+	if current_level_name.is_empty():
+		return
 	if level_history.size() > 0 and level_history[-1]["level_name"] == current_level_name:
 		level_history.pop_back()
 		_recount_total_score()
@@ -143,12 +263,13 @@ func restart_level() -> void:
 
 
 func go_to_next_level() -> void:
-	if next_level.is_empty():
+	var next := next_level_id()
+	if next.is_empty():
 		go_to_menu()
 		return
 	invulnerability_remaining = 0
 	game_state = "playing"
-	room_goto(next_level)
+	room_goto(next)
 
 
 func go_to_menu() -> void:
@@ -168,9 +289,9 @@ func leave_level() -> void:
 func begin_level(level: Level) -> void:
 	in_level = true
 	current_level_name = level.level_id
-	next_level = level.next_level
 	level_elapsed_seconds = 0.0
 	current_collectibles = 0
+	has_checkpoint = false
 	var flowers := 0
 	for f in get_tree().get_nodes_in_group("flor"):
 		if level.is_ancestor_of(f):
@@ -183,10 +304,13 @@ func begin_level(level: Level) -> void:
 	_update_pause()
 
 
+func set_checkpoint(pos: Vector2) -> void:
+	has_checkpoint = true
+	checkpoint_pos = pos
+
+
 func collect_flower() -> void:
 	current_collectibles += 1
-	if current_collectibles >= total_collectibles:
-		finish_level()
 
 
 func finish_level() -> void:
@@ -209,10 +333,12 @@ func finish_level() -> void:
 		"score": level_score,
 	})
 	_recount_total_score()
+	_record_progress(level_score)
 
 	level_started = false
 	ui_selection = 0
 	game_state = "complete"
+	play_sfx("complete")
 
 
 func _recount_total_score() -> void:
@@ -230,23 +356,70 @@ static func stars_for(score: int) -> int:
 	return 1
 
 
+# ------------------------------------------------------------ progresso salvo
+func _record_progress(score: int) -> void:
+	var prev: Dictionary = best.get(current_level_name, {})
+	last_result_is_record = prev.is_empty() or score > int(prev.get("score", 0))
+	if last_result_is_record:
+		best[current_level_name] = {
+			"score": score,
+			"stars": stars_for(score),
+			"time": level_elapsed_seconds,
+		}
+	var i := level_index(current_level_name)
+	if i >= 0:
+		unlocked_count = clampi(maxi(unlocked_count, i + 2), 1, LEVELS.size())
+	save_progress()
+
+
+func load_progress() -> void:
+	unlocked_count = 1
+	best = {}
+	var cfg := ConfigFile.new()
+	if cfg.load(save_path) == OK:
+		unlocked_count = clampi(int(cfg.get_value("progress", "unlocked", 1)), 1, LEVELS.size())
+		var saved = cfg.get_value("progress", "best", {})
+		if saved is Dictionary:
+			best = saved
+
+
+func save_progress() -> void:
+	var cfg := ConfigFile.new()
+	cfg.set_value("progress", "unlocked", unlocked_count)
+	cfg.set_value("progress", "best", best)
+	cfg.save(save_path)
+
+
 # ------------------------------------------------------------- configuracoes
 func _load_settings() -> void:
-	# Rodando pelo editor abre em janela; o jogo exportado abre em tela cheia (B6).
+	# Rodando pelo editor abre em janela; o jogo exportado abre em tela cheia.
 	screen_mode = "windowed" if OS.has_feature("editor") else "fullscreen"
 	var cfg := ConfigFile.new()
-	if cfg.load(SETTINGS_PATH) == OK:
-		volume_level = clampi(roundi(float(cfg.get_value("audio", "volume", 8))), 0, 10)
+	if cfg.load(settings_path) == OK:
+		# "volume" era o volume unico das versoes anteriores.
+		var old_volume := int(cfg.get_value("audio", "volume", 8))
+		music_volume = clampi(int(cfg.get_value("audio", "music", old_volume)), 0, 10)
+		sfx_volume = clampi(int(cfg.get_value("audio", "sfx", old_volume)), 0, 10)
 		screen_mode = str(cfg.get_value("display", "mode", screen_mode))
-		resolution_index = clampi(roundi(float(cfg.get_value("display", "resolution", 2))), 0, 2)
+		resolution_index = clampi(int(cfg.get_value("display", "resolution", 2)), 0, 2)
 
 
 func save_settings() -> void:
 	var cfg := ConfigFile.new()
-	cfg.set_value("audio", "volume", volume_level)
+	cfg.set_value("audio", "music", music_volume)
+	cfg.set_value("audio", "sfx", sfx_volume)
 	cfg.set_value("display", "mode", screen_mode)
 	cfg.set_value("display", "resolution", resolution_index)
-	cfg.save(SETTINGS_PATH)
+	cfg.save(settings_path)
+
+
+func _apply_bus_volume(bus_name: String, level: int) -> void:
+	var idx := AudioServer.get_bus_index(bus_name)
+	if idx < 0:
+		return
+	AudioServer.set_bus_mute(idx, level == 0)
+	if level > 0:
+		AudioServer.set_bus_volume_db(idx, linear_to_db(level / 10.0))
 
 
 func apply_settings() -> void:
@@ -264,16 +437,14 @@ func apply_settings() -> void:
 	w = floori(w * display_scale)
 	h = floori(h * display_scale)
 
-	# audio_master_gain(volume / 10)
-	AudioServer.set_bus_mute(0, volume_level == 0)
-	if volume_level > 0:
-		AudioServer.set_bus_volume_db(0, linear_to_db(volume_level / 10.0))
+	_apply_bus_volume("Music", music_volume)
+	_apply_bus_volume("SFX", sfx_volume)
 
 	match screen_mode:
 		"fullscreen":
 			pending_resize = false
 			DisplayServer.window_set_flag(DisplayServer.WINDOW_FLAG_BORDERLESS, false)
-			# Tela cheia "sem borda" do sistema: alt-tab funciona no Windows (B6).
+			# Tela cheia "sem borda" do sistema: alt-tab funciona no Windows.
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_FULLSCREEN)
 		"borderless":
 			DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED)
@@ -289,37 +460,59 @@ func apply_settings() -> void:
 
 
 # ----------------------------------------------------------------- layout UI
-func ui_rect(cy: int, w: int, h: int, label: String) -> Dictionary:
+func ui_rect(cy: int, w: int, h: int, label: String, extra: Dictionary = {}) -> Dictionary:
 	var half_w := floori(w / 2.0)
 	var half_h := floori(h / 2.0)
-	return {
+	var r := {
 		"x1": 160 - half_w,
 		"y1": cy - half_h,
 		"x2": 160 + half_w,
 		"y2": cy + half_h,
 		"label": label,
 	}
+	r.merge(extra)
+	return r
 
 
-## Layout unico usado pelo Step (mouse) e pelo desenho (ui.gd), para nunca desalinhar.
+## Layout unico usado pelo Step (mouse/teclado) e pelo desenho (ui.gd), para nunca desalinhar.
 ## As acoes dos botoes sao escolhidas pelo texto (label), nao pela posicao.
 func ui_layout() -> Array:
 	match game_state:
 		"main":
-			return [ui_rect(100, 150, 20, "JOGAR"),
-				ui_rect(124, 150, 20, "CONFIGURAÇÕES"),
-				ui_rect(148, 150, 20, "SAIR")]
+			var labels := []
+			if has_progress():
+				labels.append("CONTINUAR")
+			labels.append("NOVO JOGO" if has_progress() else "JOGAR")
+			labels.append_array(["FASES", "CONFIGURAÇÕES", "CRÉDITOS", "SAIR"])
+			var out := []
+			var cy := 84 if labels.size() == 6 else 90
+			for label: String in labels:
+				out.append(ui_rect(cy, 150, 13, label))
+				cy += 15
+			return out
+		"levels":
+			var out := []
+			for i in LEVELS.size():
+				var label: String = LEVELS[i]["name"] if is_level_unlocked(i) else "BLOQUEADA"
+				out.append(ui_rect(52 + i * 20, 220, 18, label, {"level": i}))
+			out.append(ui_rect(158, 120, 16, "VOLTAR"))
+			return out
+		"credits", "controls":
+			return [ui_rect(158, 120, 16, "VOLTAR")]
 		"settings":
-			return [ui_rect(58, 220, 20, "TELA"),
-				ui_rect(82, 220, 20, "JANELA"),
-				ui_rect(106, 220, 20, "VOLUME"),
-				ui_rect(136, 120, 20, "VOLTAR")]
+			return [ui_rect(54, 220, 16, "TELA"),
+				ui_rect(73, 220, 16, "JANELA"),
+				ui_rect(92, 220, 16, "MÚSICA"),
+				ui_rect(111, 220, 16, "EFEITOS"),
+				ui_rect(132, 120, 16, "CONTROLES"),
+				ui_rect(151, 120, 16, "VOLTAR")]
 		"pause":
-			return [ui_rect(84, 150, 20, "CONTINUAR"),
-				ui_rect(108, 150, 20, "CONFIGURAÇÕES"),
-				ui_rect(132, 150, 20, "MENU PRINCIPAL")]
+			return [ui_rect(76, 150, 18, "CONTINUAR"),
+				ui_rect(98, 150, 18, "REINICIAR FASE"),
+				ui_rect(120, 150, 18, "CONFIGURAÇÕES"),
+				ui_rect(142, 150, 18, "MENU PRINCIPAL")]
 		"complete":
-			if not next_level.is_empty():
+			if not next_level_id().is_empty():
 				return [ui_rect(128, 150, 16, "PRÓXIMA FASE"),
 					ui_rect(146, 150, 16, "JOGAR NOVAMENTE"),
 					ui_rect(164, 150, 16, "MENU PRINCIPAL")]
@@ -333,7 +526,7 @@ func ui_layout() -> Array:
 
 # ----------------------------------------------------------- teclas de debug
 func _input(event: InputEvent) -> void:
-	if not OS.is_debug_build() or not in_level:
+	if not OS.is_debug_build() or not in_level or transitioning:
 		return
 	var key := event as InputEventKey
 	if key == null or not key.pressed or key.echo:
@@ -360,6 +553,9 @@ func _physics_process(delta: float) -> void:
 			maxi(0, floori((screen.y - pending_window_size.y) / 2.0))))
 		pending_resize = false
 
+	if transitioning:
+		return
+
 	if in_level and level_started and game_state == "playing":
 		level_elapsed_seconds += delta
 
@@ -371,17 +567,8 @@ func _physics_process(delta: float) -> void:
 		game_state = "pause"
 		return
 
-	if esc:
-		if game_state == "pause":
-			game_state = "playing"
-			return
-		if game_state == "settings":
-			game_state = "pause" if pause_origin == "pause" else "main"
-			ui_selection = 0
-			return
-		if game_state == "gameover" or game_state == "complete":
-			go_to_menu()
-			return
+	if esc and _handle_back():
+		return
 
 	var mp := get_viewport().get_mouse_position()
 	var mouse_moved := mp != _ui_last_mouse
@@ -400,6 +587,7 @@ func _physics_process(delta: float) -> void:
 
 	var layout := ui_layout()
 	var rows := layout.size()
+	var adjusting := game_state == "settings"
 
 	if rows > 0:
 		if up:
@@ -415,8 +603,8 @@ func _physics_process(delta: float) -> void:
 					ui_selection = i
 				if mouse_pressed:
 					action = i
-					# Nas linhas de ajuste, clicar na metade esquerda diminui e na direita aumenta
-					if game_state == "settings" and i <= 2:
+					# Nas linhas de ajuste, clicar na metade esquerda diminui e na direita aumenta.
+					if adjusting and i < SETTINGS_ADJUST_ROWS:
 						if mp.x < (r["x1"] + r["x2"]) / 2.0:
 							left = true
 						else:
@@ -424,61 +612,111 @@ func _physics_process(delta: float) -> void:
 						action = -1
 
 		if activate:
-			if game_state == "settings" and ui_selection <= 2:
+			if adjusting and ui_selection < SETTINGS_ADJUST_ROWS:
 				right = true
 			else:
 				action = ui_selection
 
-	if game_state == "settings" and (left or right) and ui_selection <= 2:
-		var dir := 1 if right else -1
-		match ui_selection:
-			0:
-				var modes := ["windowed", "fullscreen", "borderless"]
-				var mode_index := 1
-				if screen_mode == "windowed":
-					mode_index = 0
-				if screen_mode == "borderless":
-					mode_index = 2
-				mode_index = (mode_index + dir + 3) % 3
-				screen_mode = modes[mode_index]
-				apply_settings()
-				save_settings()
-			1:
-				resolution_index = (resolution_index + dir + 3) % 3
-				if screen_mode != "fullscreen":
-					apply_settings()
-				save_settings()
-			2:
-				volume_level = clampi(volume_level + dir, 0, 10)
-				apply_settings()
-				save_settings()
+	# Bipe ao mudar a selecao (nao ao trocar de tela).
+	if game_state == _prev_state and ui_selection != _prev_selection and rows > 0:
+		play_sfx("select")
+	_prev_state = game_state
+	_prev_selection = ui_selection
+
+	if adjusting and (left or right) and ui_selection < SETTINGS_ADJUST_ROWS:
+		_adjust_setting(ui_selection, 1 if right else -1)
 
 	if action < 0:
 		return
-	_run_menu_action(layout[action]["label"])
+	var chosen: Dictionary = layout[action]
+	if chosen.has("level"):
+		if is_level_unlocked(chosen["level"]):
+			play_sfx("confirm")
+			play_level(chosen["level"])
+		else:
+			play_sfx("denied")
+		return
+	play_sfx("confirm")
+	_run_menu_action(chosen["label"])
+
+
+## ESC / VOLTAR: sobe um nivel nos menus. Devolve true se tratou.
+func _handle_back() -> bool:
+	match game_state:
+		"pause":
+			game_state = "playing"
+		"settings":
+			game_state = "pause" if pause_origin == "pause" else "main"
+			ui_selection = 0
+		"controls":
+			game_state = "settings"
+			ui_selection = 4
+		"levels", "credits":
+			game_state = "main"
+			ui_selection = 0
+		"gameover", "complete":
+			go_to_menu()
+		_:
+			return false
+	return true
+
+
+func _adjust_setting(row: int, dir: int) -> void:
+	match row:
+		0:
+			var modes := ["windowed", "fullscreen", "borderless"]
+			var mode_index := 1
+			if screen_mode == "windowed":
+				mode_index = 0
+			if screen_mode == "borderless":
+				mode_index = 2
+			mode_index = (mode_index + dir + 3) % 3
+			screen_mode = modes[mode_index]
+			apply_settings()
+		1:
+			resolution_index = (resolution_index + dir + 3) % 3
+			if screen_mode != "fullscreen":
+				apply_settings()
+		2:
+			music_volume = clampi(music_volume + dir, 0, 10)
+			apply_settings()
+		3:
+			sfx_volume = clampi(sfx_volume + dir, 0, 10)
+			apply_settings()
+			play_sfx("flower")  # amostra do volume escolhido
+	save_settings()
 
 
 func _run_menu_action(label: String) -> void:
 	match label:
-		"JOGAR":
+		"CONTINUAR":
+			if game_state == "pause":
+				game_state = "playing"
+			else:
+				continue_game()
+		"JOGAR", "NOVO JOGO":
 			start_new_game()
+		"FASES":
+			ui_selection = 0
+			game_state = "levels"
+		"CRÉDITOS":
+			ui_selection = 0
+			game_state = "credits"
 		"CONFIGURAÇÕES":
 			pause_origin = "pause" if game_state == "pause" else "main"
 			ui_selection = 0
 			game_state = "settings"
+		"CONTROLES":
+			ui_selection = 0
+			game_state = "controls"
 		"SAIR":
 			get_tree().quit()
 		"VOLTAR":
-			game_state = "pause" if pause_origin == "pause" else "main"
-			ui_selection = 0
-		"CONTINUAR":
-			game_state = "playing"
+			_handle_back()
+		"REINICIAR FASE", "JOGAR NOVAMENTE", "TENTAR NOVAMENTE":
+			# Fim de jogo recomeca a fase com vidas cheias (decisao D3).
+			restart_level()
 		"MENU PRINCIPAL":
 			go_to_menu()
 		"PRÓXIMA FASE":
 			go_to_next_level()
-		"JOGAR NOVAMENTE":
-			restart_level()
-		"TENTAR NOVAMENTE":
-			# Por enquanto recomeca o jogo todo, como antes (decisao D3 do PLANO.md).
-			start_new_game()

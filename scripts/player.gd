@@ -8,7 +8,6 @@ extends Node2D
 ## o jogador olha para a esquerda, e testada contra os solidos (ver solids.gd).
 
 const Solids := preload("res://scripts/solids.gd")
-const EfeitoScene := preload("res://scenes/efeito.tscn")
 
 const HURT_TIME := 30  # frames parado no estado "hurt"
 const DEATH_TIME := 60  # frames da animacao de morte ate a tela de fim de jogo
@@ -109,6 +108,9 @@ func take_damage(source_x: float = NAN) -> void:
 	if player_state == "hurt":
 		invulnerability_timer = INVULN_TIME
 		Game.invulnerability_remaining = INVULN_TIME
+		Game.play_sfx("hurt")
+	else:
+		Game.play_sfx("death")
 	_set_anim("dead" if player_state == "dead" else "hurt")
 	sprite.frame = 0  # image_index = 0
 
@@ -171,6 +173,7 @@ func _step_alive() -> void:
 		spdv = spd_pulo
 		pulos -= 1
 		jump_buffer = 0
+		Game.play_sfx("jump")
 		fall_start_y = -1.0  # o pulo duplo "amortece" a queda (B4)
 
 	_move_y()
@@ -204,14 +207,10 @@ func _step_hurt_or_dead() -> void:
 		queue_free()
 
 
-## Rede de seguranca caso o jogador saia do mapa.
+## Rede de seguranca caso o jogador saia do mapa (buraco sem fundo): volta ao checkpoint.
 func _check_out_of_bounds() -> void:
 	if position.y > Game.room_height + 96 or position.x < -64 or position.x > Game.room_width + 64:
-		position.x = start_x
-		position.y = start_y
-		spdv = 0.0
-		fall_start_y = -1.0
-		take_damage()
+		respawn(true)
 
 
 func _update_sprite() -> void:
@@ -242,41 +241,59 @@ func _update_sprite() -> void:
 
 # ---------------------------------------------------------- eventos de colisao
 func _collisions() -> void:
-	for flor in get_tree().get_nodes_in_group("flor"):
-		if not flor.is_queued_for_deletion() and _mask(position.x, position.y).intersects(flor.get_mask()):
-			_on_flor(flor)
+	var m := _mask(position.x, position.y)
+	var tree := get_tree()
 
-	for raposa in get_tree().get_nodes_in_group("raposa"):
-		if not raposa.is_queued_for_deletion() and _mask(position.x, position.y).intersects(raposa.get_mask()):
-			_on_raposa(raposa)
+	for item in tree.get_nodes_in_group("item"):
+		if Game.game_state != "playing":
+			return
+		if not item.is_queued_for_deletion() and m.intersects(item.get_mask()):
+			item.collect(self)
+
+	for cp in tree.get_nodes_in_group("checkpoint"):
+		if m.intersects(cp.get_mask()) and cp.activate():
+			Game.play_sfx("checkpoint")
+
+	for enemy in tree.get_nodes_in_group("enemy"):
+		if Game.game_state != "playing" or player_state == "dead":
+			return
+		if not enemy.is_queued_for_deletion() and m.intersects(enemy.get_mask()):
+			_on_enemy(enemy)
+
+	if player_state == "alive":
+		for hz in tree.get_nodes_in_group("hazard"):
+			if m.intersects(hz.get_rect()):
+				respawn(true)
+				return
+
+	for ex in tree.get_nodes_in_group("exit"):
+		if Game.game_state == "playing" and m.intersects(ex.get_mask()):
+			Game.finish_level()
+			return
 
 
-func _spawn_efeito(pos: Vector2) -> void:
-	var fx = EfeitoScene.instantiate()
-	fx.position = pos
-	get_parent().add_child(fx)
-
-
-# Collision_obj_flor01
-func _on_flor(flor) -> void:
-	if Game.game_state != "playing":
-		return
-	_spawn_efeito(Vector2(flor.position.x, flor.position.y - 6.0))
-	flor.queue_free()
-	Game.collect_flower()
-
-
-# Collision_obj_raposa: pisar derrota o inimigo; encostar de lado causa dano
-func _on_raposa(raposa) -> void:
-	if Game.game_state != "playing":
-		return
-
+## Pisar (caindo, com o pe acima da linha de pisao) atinge o inimigo; encostar de outro jeito machuca.
+func _on_enemy(enemy) -> void:
 	var bbox_bottom := roundf(position.y) - 1.0
-	if spdv > 0.0 and (bbox_bottom - spdv) < raposa.position.y - 6.0:
-		_spawn_efeito(Vector2(raposa.position.x, raposa.position.y - 16.0))
-		raposa.queue_free()
+	if enemy.stompable and spdv > 0.0 and (bbox_bottom - spdv) < enemy.stomp_line_y():
+		enemy.hit(1)
 		spdv = spd_pulo * 0.8
 		pulos = 1
 		fall_start_y = -1.0
-	else:
-		take_damage(raposa.position.x)
+	elif enemy.harmful():
+		take_damage(enemy.position.x)
+
+
+## Volta ao ultimo checkpoint (ou ao inicio). Com lose_life, custa 1 vida (perigos, sair do mapa).
+func respawn(lose_life: bool) -> void:
+	var at: Vector2 = Game.checkpoint_pos if Game.has_checkpoint else Vector2(start_x, start_y)
+	position = at
+	spdh = 0.0
+	spdv = 0.0
+	fall_start_y = -1.0
+	jump_buffer = 0
+	if lose_life:
+		take_damage()
+	if player_state == "hurt":
+		spdv = 0.0  # reaparece parado, sem o pulinho do dano
+		knockback_dir = 0
