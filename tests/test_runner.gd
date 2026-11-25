@@ -1449,7 +1449,42 @@ func _test_fase_final() -> void:
 	player().position = Vector2(536, 160)
 	await frames(3)
 	check(Game.game_state == "complete" and Game.best.has("fase_final"), "saida conclui a fase final e salva")
-	check(Game.ui_layout()[0]["label"] == "MENU PRINCIPAL", "ultima fase: sem PROXIMA FASE")
+	check(Game.ui_layout()[0]["label"] == "VER O FINAL", "fase final leva a cutscene")
+	await _test_cutscene()
+
+
+func _test_cutscene() -> void:
+	print("-- cutscene final")
+	Game._run_menu_action("VER O FINAL")
+	await wait_room("cutscene_final")
+	await frames(5)
+	var scene: Node2D = get_tree().current_scene
+	check(Game.game_state == "cutscene" and not get_tree().paused and not Game.in_level,
+		"cutscene rodando (sem HUD nem pausa)")
+	var x0: float = scene.duck_x()
+	await frames(30)
+	check(scene.t > 0.3 and scene.duck_x() > x0, "o pato entra andando")
+	scene.t = 8.0
+	await frames(2)
+	check(scene.pata_x() == scene.PATA_STOP_X and scene.duck_x() == scene.DUCK_STOP_X,
+		"o pato e a Pata se encontram")
+	check(scene.sunset() > 0.2 and scene.sunset() < 1.0, "o sol esta se pondo")
+	scene.t = 21.95
+	await wait_room("menu")
+	await frames(3)
+	check(Game.game_state == "credits" and Game.credits_after_ending, "no fim vao os creditos com FIM")
+	await press_key(KEY_ESCAPE)
+	check(Game.game_state == "main" and not Game.credits_after_ending, "ESC volta ao menu principal")
+	# pular com ENTER
+	Game.play_ending()
+	await wait_room("cutscene_final")
+	await frames(45)
+	await press_key(KEY_ENTER)
+	await wait_room("menu")
+	await frames(3)
+	check(Game.game_state == "credits", "ENTER pula a cutscene")
+	Game.game_state = "main"
+	Game.credits_after_ending = false
 
 
 # -------------------------------------------------- Fase 4: laboratorio

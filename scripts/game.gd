@@ -28,6 +28,9 @@ var levels: Array = [
 
 ## Fase de testes com todas as mecanicas (nao conta progresso; so aparece em build de debug).
 const LAB_LEVEL := "laboratorio"
+## Ultima fase do jogo: a tela de fase concluida dela leva a cutscene final.
+const FINAL_LEVEL := "fase_final"
+const ENDING_SCENE := "cutscene_final"
 
 const FADE_TIME := 0.2
 const SETTINGS_ADJUST_ROWS := 4  # TELA, JANELA, MUSICA, EFEITOS (ajustaveis com esq/dir)
@@ -56,6 +59,7 @@ var game_state := "main":
 			resume_frame = Engine.get_physics_frames()
 		game_state = value
 		_update_pause()
+var credits_after_ending := false  # creditos abertos pelo fim da cutscene (mostra "FIM")
 var pause_origin := "playing"  # de onde as configuracoes foram abertas: "pause" ou "main"
 var max_lives := 3
 var player_lives := 3
@@ -300,6 +304,21 @@ func go_to_next_level() -> void:
 	invulnerability_remaining = 0
 	game_state = "playing"
 	room_goto(next)
+
+
+## Cutscene final (o pato encontra a Pata no topo da torre).
+func play_ending() -> void:
+	game_state = "cutscene"
+	ui_selection = 0
+	room_goto(ENDING_SCENE)
+
+
+## Fim da cutscene (ou pulou): creditos com "FIM" sobre o menu.
+func finish_ending() -> void:
+	credits_after_ending = true
+	game_state = "credits"
+	ui_selection = 0
+	room_goto("menu")
 
 
 func go_to_menu() -> void:
@@ -569,6 +588,10 @@ func ui_layout() -> Array:
 				return [ui_rect(128, 150, 16, "PRÓXIMA FASE"),
 					ui_rect(146, 150, 16, "JOGAR NOVAMENTE"),
 					ui_rect(164, 150, 16, "MENU PRINCIPAL")]
+			if current_level_name == FINAL_LEVEL:
+				return [ui_rect(128, 150, 16, "VER O FINAL"),
+					ui_rect(146, 150, 16, "JOGAR NOVAMENTE"),
+					ui_rect(164, 150, 16, "MENU PRINCIPAL")]
 			return [ui_rect(137, 150, 18, "MENU PRINCIPAL"),
 				ui_rect(158, 150, 18, "JOGAR NOVAMENTE")]
 		"gameover":
@@ -713,6 +736,7 @@ func _handle_back() -> bool:
 		"levels", "credits":
 			game_state = "main"
 			ui_selection = 0
+			credits_after_ending = false
 		"gameover", "complete":
 			go_to_menu()
 		_:
@@ -779,3 +803,5 @@ func _run_menu_action(label: String) -> void:
 			go_to_menu()
 		"PRÓXIMA FASE":
 			go_to_next_level()
+		"VER O FINAL":
+			play_ending()

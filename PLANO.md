@@ -16,7 +16,7 @@ Base: resumo do Notion (`jump-duck-resumo.md`) + leitura completa do código atu
 | 1 — Bugs e base | ✅ B1–B6 e E1, E2, E3, E6, E7, E8 corrigidos; 40 testes automáticos passando (`tests/test_runner.tscn`). E4 e E5 feitos na Fase 2 |
 | 2 — Sistemas | ✅ Saída (D4), checkpoint, perigo, vida extra, `enemy.gd` com raposa por cima, fim de jogo recomeça a fase (D3), recorde/estrelas/fases liberadas salvos, menu com CONTINUAR, FASES, CRÉDITOS e CONTROLES, volumes de música e efeitos separados, efeitos sonoros sintetizados (provisórios), fade entre cenas; 76 testes passando. Ficou para a Fase 4: arremesso de objetos (D2), que depende dos objetos carregáveis |
 | 4 — Mecânicas | ✅ Caixa (empurrar, subir, pegar, arremessar e pousar), placa de pressão, porta, plataforma móvel, cipó escalável, perigo com aparência de água, laboratório de mecânicas (`scenes/laboratorio.tscn`), cena modelo `fase_base.tscn` com TileSet sólido pronto para pintar; 106 testes passando |
-| 6 — Fases | Em andamento: todas as fases jogáveis, do Tutorial à Fase Final (fazenda, caminho, lago com nado e jacaré, arena do jacaré gigante, cinco fases dentro da torre e a luta contra o gavião em 2 etapas), com placas de dica, arte provisória e testes de cada trecho. Próximo: a cutscene com a Pata no topo da torre (ver [ROTEIRO_FASES.md](ROTEIRO_FASES.md)) |
+| 6 — Fases | ✅ Roteiro completo jogável: Tutorial, Fases 1 a 8, Fase Final (gavião em 2 etapas) e a cutscene com a Pata, com placas de dica, arte provisória desenhada em código e testes de cada trecho. Próximo: trocar a arte provisória pela definitiva conforme os sprites ficarem prontos e um ajuste geral de dificuldade/pontuação (ver [ROTEIRO_FASES.md](ROTEIRO_FASES.md)) |
 | 3 e 5 | Feitas junto com as fases que as usam |
 
 ---

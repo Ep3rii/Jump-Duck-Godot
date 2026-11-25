@@ -70,6 +70,7 @@ os PNGs e o MP3 sozinho.
 | Fase 7 | `scenes/fase7.tscn` | torre (4/6), um poço estreito e alto: escada de pedras que caem, corrente de ar, travessia com vento a favor e gavião, cipó, pedras com rajada contra e a águia, e a última corrente até a saída |
 | Fase 8 | `scenes/fase8.tscn` | torre (5/6), tudo junto: rajada com vãos sem fundo, duas chaves e portas trancadas, pedras sobre poços, correntes de ar, águia e gaviões; vento a favor sobre um vão enorme no fim |
 | Fase Final | `scenes/fase_final.tscn` | a última sala antes do topo: corredor com coração e dica, e a arena do **gavião** (do tamanho da tela, dois ressaltos com caixas); a porta da entrada fecha na luta e a da saída abre quando ele cai |
+| Cutscene | `scenes/cutscene_final.tscn` | botão VER O FINAL na tela de vitória da Fase Final: no topo da torre o pato encontra a Pata e os dois olham o pôr do sol; termina em "FIM" e nos créditos (Enter, Espaço ou Esc pulam) |
 
 O roteiro das fases seguintes está em [ROTEIRO_FASES.md](ROTEIRO_FASES.md). Toda a decoração
 (moinho, celeiro, cerca, árvores, placas, caixa/feno) é provisória, desenhada em código, até

@@ -117,7 +117,7 @@ func _draw() -> void:
 		_draw_hud(w, h)
 
 	# ---------- Menus ----------
-	if state == "playing":
+	if state == "playing" or state == "cutscene":
 		return
 
 	var dim := 0.55
@@ -175,6 +175,8 @@ func _draw() -> void:
 			_text(cx, 100, "EUZÉBIO P. DA SILVA FILHO", Color.WHITE, CENTER)
 			_text(cx, 120, "FEITO COM GODOT ENGINE", Color.WHITE, CENTER)
 			_text(cx, 132, "MÚSICA: GRASSLANDS", Color.WHITE, CENTER)
+			if Game.credits_after_ending:
+				_text(cx, 145, "FIM! OBRIGADO POR JOGAR!", COL_HI, CENTER)
 
 		"controls":
 			_panel(30, 6, 290, 176)

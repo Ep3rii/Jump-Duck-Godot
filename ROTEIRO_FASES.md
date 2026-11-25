@@ -29,7 +29,7 @@ São 10 fases jogáveis + 1 cutscene.
 | **Fase 7** | Torre (subida 4/6) | vento, plataformas que caem | gaviãozinho + águia | ✅ jogável (`scenes/fase7.tscn`); falta a arte definitiva |
 | **Fase 8** | Torre (subida 5/6) | vento, plataformas que caem, chaves | gaviãozinho + águia | ✅ jogável (`scenes/fase8.tscn`); falta a arte definitiva |
 | **Fase Final** | Última sala antes do topo (subida 6/6) | luta contra o gavião em 2 etapas | **gavião (chefe)** | ✅ jogável (`scenes/fase_final.tscn`); falta a arte definitiva |
-| **Cutscene** | Topo da torre | o pato encontra a **Pata** e os dois olham o pôr do sol | — | cutscene, arte |
+| **Cutscene** | Topo da torre | o pato encontra a **Pata** e os dois olham o pôr do sol | — | ✅ pronta (`scenes/cutscene_final.tscn`); falta a arte definitiva |
 
 ## Como cada coisa nova funciona (decidido)
 
@@ -90,9 +90,13 @@ Inimigos voadores da família do gavião, em dois tipos:
   2 golpes e levanta voo. Na troca de etapa ele fica vermelho e deixa cair um coração. A arena
   tem o tamanho exato da tela, com dois ressaltos (fogem da investida) e uma caixa em cada um.
 
-### Cutscene final
+### Cutscene final — feito (`cutscene.gd`)
 - No topo da torre, o pato encontra a **Pata**; os dois olham o pôr do sol. Termina nos créditos.
 - Pode ser pulada. Precisa de: sprite da Pata, fundo de pôr do sol.
+- Como ficou (~22 s): o pato chega correndo, a Pata vê ele do ninho e pula (coraçãozinho), vem
+  andando até ele (coração grande), os dois se viram para o sol que se põe atrás das montanhas,
+  o céu escurece com estrelas, "JUNTOS, ENFIM." e "FIM". Depois os créditos com "OBRIGADO POR
+  JOGAR!". Entra pelo botão VER O FINAL da tela de vitória da Fase Final.
 
 ## Arte: sugestão
 
@@ -143,7 +147,7 @@ Cada fase vira uma entrega jogável, com a mecânica dela feita logo antes:
 2. ✅ **Nado + jacaré comum → Fase 2**, e depois **mini-chefe jacaré → Fase 3**.
 3. ✅ **Chave + aves de rapina → Fases 4 e 5**.
 4. ✅ **Vento + plataformas que caem → Fases 6, 7 e 8**.
-5. **Chefe gavião → Fase Final** (✅ feito), e depois **cutscene com a Pata** (falta).
+5. ✅ **Chefe gavião → Fase Final**, e depois **cutscene com a Pata**.
 6. Trocar a arte provisória pela definitiva conforme ela for ficando pronta; ajuste geral de dificuldade e de pontuação.
 
 ## Ainda para confirmar

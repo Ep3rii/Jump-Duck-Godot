@@ -292,6 +292,27 @@ func _run() -> void:
 	await shot("23m_final_etapa2")
 	Game.debug_invincible = false
 
+	# Cutscene final
+	Game.play_ending()
+	for i in 300:
+		await frames(1)
+		if not Game.transitioning and Game.room == "cutscene_final":
+			break
+	await frames(20)
+	var cs := get_tree().current_scene
+	for moment in [[2.5, "23n_cutscene_chegada"], [4.6, "23o_cutscene_pata_ve"],
+			[8.5, "23p_cutscene_encontro"], [13.0, "23q_cutscene_por_do_sol"], [19.8, "23r_cutscene_fim"]]:
+		cs.t = moment[0]
+		await shot(moment[1])
+	cs.t = 21.95
+	for i in 300:
+		await frames(1)
+		if not Game.transitioning and Game.room == "menu":
+			break
+	await frames(20)
+	await shot("23s_creditos_fim")
+	Game.credits_after_ending = false
+
 	# Laboratorio de mecanicas (Fase 4)
 	Game.game_state = "playing"
 	Game.room_goto(Game.LAB_LEVEL)
