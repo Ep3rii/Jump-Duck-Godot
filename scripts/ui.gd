@@ -1,6 +1,6 @@
 extends Control
 ## Menus e HUD, desenhados em codigo numa grade de 320x180 (equivale ao Draw_64 do
-## obj_game_manager). A fonte e o sprite spr_fontPixel (glifos 8x8, largura fixa).
+## obj_game_manager). A fonte e a de pixel_font.gd (assets/sprites/arte/fonte.png).
 ## O layout dos botoes vem de Game.ui_layout(); aqui so se desenha.
 
 const Sprites := preload("res://scripts/sprites.gd")

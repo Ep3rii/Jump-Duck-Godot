@@ -476,7 +476,7 @@ func _test_levels() -> void:
 	reset_player(Vector2(150, 304))
 	await frames(5)
 	var art: AnimatedSprite2D = player().get_node("Arte")
-	check(art.visible and art.animation == "idle" and not player().sprite.visible, "parado: arte nova")
+	check(art.visible and art.animation == "idle", "parado: arte nova")
 	var anims := {}
 	key_event(KEY_SPACE, true)
 	for i in 70:
@@ -491,7 +491,7 @@ func _test_levels() -> void:
 	await frames(5)
 	player().take_damage(140.0)
 	await frames(2)
-	check(art.visible and art.animation == "hurt" and not player().sprite.visible, "dano: arte nova")
+	check(art.visible and art.animation == "hurt", "dano: arte nova")
 	await frames(40)
 	reset_player(Vector2(150, 304))
 	reset_player(Vector2(150, 304))

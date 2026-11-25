@@ -129,7 +129,7 @@ Todos herdam `enemy.gd` da Fase 2.
 
 - **Objetos arrastáveis** (`draggable.gd`): caem com gravidade, são sólidos para o pato (dá para subir neles), ativam placas de pressão. Forma de arrastar depende da decisão D1.
 - **Placa de pressão + porta/plataforma** ligadas por sinal (base dos puzzles).
-- **Bloco escalável** — o sprite `spr_objBEscalavel01` já existe.
+- **Bloco escalável** (cipó) — desenhado em código por `escalavel.gd`.
 - **Saída da fase** (E4) e **checkpoint**.
 - **Plataforma móvel** (útil para a torre).
 - Cena modelo `fase_base.tscn` (parallax, câmera, camadas de tile, jogador, HUD) para criar fases novas copiando.

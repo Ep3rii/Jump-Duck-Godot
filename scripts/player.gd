@@ -71,8 +71,7 @@ var _squash := Vector2.ONE  # estica no pulo, achata no pouso (volta sozinho par
 var _run_dust := 0
 var _solids: Array = []
 
-@onready var sprite: AnimatedSprite2D = $Sprite
-var _art: AnimatedSprite2D  # sprite da arte nova (mostrado quando a animacao ja tem arte nova)
+var _art: AnimatedSprite2D  # sprite do pato (arte nova, assets/sprites/arte/pato_*.png)
 
 
 func _ready() -> void:
@@ -84,8 +83,7 @@ func _ready() -> void:
 	_art = Sprites.make_art_sprite(Sprites.art_frames(ART_ANIMS), ART_ORIGIN)
 	_art.name = "Arte"
 	add_child(_art)
-	sprite.play(_anim)
-	_show_art_for(_anim)
+	_art.play(_anim)
 
 
 # ------------------------------------------------------------------ colisao
@@ -157,7 +155,7 @@ func take_damage(source_x: float = NAN) -> void:
 	fall_start_y = -1.0
 	climbing = false
 	_drop_carried()
-	sprite.modulate.a = 1.0
+	_art.modulate.a = 1.0
 	if player_state == "hurt":
 		invulnerability_timer = INVULN_TIME
 		Game.invulnerability_remaining = INVULN_TIME
@@ -165,25 +163,12 @@ func take_damage(source_x: float = NAN) -> void:
 	else:
 		Game.play_sfx("death")
 	_set_anim("dead" if player_state == "dead" else "hurt")
-	sprite.frame = 0  # image_index = 0
-	_art.frame = 0
+	_art.frame = 0  # image_index = 0
 
 
 func _set_anim(anim_name: String) -> void:
 	if anim_name != _anim:
 		_anim = anim_name
-		# o sprite antigo nao tem todas as animacoes novas (ex.: apice)
-		var old_name := anim_name if sprite.sprite_frames.has_animation(anim_name) else "fall"
-		sprite.play(old_name)
-		_show_art_for(anim_name)
-
-
-## Mostra a arte nova se esta animacao ja tem quadros aprovados; senao, o sprite antigo.
-func _show_art_for(anim_name: String) -> void:
-	var has_art := ART_ANIMS.has(anim_name)
-	_art.visible = has_art
-	sprite.visible = not has_art
-	if has_art:
 		_art.play(anim_name)
 
 
@@ -486,7 +471,7 @@ func _step_hurt_or_dead() -> void:
 		player_state = "alive"
 		state_timer = 0
 		_set_anim("idle")
-		sprite.frame = 0
+		_art.frame = 0
 	elif player_state == "dead" and state_timer >= DEATH_TIME:
 		Game.game_state = "gameover"
 		Game.ui_selection = 0
@@ -500,19 +485,12 @@ func _check_out_of_bounds() -> void:
 
 
 func _update_sprite() -> void:
-	sprite.flip_h = xscale < 0
 	_art.flip_h = xscale < 0
 	if player_state != "alive":
-		sprite.scale = Vector2.ONE
 		_art.scale = Vector2.ONE * Sprites.ART_SCALE
 		_art.modulate.a = 1.0
+		_art.speed_scale = 1.0
 		_set_anim("dead" if player_state == "dead" else "hurt")
-		sprite.speed_scale = 0.2
-		sprite.modulate.a = 1.0
-		var last := sprite.sprite_frames.get_frame_count("dead") - 1
-		if player_state == "dead" and sprite.frame >= last:
-			sprite.frame = last
-			sprite.speed_scale = 0.0
 		return
 
 	var next_anim := "idle"
@@ -532,14 +510,12 @@ func _update_sprite() -> void:
 		next_anim = "apex"  # no alto do pulo: a asa bate e os pes comecam a descer
 
 	_set_anim(next_anim)
-	sprite.speed_scale = 0.0 if climbing and spdv == 0.0 else 1.0
+	_art.speed_scale = 0.0 if climbing and spdv == 0.0 else 1.0
 	# estica/achata a partir dos pes e volta ao normal
 	_squash = _squash.lerp(Vector2.ONE, 0.2)
-	sprite.scale = _squash
 	_art.scale = _squash * Sprites.ART_SCALE
 	var blink := invulnerability_timer > 0 and invulnerability_timer % 12 < 6
-	sprite.modulate.a = 0.35 if blink else 1.0
-	_art.modulate.a = sprite.modulate.a
+	_art.modulate.a = 0.35 if blink else 1.0
 
 
 # ---------------------------------------------------------- eventos de colisao

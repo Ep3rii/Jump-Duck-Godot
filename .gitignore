@@ -4,4 +4,5 @@
 *.tmp
 export_presets.cfg
 tools_tmp/
-tools/arte/saida/
+tools/arte/saida/*
+!tools/arte/saida/.gdignore

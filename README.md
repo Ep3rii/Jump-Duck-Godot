@@ -173,13 +173,13 @@ godot --path . res://tests/screenshots.tscn
   `CharacterBody2D`, para manter a mesma sensação.
 - **Ordem de desenho** (`depth` do GameMaker) virou `z_index = -depth` nos nós de cada camada.
 - **Tile 0** do GameMaker é o tile "vazio" e não é desenhado (as células com índice 0 foram omitidas).
-- A fonte pixel (`spr_fontPixel`, glifos 8x8) é desenhada diretamente, com a mesma ordem de glifos.
+- A fonte pixel é a nova (`assets/sprites/arte/fonte.png`, gerada por `tools/arte/fonte.py`), desenhada por `scripts/pixel_font.gd`.
 - O jogo exportado abre em **tela cheia** (modo sem borda do sistema, alt-tab funciona); rodando pelo editor abre em janela. Muda em Configurações → TELA.
 - **Pausa real:** fora do estado "playing" a árvore é pausada (`get_tree().paused`); `Game` e a UI rodam com `PROCESS_MODE_ALWAYS`.
 - `obj_blocoAgua01`, `obj_lago01`, `obj_piso01` e `obj_florVazia01` existem no GameMaker, mas não são
   usados em nenhuma sala, então não foram convertidos. A água da fase é só decoração (tiles).
-- Sprites não usados (`spr_agua01Anima`, `spr_BBg01Anima`, `spr_voltar`, `spr_fechar`...) foram
-  exportados para `assets/` caso queira usá-los.
+- Sprites do GameMaker que o jogo não usa (pato antigo, fonte antiga, banners, `spr_voltar`,
+  `spr_fechar`...) foram removidos de `assets/`; continuam no histórico do git e no projeto original.
 
 ## Direitos autorais
 
