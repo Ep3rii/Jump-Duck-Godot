@@ -206,3 +206,161 @@ class Canvas:
         png += chunk(b"IDAT", zlib.compress(bytes(raw), 9)) + chunk(b"IEND", b"")
         with open(path, "wb") as f:
             f.write(png)
+
+
+def load_png(path):
+    """Le um PNG de 8 bits (RGB ou RGBA, sem entrelacamento) e devolve uma Canvas."""
+    data = open(path, "rb").read()
+    assert data[:8] == b"\x89PNG\r\n\x1a\n", "nao e PNG"
+    pos = 8
+    idat = b""
+    w = h = 0
+    ctype = 6
+    palette = None
+    trns = None
+    while pos < len(data):
+        ln = struct.unpack(">I", data[pos:pos + 4])[0]
+        typ = data[pos + 4:pos + 8]
+        body = data[pos + 8:pos + 8 + ln]
+        if typ == b"IHDR":
+            w, h, depth, ctype, _, _, inter = struct.unpack(">IIBBBBB", body)
+            assert depth == 8 and inter == 0, "so PNG de 8 bits sem entrelacamento"
+        elif typ == b"PLTE":
+            palette = [tuple(body[i:i + 3]) for i in range(0, len(body), 3)]
+        elif typ == b"tRNS":
+            trns = body
+        elif typ == b"IDAT":
+            idat += body
+        pos += 12 + ln
+    bpp = {6: 4, 2: 3, 3: 1, 0: 1, 4: 2}[ctype]
+    raw = zlib.decompress(idat)
+    stride = w * bpp
+    rows = []
+    prev = bytearray(stride)
+    i = 0
+    for _ in range(h):
+        f = raw[i]
+        line = bytearray(raw[i + 1:i + 1 + stride])
+        i += 1 + stride
+        for x in range(stride):
+            a = line[x - bpp] if x >= bpp else 0
+            b = prev[x]
+            c = prev[x - bpp] if x >= bpp else 0
+            if f == 1:
+                line[x] = (line[x] + a) & 255
+            elif f == 2:
+                line[x] = (line[x] + b) & 255
+            elif f == 3:
+                line[x] = (line[x] + ((a + b) >> 1)) & 255
+            elif f == 4:
+                p = a + b - c
+                pa, pb, pc = abs(p - a), abs(p - b), abs(p - c)
+                pr = a if pa <= pb and pa <= pc else (b if pb <= pc else c)
+                line[x] = (line[x] + pr) & 255
+        rows.append(line)
+        prev = line
+    cv = Canvas(w, h)
+    for y in range(h):
+        for x in range(w):
+            if ctype == 6:
+                r, g, b, al = rows[y][x * 4:x * 4 + 4]
+            elif ctype == 2:
+                r, g, b = rows[y][x * 3:x * 3 + 3]
+                al = 255
+            elif ctype == 3:
+                idx = rows[y][x]
+                r, g, b = palette[idx]
+                al = trns[idx] if trns and idx < len(trns) else 255
+            elif ctype == 4:
+                r = g = b = rows[y][x * 2]
+                al = rows[y][x * 2 + 1]
+            else:
+                r = g = b = rows[y][x]
+                al = 255
+            if al > 127:
+                cv.px[y][x] = (r, g, b, 255)
+    return cv
+
+
+def save_gif(path, frames, delay_cs=10, scale=1, bg=(255, 255, 255)):
+    """GIF animado (laco infinito) a partir de Canvases do mesmo tamanho. delay_cs = centesimos
+    de segundo por quadro. Transparente vira 'bg'. Ate 255 cores."""
+    w, h = frames[0].w * scale, frames[0].h * scale
+    pal = [bg]
+    idx_frames = []
+    for fr in frames:
+        idx = []
+        for y in range(h):
+            for x in range(w):
+                c = fr.px[y // scale][x // scale]
+                rgb = bg if c is None else tuple(c[:3])
+                if rgb not in pal:
+                    pal.append(rgb)
+                idx.append(pal.index(rgb))
+        idx_frames.append(idx)
+    bits = max(2, (len(pal) - 1).bit_length())
+    size = 1 << bits
+    pal += [(0, 0, 0)] * (size - len(pal))
+    out = bytearray(b"GIF89a")
+    out += struct.pack("<HHBBB", w, h, 0x80 | ((bits - 1) << 4) | (bits - 1), 0, 0)
+    for c in pal:
+        out += bytes(c)
+    out += b"\x21\xff\x0bNETSCAPE2.0\x03\x01\x00\x00\x00"
+    for idx in idx_frames:
+        out += b"\x21\xf9\x04\x00" + struct.pack("<H", delay_cs) + b"\x00\x00"
+        out += b"\x2c" + struct.pack("<HHHHB", 0, 0, w, h, 0)
+        out += bytes([bits])
+        data = _lzw(idx, bits)
+        for i in range(0, len(data), 255):
+            chunk = data[i:i + 255]
+            out += bytes([len(chunk)]) + chunk
+        out += b"\x00"
+    out += b"\x3b"
+    with open(path, "wb") as f:
+        f.write(out)
+
+
+def _lzw(indices, min_bits):
+    clear = 1 << min_bits
+    eoi = clear + 1
+    out = bytearray()
+    buf = 0
+    nbits = 0
+    code_size = min_bits + 1
+
+    def emit(code):
+        nonlocal buf, nbits
+        buf |= code << nbits
+        nbits += code_size
+        while nbits >= 8:
+            out.append(buf & 255)
+            buf >>= 8
+            nbits -= 8
+
+    table = {(i,): i for i in range(clear)}
+    nxt = eoi + 1
+    emit(clear)
+    w = ()
+    for k in indices:
+        wk = w + (k,)
+        if wk in table:
+            w = wk
+            continue
+        emit(table[w])
+        if nxt < 4096:
+            table[wk] = nxt
+            nxt += 1
+            if nxt - 1 == (1 << code_size) and code_size < 12:
+                code_size += 1
+        else:
+            emit(clear)
+            table = {(i,): i for i in range(clear)}
+            nxt = eoi + 1
+            code_size = min_bits + 1
+        w = (k,)
+    if w:
+        emit(table[w])
+    emit(eoi)
+    if nbits:
+        out.append(buf & 255)
+    return bytes(out)

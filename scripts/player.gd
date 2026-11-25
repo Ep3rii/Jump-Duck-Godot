@@ -16,6 +16,7 @@ const Sprites := preload("res://scripts/sprites.gd")
 ## As outras continuam com os quadros antigos ate serem redesenhadas e aprovadas.
 const ART_ANIMS := {
 	"idle": ["res://assets/sprites/arte/pato_parado.png", 1, 1.0],
+	"run": ["res://assets/sprites/arte/pato_correndo.png", 8, 16.0],
 }
 ## Ponto do quadro de 128 que fica nos pes: a ultima linha de contorno cai sobre a borda do chao.
 const ART_ORIGIN := Vector2(64, 124)
