@@ -289,6 +289,13 @@ func _step_climb() -> bool:
 		climbing = true
 	pulos = 2
 	fall_start_y = -1.0
+	# Sem andar para os lados, o pato vai para o meio do cipo (na beira do penhasco ele
+	# agarra ainda meio em cima do chao, que impediria a descida).
+	var center: float = vine.get_rect().get_center().x
+	if move == 0 and absf(position.x - center) > 0.5:
+		var step := signf(center - position.x) * minf(1.0, absf(center - position.x))
+		if not _place_meeting(position.x + step, position.y):
+			position.x += step
 	if _jump_pressed():
 		climbing = false
 		spdv = spd_pulo

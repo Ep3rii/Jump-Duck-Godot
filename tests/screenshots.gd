@@ -49,7 +49,8 @@ func _run() -> void:
 	await frames(10)
 	await shot("01_menu_novo")
 
-	Game.best = {"tutorial_fase1": {"score": 87, "stars": 2, "time": 64.0}}
+	Game.best = {"tutorial": {"score": 87, "stars": 2, "time": 64.0}}
+	Game.unlocked_count = 2
 	await shot("02_menu_com_progresso")
 	Game.game_state = "levels"
 	await shot("03_fases")
@@ -66,34 +67,46 @@ func _run() -> void:
 	Game.game_state = "main"
 	Game.start_new_game()
 	await wait_ready()
-	await frames(20)
-	await shot("07_fase_inicio")
+	await frames(30)
+	await shot("07_tutorial_inicio")
 	var p := get_tree().get_first_node_in_group("player")
-	p.position = Vector2(930, 352)
-	await frames(40)
-	await shot("08_checkpoint")
-	p.position = Vector2(1600, 480)
-	await frames(40)
-	await shot("09_saida")
+	for spot in [[Vector2(360, 304), "08_tutorial_pulo_duplo"], [Vector2(740, 176), "09_tutorial_penhasco_cipo"],
+			[Vector2(880, 304), "10_tutorial_feno"], [Vector2(1180, 224), "11_tutorial_raposa"],
+			[Vector2(1660, 272), "12_tutorial_saida"]]:
+		p.position = spot[0]
+		await frames(45)
+		await shot(spot[1])
 	Game.ui_selection = 1
 	Game.game_state = "pause"
-	await shot("10_pausa")
+	await shot("13_pausa")
 	Game.game_state = "playing"
 	await frames(2)
 	Game.current_collectibles = 2
 	Game.finish_level()
 	await frames(5)
-	await shot("11_fase_concluida")
+	await shot("14_fase_concluida")
+
+	Game._run_menu_action("PRÓXIMA FASE")
+	await wait_ready()
+	await frames(30)
+	await shot("15_fase1_inicio")
+	p = get_tree().get_first_node_in_group("player")
+	for spot in [[Vector2(300, 304), "16_fase1_raposa_buracos"], [Vector2(560, 304), "17_fase1_caixa_paredao"],
+			[Vector2(780, 224), "18_fase1_placa_porta"], [Vector2(1060, 272), "19_fase1_arremesso"],
+			[Vector2(1440, 192), "20_fase1_plataforma"], [Vector2(2080, 256), "21_fase1_saida"]]:
+		p.position = spot[0]
+		await frames(45)
+		await shot(spot[1])
 	Game.game_state = "gameover"
 	Game.ui_selection = 0
-	await shot("12_fim_de_jogo")
+	await shot("22_fim_de_jogo")
 
 	# Laboratorio de mecanicas (Fase 4)
 	Game.game_state = "playing"
 	Game.room_goto(Game.LAB_LEVEL)
 	await wait_ready()
 	await frames(20)
-	await shot("13_lab_caixa_placa_porta")
+	await shot("23_lab_caixa_placa_porta")
 	p = get_tree().get_first_node_in_group("player")
 	var cx2 := get_tree().current_scene.get_node("Itens/Caixa2")
 	p.position = Vector2(256, 336)
@@ -102,20 +115,20 @@ func _run() -> void:
 	cx2.pick_up(p)
 	p.carrying = cx2
 	await frames(20)
-	await shot("14_lab_carregando")
+	await shot("24_lab_carregando")
 	p.carrying = null
 	cx2.drop()
 	p.position = Vector2(470, 288)
 	await frames(60)
-	await shot("15_lab_cipo_plataforma_agua")
+	await shot("25_lab_cipo_plataforma_agua")
 	Game.game_state = "main"
 	Game.go_to_menu()
 	await wait_ready()
 	await frames(20)  # fim do fade
 	Game.game_state = "levels"
-	await shot("16_fases_com_laboratorio")
+	await shot("26_fases")
 	Game.game_state = "controls"
-	await shot("17_controles")
+	await shot("27_controles")
 
 	for f in [SHOT_SAVE, SHOT_SETTINGS]:
 		if FileAccess.file_exists(f):

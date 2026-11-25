@@ -14,27 +14,16 @@ const COL_YELLOW_DARK := Color8(122, 90, 0)
 const COL_DIM := Color8(150, 190, 130)
 const COL_HINT := Color8(215, 237, 183)
 
-const LEFT := 0
-const CENTER := 1
-const RIGHT := 2
+const PixelFont := preload("res://scripts/pixel_font.gd")
 
-# Ordem dos glifos no sprite: ASCII 32..126 + acentos (mesma ordem do GameMaker).
-const ACCENTS := [193, 192, 194, 195, 201, 202, 205, 211, 212, 213, 218, 199,
-	225, 224, 226, 227, 233, 234, 237, 243, 244, 245, 250, 231]
-
-var _glyphs := {}
+const LEFT := PixelFont.LEFT
+const CENTER := PixelFont.CENTER
+const RIGHT := PixelFont.RIGHT
 
 
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var index := 0
-	for c in range(32, 127):
-		_glyphs[char(c)] = index
-		index += 1
-	for c: int in ACCENTS:
-		_glyphs[char(c)] = index
-		index += 1
 
 
 func _process(_delta: float) -> void:
@@ -56,23 +45,7 @@ func _outline(x1: float, y1: float, x2: float, y2: float, col: Color) -> void:
 
 ## ui_text_plain: texto sem sombra. (x, y) = ponto de ancoragem, centrado na vertical.
 func _text_plain(x: float, y: float, s: String, col: Color, halign: int, scale_: float = 1.0) -> void:
-	var w := s.length() * 8.0 * scale_
-	var left := x
-	if halign == CENTER:
-		left = x - w * 0.5
-	elif halign == RIGHT:
-		left = x - w
-	var top := y - 4.0 * scale_
-	left = floorf(left + 0.5)
-	top = floorf(top + 0.5)
-	var strip := Sprites.strip("spr_fontPixel")
-	for i in s.length():
-		var g: int = _glyphs.get(s[i], -1)
-		if g < 0:
-			continue
-		draw_texture_rect_region(strip,
-			Rect2(left + i * 8.0 * scale_, top, 8.0 * scale_, 8.0 * scale_),
-			Rect2(g * 8.0, 0.0, 8.0, 8.0), col)
+	PixelFont.draw_plain(self, x, y, s, col, halign, scale_)
 
 
 ## ui_text: texto com sombra escura deslocada em 'scale_' pixels.
@@ -184,7 +157,7 @@ func _draw() -> void:
 				_button(r, on, now)
 				var fg := COL_YELLOW_DARK if on else (Color.WHITE if unlocked else COL_DIM)
 				_text_plain(r["x1"] + 10, ty, "%d. %s" % [i + 1, r["label"]], fg, LEFT)
-				var rec: Dictionary = Game.best.get(Game.LEVELS[r["level"]]["id"], {})
+				var rec: Dictionary = Game.best.get(Game.levels[r["level"]]["id"], {})
 				if not rec.is_empty():
 					_text_plain(r["x2"] - 60, ty, str(rec["score"]), fg, RIGHT)
 					for s in 3:

@@ -40,6 +40,17 @@ os PNGs e o MP3 sozinho.
 - **Placa de pressão:** fica apertada com o pato ou uma caixa em cima e liga seus `alvos`
   (portas e plataformas móveis).
 
+## Fases
+
+| Fase | Cena | Conteúdo |
+|---|---|---|
+| Tutorial | `scenes/tutorial.tscn` | fazenda e moinho; placas de dica ensinam andar, pular, flores, pulo duplo, queda alta + cipó, empurrar o feno, checkpoint e, no fim, a raposa |
+| Fase 1 | `scenes/fase1.tscn` | caminho até a torre (torre ao fundo): raposa entre buracos, caixa empurrada do ressalto para subir o paredão, placa + porta, arremesso na raposa do patamar, plataforma móvel |
+
+O roteiro das fases seguintes está em [ROTEIRO_FASES.md](ROTEIRO_FASES.md). Toda a decoração
+(moinho, celeiro, cerca, árvores, placas, caixa/feno) é provisória, desenhada em código, até
+existir a arte definitiva.
+
 ## Laboratório de mecânicas
 
 `scenes/laboratorio.tscn` tem uma de cada mecânica (caixa, placa e porta, raposa, cipó,
@@ -48,9 +59,9 @@ FASES → LABORATÓRIO (só aparece rodando pelo editor). Ele não grava recorde
 
 ## Testes automáticos
 
-Jogam o tutorial e o laboratório sozinhos, sem abrir janela (pausa, Espaço ao despausar, dano,
-queda, raposa, tiles sólidos, checkpoint, perigo, vida extra, saída, progresso salvo, caixas,
-placa e porta, cipó, plataforma móvel, menus, teclas de debug):
+Jogam sozinhos, sem abrir janela: a fase de testes `scenes/testes/fase_teste.tscn` (o tutorial
+original do GameMaker, mantido só para os testes), o laboratório e trechos do tutorial e da
+Fase 1 (cada pulo, paredão, puzzle e inimigo que precisa ser possível, ou impossível, de passar):
 
 ```
 godot --headless --path . res://tests/test_runner.tscn
@@ -72,7 +83,7 @@ godot --path . res://tests/screenshots.tscn
    paralaxe, saída e uma camada `TilesChao` com o TileSet `assets/tilesets/grama_solida.tres`,
    já marcado como sólido: é só pintar).
 2. No nó raiz ajuste `room_size`; `level_id` pode ficar vazio (usa o nome do arquivo).
-3. Acrescente a fase em `Game.LEVELS` (`scripts/game.gd`), na ordem em que deve ser jogada,
+3. Acrescente a fase em `Game.levels` (`scripts/game.gd`), na ordem em que deve ser jogada,
    com o nome que aparece nas telas. A seleção de fases, o CONTINUAR e o botão PRÓXIMA FASE
    saem dessa lista.
 4. Chão: nós `Block` **ou** um `TileMapLayer` no grupo `solid_tiles` cujo TileSet tenha a
@@ -80,8 +91,12 @@ godot --path . res://tests/screenshots.tscn
 5. Objetos prontos em `scenes/`: `saida` (obrigatória), `checkpoint`, `perigo` (área com
    `tiles_w`/`tiles_h`; invisível ou com aparência de água), `flor`, `vida` (coração extra),
    `raposa`, `caixa`, `placa` (ligue os `alvos`), `porta`, `plataforma` (deslocamento,
-   velocidade, espera; desligue `ativa` para só andar com a placa) e `escalavel` (cipó;
-   alinhe o topo com o chão de cima).
+   velocidade, espera; desligue `ativa` para só andar com a placa), `escalavel` (cipó;
+   alinhe o topo com o chão de cima), `dica` (placa com texto; `|` quebra a linha) e
+   `decoracao` (moinho, celeiro, cerca, árvore, arbusto, seta de saída). A paralaxe tem
+   `mostrar_torre` para a torre aparecer ao fundo.
+   Alturas de referência: pulo simples sobe ~34 px (2 tiles), pulo duplo ~68 px (4 tiles);
+   5 tiles só com uma caixa embaixo; queda de 6 tiles (96 px) ou mais machuca.
 6. Inimigo novo: script com `extends Enemy` (`scripts/enemy.gd` explica o contrato).
 7. A câmera olha 50 px para cima do pato (como no original): perigos muito abaixo de uma
    plataforma ficam fora da tela.
@@ -98,10 +113,10 @@ godot --path . res://tests/screenshots.tscn
 | `obj_blocoPiso01` | `scenes/block.tscn` (`tiles_w` / `tiles_h` = image_xscale/yscale) |
 | `obj_camera` | `scripts/camera.gd` (Camera2D) |
 | `obj_parallax` | `scripts/parallax.gd` |
-| rooms `menu`, `tutorial_fase1` | `scenes/menu.tscn`, `scenes/tutorial_fase1.tscn` (`scripts/levels/tutorial_fase1.gd`, herda de `scripts/level.gd`) |
+| rooms `menu`, `tutorial_fase1` | `scenes/menu.tscn`, `scenes/testes/fase_teste.tscn` (o tutorial original; hoje só serve aos testes) |
 | `place_meeting` contra sólidos | `scripts/solids.gd` (blocos + tiles com custom data `solid`) |
 | sprites | `assets/sprites/*.png` (tiras horizontais) + `assets/frames/*.tres` (SpriteFrames) |
-| tilemaps `Tiles_1` / `Tiles_2` | `scripts/tile_data.gd` → `TileMapLayer` montado em `levels/tutorial_fase1.gd` |
+| tilemaps `Tiles_1` / `Tiles_2` | `scripts/tile_data.gd` → `TileMapLayer` montado em `levels/fase_teste.gd` |
 | `ini_*` (jump_duck_settings.ini) | `ConfigFile` em `user://jump_duck_settings.cfg` |
 
 ## Decisões da conversão

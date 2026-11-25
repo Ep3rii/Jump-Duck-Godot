@@ -10,10 +10,12 @@ extends Node
 const UIScript := preload("res://scripts/ui.gd")
 const Sfx := preload("res://scripts/sfx.gd")
 
-## Ordem das fases do jogo. "id" = nome da cena em res://scenes/; "name" = nome nas telas.
+## Ordem das fases do jogo. "id" = caminho da cena a partir de res://scenes/ (sem .tscn);
+## "name" = nome nas telas. (E "var" so para os testes trocarem pela fase de testes.)
 ## Para adicionar uma fase: crie a cena (ver README) e acrescente uma linha aqui.
-const LEVELS := [
-	{"id": "tutorial_fase1", "name": "TUTORIAL"},
+var levels: Array = [
+	{"id": "tutorial", "name": "TUTORIAL"},
+	{"id": "fase1", "name": "FASE 1"},
 ]
 
 ## Fase de testes com todas as mecanicas (nao conta progresso; so aparece em build de debug).
@@ -67,7 +69,7 @@ var screen_mode := "fullscreen"  # fullscreen | borderless | windowed
 var resume_frame := -1
 
 # --- progresso salvo --------------------------------------------------------
-var unlocked_count := 1  # quantas fases (na ordem de LEVELS) estao liberadas
+var unlocked_count := 1  # quantas fases (na ordem de levels) estao liberadas
 var best := {}  # id da fase -> {"score": int, "stars": int, "time": float}
 
 # --- depuracao (so em builds de debug: F1..F4) ------------------------------
@@ -178,22 +180,22 @@ func _update_pause() -> void:
 
 # ------------------------------------------------------------------- fases
 func level_index(id: String) -> int:
-	for i in LEVELS.size():
-		if LEVELS[i]["id"] == id:
+	for i in levels.size():
+		if levels[i]["id"] == id:
 			return i
 	return -1
 
 
 func level_display_name(id: String) -> String:
 	var i := level_index(id)
-	return LEVELS[i]["name"] if i >= 0 else id.to_upper()
+	return levels[i]["name"] if i >= 0 else id.to_upper()
 
 
 ## Proxima fase depois da atual ("" = era a ultima).
 func next_level_id() -> String:
 	var i := level_index(current_level_name)
-	if i >= 0 and i + 1 < LEVELS.size():
-		return LEVELS[i + 1]["id"]
+	if i >= 0 and i + 1 < levels.size():
+		return levels[i + 1]["id"]
 	return ""
 
 
@@ -235,16 +237,16 @@ func start_new_game() -> void:
 
 ## Comeca uma partida a partir da fase 'index' (selecao de fases / continuar).
 func play_level(index: int) -> void:
-	if index < 0 or index >= LEVELS.size():
+	if index < 0 or index >= levels.size():
 		return
 	_reset_run()
 	game_state = "playing"
-	room_goto(LEVELS[index]["id"])
+	room_goto(levels[index]["id"])
 
 
 ## Continua da fase liberada mais adiante.
 func continue_game() -> void:
-	play_level(clampi(unlocked_count - 1, 0, LEVELS.size() - 1))
+	play_level(clampi(unlocked_count - 1, 0, levels.size() - 1))
 
 
 func has_progress() -> bool:
@@ -363,7 +365,7 @@ static func stars_for(score: int) -> int:
 # ------------------------------------------------------------ progresso salvo
 func _record_progress(score: int) -> void:
 	if level_index(current_level_name) < 0:
-		last_result_is_record = false  # laboratorio / cena fora de LEVELS: nao salva nada
+		last_result_is_record = false  # laboratorio / cena fora de levels: nao salva nada
 		return
 	var prev: Dictionary = best.get(current_level_name, {})
 	last_result_is_record = prev.is_empty() or score > int(prev.get("score", 0))
@@ -375,7 +377,7 @@ func _record_progress(score: int) -> void:
 		}
 	var i := level_index(current_level_name)
 	if i >= 0:
-		unlocked_count = clampi(maxi(unlocked_count, i + 2), 1, LEVELS.size())
+		unlocked_count = clampi(maxi(unlocked_count, i + 2), 1, levels.size())
 	save_progress()
 
 
@@ -384,7 +386,7 @@ func load_progress() -> void:
 	best = {}
 	var cfg := ConfigFile.new()
 	if cfg.load(save_path) == OK:
-		unlocked_count = clampi(int(cfg.get_value("progress", "unlocked", 1)), 1, LEVELS.size())
+		unlocked_count = clampi(int(cfg.get_value("progress", "unlocked", 1)), 1, levels.size())
 		var saved = cfg.get_value("progress", "best", {})
 		if saved is Dictionary:
 			best = saved
@@ -499,11 +501,11 @@ func ui_layout() -> Array:
 			return out
 		"levels":
 			var out := []
-			for i in LEVELS.size():
-				var label: String = LEVELS[i]["name"] if is_level_unlocked(i) else "BLOQUEADA"
+			for i in levels.size():
+				var label: String = levels[i]["name"] if is_level_unlocked(i) else "BLOQUEADA"
 				out.append(ui_rect(52 + i * 20, 220, 18, label, {"level": i}))
 			if OS.is_debug_build():
-				out.append(ui_rect(52 + LEVELS.size() * 20, 220, 18, "LABORATÓRIO",
+				out.append(ui_rect(52 + levels.size() * 20, 220, 18, "LABORATÓRIO",
 					{"room": LAB_LEVEL}))
 			out.append(ui_rect(158, 120, 16, "VOLTAR"))
 			return out

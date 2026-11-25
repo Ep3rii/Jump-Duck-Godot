@@ -14,6 +14,7 @@ const Sfx := preload("res://scripts/sfx.gd")
 const TEST_SAVE := "user://test_save.cfg"
 const TEST_SETTINGS := "user://test_settings.cfg"
 const DEATH_FRAMES := 75
+const FIXTURE := "testes/fase_teste"
 
 var _fails := 0
 var _passes := 0
@@ -123,6 +124,9 @@ func _run() -> void:
 	Game.settings_path = TEST_SETTINGS
 	_delete(TEST_SAVE)
 	_delete(TEST_SETTINGS)
+	# A maior parte dos testes usa a fase de testes (o tutorial antigo do GameMaker).
+	var real_levels: Array = Game.levels
+	Game.levels = [{"id": FIXTURE, "name": "TUTORIAL"}]
 	Game.load_progress()
 	await frames(5)
 
@@ -147,7 +151,7 @@ func _run() -> void:
 	check(Game.transitioning and get_tree().paused, "fade: tudo pausado durante a troca")
 	await wait_level()
 	check(Game.in_level and not Game.transitioning, "fase ativa depois do fade")
-	check(Game.current_level_name == "tutorial_fase1", "nome da fase vem da cena")
+	check(Game.current_level_name == FIXTURE, "nome da fase vem da cena")
 	check(Game.total_collectibles == 3, "3 flores contadas pela fase (veio %d)" % Game.total_collectibles)
 	check(not get_tree().paused, "arvore nao pausada jogando")
 	await frames(30)
@@ -324,7 +328,7 @@ func _run() -> void:
 
 	print("-- progresso salvo")
 	check(Game.last_result_is_record, "primeiro resultado e recorde")
-	check(Game.best.has("tutorial_fase1") and Game.best["tutorial_fase1"]["score"] == score,
+	check(Game.best.has(FIXTURE) and Game.best[FIXTURE]["score"] == score,
 		"recorde da fase guardado")
 	check(FileAccess.file_exists(TEST_SAVE), "arquivo de save gravado")
 	var saved_best: Dictionary = Game.best.duplicate(true)
@@ -342,7 +346,7 @@ func _run() -> void:
 	player().position = Vector2(1640, 480)
 	await frames(3)
 	check(not Game.last_result_is_record, "resultado pior nao e recorde")
-	check(Game.best["tutorial_fase1"]["score"] == score, "recorde mantido")
+	check(Game.best[FIXTURE]["score"] == score, "recorde mantido")
 	Game._run_menu_action("JOGAR NOVAMENTE")
 	await wait_level()
 
@@ -355,7 +359,7 @@ func _run() -> void:
 	check(get_tree().paused, "fim de jogo pausa a fase")
 	Game._run_menu_action("TENTAR NOVAMENTE")
 	await wait_level()
-	check(Game.current_level_name == "tutorial_fase1", "TENTAR NOVAMENTE fica na mesma fase")
+	check(Game.current_level_name == FIXTURE, "TENTAR NOVAMENTE fica na mesma fase")
 	check(Game.player_lives == Game.max_lives and Game.game_state == "playing", "com vidas cheias")
 
 	print("-- teclas de debug")
@@ -380,7 +384,7 @@ func _run() -> void:
 	check(Game.game_state == "levels", "FASES abre a selecao")
 	var lv: Array = Game.ui_layout()
 	var extra := 1 if OS.is_debug_build() else 0  # LABORATÓRIO
-	check(lv.size() == Game.LEVELS.size() + 1 + extra and lv[0]["label"] == "TUTORIAL",
+	check(lv.size() == Game.levels.size() + 1 + extra and lv[0]["label"] == "TUTORIAL",
 		"lista de fases (+ laboratorio em debug) + VOLTAR")
 	Game._handle_back()
 	check(Game.game_state == "main", "ESC na selecao volta ao menu")
@@ -399,14 +403,208 @@ func _run() -> void:
 	Game._handle_back()
 	Game._run_menu_action("CONTINUAR")
 	await wait_level()
-	check(Game.in_level and Game.current_level_name == "tutorial_fase1", "CONTINUAR entra na fase")
+	check(Game.in_level and Game.current_level_name == FIXTURE, "CONTINUAR entra na fase")
 	Game.go_to_menu()
 	await wait_room("menu")
+
+	# Fases de verdade (tutorial e fase 1), com save zerado.
+	Game.levels = real_levels
+	_delete(TEST_SAVE)
+	Game.load_progress()
+	await _test_levels()
 
 	_delete(TEST_SAVE)
 	_delete(TEST_SETTINGS)
 	print("== %d ok, %d falha(s)" % [_passes, _fails])
 	get_tree().quit(_fails)
+
+
+# -------------------------------------------------- fases do jogo
+func key_event(key: Key, pressed: bool) -> void:
+	var ev := InputEventKey.new()
+	ev.physical_keycode = key
+	ev.pressed = pressed
+	Input.parse_input_event(ev)
+
+
+## Joga n frames segurando 'hold' e dando toques em 'taps' ({frame: tecla}).
+func play(n: int, hold_keys: Array = [], taps := {}) -> void:
+	for k in hold_keys:
+		key_event(k, true)
+	for i in n:
+		if taps.has(i):
+			key_event(taps[i], true)
+		await frames(1)
+		if taps.has(i):
+			key_event(taps[i], false)
+	for k in hold_keys:
+		key_event(k, false)
+	await frames(2)
+
+
+## Corre para a direita dando pulo duplo (2 toques de ESPACO).
+func double_jump_right(n := 70) -> void:
+	await play(n, [KEY_RIGHT], {2: KEY_SPACE, 18: KEY_SPACE})
+
+
+func _test_levels() -> void:
+	print("-- tutorial (fazenda)")
+	Game.play_level(0)
+	await wait_level()
+	check(Game.current_level_name == "tutorial", "JOGAR comeca pelo tutorial")
+	check(Game.total_collectibles == 3, "tutorial tem 3 flores (veio %d)" % Game.total_collectibles)
+	check(get_tree().get_nodes_in_group("dica").size() >= 7, "placas de dica no tutorial")
+	reset_player(Vector2(150, 304))
+	await frames(2)
+	var dica2: Node = node("Dicas/Dica2")
+	await frames(20)
+	check(dica2.is_showing(), "placa mostra a dica com o pato perto")
+
+	# muro de 2 tiles: um pulo basta
+	reset_player(Vector2(290, 304))
+	await play(45, [KEY_RIGHT], {2: KEY_SPACE})
+	check(player().position.x > 352.0, "pulo simples passa o muro de 2 tiles (x=%.0f)" % player().position.x)
+
+	# muro de 3 tiles: pulo simples nao passa, pulo duplo sim
+	reset_player(Vector2(380, 304))
+	await play(60, [KEY_RIGHT], {2: KEY_SPACE})
+	check(player().position.x < 416.0, "pulo simples nao sobe 3 tiles (x=%.0f)" % player().position.x)
+	reset_player(Vector2(380, 304))
+	await double_jump_right(60)
+	check(player().position.y == 256.0 and player().position.x > 416.0,
+		"pulo duplo sobe 3 tiles (%s)" % [player().position])
+
+	# penhasco: pular machuca, descer pelo cipo nao
+	reset_player(Vector2(760, 176))
+	await play(80, [KEY_RIGHT])
+	check(Game.player_lives == Game.max_lives - 1, "pular do penhasco machuca")
+	reset_player(Vector2(766, 176))
+	await play(10, [KEY_DOWN])
+	check(player().climbing, "BAIXO na beira agarra o cipo")
+	await play(140, [KEY_DOWN])
+	await frames(10)
+	check(player().position.y == 304.0 and Game.player_lives == Game.max_lives,
+		"desce o cipo ate o chao sem dano (y=%.0f)" % player().position.y)
+
+	# paredao de 5 tiles: so com o feno
+	var feno: Node2D = node("Itens/Feno1")
+	reset_player(Vector2(950, 304))
+	await double_jump_right(70)
+	check(player().position.y > 230.0, "sem o feno, pulo duplo nao sobe o paredao (y=%.0f)" % player().position.y)
+	reset_player(Vector2(836, 304))
+	await play(160, [KEY_RIGHT])
+	check(absf(feno.position.x - 968.0) < 1.0, "feno empurrado ate o paredao (x=%.0f)" % feno.position.x)
+	reset_player(Vector2(968, 288))  # em cima do feno
+	await frames(2)
+	await double_jump_right(70)
+	check(player().position.y == 224.0 and player().position.x > 976.0,
+		"com o feno, sobe o paredao (%s)" % [player().position])
+
+	# saida: conclui, salva e libera a fase 1
+	check(is_instance_valid(node("Entidades/Raposa1")), "raposa no fim do tutorial")
+	player().position = Vector2(1704, 272)
+	await frames(3)
+	check(Game.game_state == "complete", "saida conclui o tutorial")
+	check(Game.unlocked_count == 2 and Game.best.has("tutorial"), "fase 1 liberada e recorde salvo")
+	check(Game.ui_layout()[0]["label"] == "PRÓXIMA FASE", "tela de conclusao oferece PRÓXIMA FASE")
+	Game._run_menu_action("PRÓXIMA FASE")
+	await wait_level()
+
+	print("-- fase 1 (caminho ate a torre)")
+	check(Game.current_level_name == "fase1" and Game.total_collectibles == 4, "fase 1 carregada com 4 flores")
+	var par: Node = node("Parallax")
+	check(par.mostrar_torre, "torre aparece ao fundo")
+
+	# buraco sem fundo: perde vida e volta ao inicio
+	reset_player(Vector2(256, 304))
+	await play(60, [KEY_RIGHT])
+	await frames(60)
+	check(Game.player_lives == Game.max_lives - 1 and player().position.x < 100.0,
+		"cair no buraco custa 1 vida e volta ao inicio")
+
+	# caixa 1: empurrada do ressalto, cai no chao; paredao so com ela
+	var c1: Node2D = node("Itens/Caixa1")
+	reset_player(Vector2(500, 288))
+	await play(60, [KEY_RIGHT])
+	await frames(30)
+	check(c1.position.y == 304.0 and c1.position.x > 544.0, "caixa cai do ressalto (%s)" % [c1.position])
+	reset_player(Vector2(500, 288))
+	await double_jump_right(80)
+	check(player().position.y > 230.0, "do ressalto nao alcanca o planalto (y=%.0f)" % player().position.y)
+	c1.position = Vector2(632, 304)
+	reset_player(Vector2(632, 288))
+	await frames(2)
+	await double_jump_right(70)
+	check(player().position.y == 224.0, "com a caixa no pe do paredao, sobe (y=%.0f)" % player().position.y)
+
+	# porta de 6 tiles: nem pulo duplo nem caixa+pulo duplo passam; a placa abre
+	var porta: Node2D = node("Mecanicas/Porta1")
+	reset_player(Vector2(840, 224))
+	await double_jump_right(70)
+	check(player().position.x < 864.0, "porta alta nao se pula (x=%.0f)" % player().position.x)
+	var c2: Node2D = node("Itens/Caixa2")
+	c2.position = Vector2(856, 224)
+	reset_player(Vector2(856, 208))
+	await frames(2)
+	await double_jump_right(70)
+	check(player().position.x < 864.0, "nem de cima da caixa (x=%.0f)" % player().position.x)
+	c2.position = Vector2(808, 224)  # em cima da placa (800..816)
+	reset_player(Vector2(700, 224))
+	await frames(5)
+	check(porta.is_open, "caixa na placa abre a porta")
+
+	# raposa 2 guarda o patamar: arremessar a caixa 3
+	var fox2: Node2D = node("Entidades/Raposa2")
+	var c3: Node2D = node("Itens/Caixa3")
+	c3.position = Vector2(1060, 272)
+	reset_player(Vector2(1044, 272))
+	player().xscale = 1
+	fox2.position = Vector2(1150, 256)
+	fox2.start_x = 1150.0
+	await frames(2)
+	await press_key(KEY_X)
+	check(player().carrying == c3, "pega a caixa 3")
+	reset_player(Vector2(1092, 272))
+	player().carrying = c3
+	player().xscale = 1
+	fox2.position = Vector2(1150, 256)
+	await press_key(KEY_X)
+	for i in 60:
+		await frames(1)
+		if not is_instance_valid(fox2) or fox2.is_queued_for_deletion():
+			break
+	check(not is_instance_valid(fox2) or fox2.is_queued_for_deletion(), "caixa arremessada derrota a raposa do patamar")
+	c3.position = Vector2(1000, 272)  # tira a caixa do caminho
+	reset_player(Vector2(1100, 272))
+	await double_jump_right(70)
+	check(player().position.y > 200.0, "do chao baixo nao alcanca o alto (y=%.0f)" % player().position.y)
+	reset_player(Vector2(1176, 256))
+	await double_jump_right(70)
+	check(player().position.y == 192.0, "do patamar alcanca o alto (y=%.0f)" % player().position.y)
+
+	# plataforma movel atravessa o buraco largo
+	var plat: Node2D = node("Mecanicas/PlataformaMovel")
+	for i in 600:
+		await frames(1)
+		if plat._t == 0.0 and plat._wait > 0:
+			break
+	reset_player(Vector2(plat.position.x + 24.0, 192))
+	for i in 600:
+		await frames(1)
+		if plat._t == 1.0:
+			break
+	await play(40, [KEY_RIGHT])
+	await frames(20)
+	check(player().position.x > 1616.0 and player().position.y == 192.0,
+		"plataforma leva ate o outro lado (%s)" % [player().position])
+
+	# saida: ultima fase, sem PROXIMA FASE
+	player().position = Vector2(2152, 256)
+	await frames(3)
+	check(Game.game_state == "complete" and Game.best.has("fase1"), "saida conclui a fase 1 e salva")
+	check(Game.ui_layout()[0]["label"] == "MENU PRINCIPAL", "ultima fase: sem PROXIMA FASE")
+	Game.go_to_menu()
+	await wait_room("menu")
 
 
 # -------------------------------------------------- Fase 4: laboratorio

@@ -19,8 +19,8 @@ São 10 fases jogáveis + 1 cutscene.
 
 | Fase | Onde | Mecânicas | Inimigos | Precisa de |
 |---|---|---|---|---|
-| **Tutorial** | Fazenda, saindo de perto do moinho | andar, pulo, pulo duplo, flores, queda; empurrar um fardo de feno (a "caixa" da fazenda); no fim, a primeira raposa | raposa (perto do fim) | **refazer** o layout com o tema certo (decidido) + arte da fazenda |
-| **Fase 1** | Caminho até a torre | primeiro puzzle de empurrar caixa para subir | raposas | nada novo |
+| **Tutorial** | Fazenda, saindo de perto do moinho | andar, pulo, pulo duplo, flores, queda; empurrar um fardo de feno (a "caixa" da fazenda); no fim, a primeira raposa | raposa (perto do fim) | ✅ jogável (`scenes/tutorial.tscn`); falta a arte definitiva |
+| **Fase 1** | Caminho até a torre | caixa empurrada do ressalto para subir, placa + porta, arremesso, plataforma móvel | raposas | ✅ jogável (`scenes/fase1.tscn`); falta a arte definitiva |
 | **Fase 2** | Caminho até a torre (lago) | **nadar** (novo), caixas | jacarés comuns | nado, jacaré |
 | **Fase 3** | Caminho até a torre (lago) | nadar | jacarés + **mini-chefe jacaré** | nado, mini-chefe |
 | **Fase 4** | Torre (subida 1/6) | **chaves** (novo), cipó, placas | aves de rapina | chave, porta trancada, aves |

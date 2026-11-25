@@ -1,6 +1,7 @@
 extends Level
-## Fase "tutorial_fase1" (1680x640). Blocos, flores, raposa e jogador estao na propria cena;
-## os tiles (so decoracao) vem de tile_data.gd, convertido da sala do GameMaker.
+## Fase de testes (1680x640): o tutorial original convertido do GameMaker. Os testes
+## automaticos (tests/test_runner.gd) dependem deste layout; nao esta em Game.levels.
+## Os tiles (so decoracao) vem de tile_data.gd, convertido da sala do GameMaker.
 
 const LevelTiles := preload("res://scripts/tile_data.gd")
 

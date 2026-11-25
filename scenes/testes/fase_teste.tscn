@@ -1,6 +1,6 @@
 [gd_scene load_steps=10 format=3]
 
-[ext_resource type="Script" path="res://scripts/levels/tutorial_fase1.gd" id="1"]
+[ext_resource type="Script" path="res://scripts/levels/fase_teste.gd" id="1"]
 [ext_resource type="Script" path="res://scripts/parallax.gd" id="2"]
 [ext_resource type="PackedScene" path="res://scenes/block.tscn" id="3"]
 [ext_resource type="PackedScene" path="res://scenes/flor.tscn" id="4"]
@@ -12,7 +12,7 @@
 
 [node name="Level" type="Node2D"]
 script = ExtResource("1")
-level_id = "tutorial_fase1"
+level_id = "testes/fase_teste"
 room_size = Vector2i(1680, 640)
 
 [node name="Parallax" type="Node2D" parent="."]
