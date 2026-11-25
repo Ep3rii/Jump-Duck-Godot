@@ -15,6 +15,8 @@ const INVULN_TIME := 120  # frames de invulnerabilidade depois do dano
 const FALL_DAMAGE_HEIGHT := 96.0  # queda (px) que causa dano ao pousar
 const HURT_HOP := -2.0  # pulinho ao levar dano
 const KNOCKBACK_SPEED := 1.5  # recuo horizontal inicial ao levar dano
+const PUSH_SPEED := 1.0  # velocidade andando contra uma caixa
+const CLIMB_SPEED := 1.0  # subindo/descendo cipo
 
 var spdh := 0.0
 var spdv := 0.0
@@ -35,6 +37,8 @@ var fall_start_y := -1.0
 var xscale := 1  # image_xscale: 1 = olhando p/ direita, -1 = esquerda
 var move := 0
 var knockback_dir := 0
+var carrying: Node2D = null  # caixa acima da cabeca
+var climbing := false
 
 var _anim := "idle"
 var _solids: Array = []
@@ -44,6 +48,7 @@ var _solids: Array = []
 
 func _ready() -> void:
 	add_to_group("player")
+	add_to_group("weight")  # pressiona placas
 	start_x = position.x
 	start_y = position.y
 	invulnerability_timer = Game.invulnerability_remaining
@@ -60,8 +65,21 @@ func _mask(px: float, py: float) -> Rect2:
 	return Rect2(rx - 8.0, ry - 15.0, 15.0, 15.0)
 
 
+## Mascara na posicao atual (placas, plataformas, caixas e inimigos usam).
+func get_mask() -> Rect2:
+	return _mask(position.x, position.y)
+
+
 func _place_meeting(px: float, py: float) -> bool:
 	return Solids.hits(_solids, _mask(px, py))
+
+
+## Levado por uma plataforma movel (plataforma.gd chama depois de se mover).
+func carry_by(d: Vector2, platform: Node) -> void:
+	var snap := Solids.snapshot(get_tree())
+	if d.x != 0.0 and not Solids.hits(snap, _mask(position.x + d.x, position.y), [platform]):
+		position.x += d.x
+	position.y += d.y
 
 
 ## Move spdh pixels; encostando numa parede, chega pixel a pixel e zera spdh.
@@ -104,6 +122,8 @@ func take_damage(source_x: float = NAN) -> void:
 	spdv = HURT_HOP
 	jump_buffer = 0
 	fall_start_y = -1.0
+	climbing = false
+	_drop_carried()
 	sprite.modulate.a = 1.0
 	if player_state == "hurt":
 		invulnerability_timer = INVULN_TIME
@@ -147,7 +167,12 @@ func _physics_process(_delta: float) -> void:
 func _step_alive() -> void:
 	move = int(Input.is_action_pressed("right")) - int(Input.is_action_pressed("left"))
 	spdh = move * spd_player
+	if carrying == null and spdh != 0.0:
+		_push_boxes()
 	_move_x()
+
+	if _step_climb():
+		return
 
 	if _place_meeting(position.x, position.y + 1.0):
 		if fall_start_y >= 0.0:
@@ -180,6 +205,105 @@ func _step_alive() -> void:
 
 	if move != 0:
 		xscale = move
+	_handle_grab()
+
+
+func _jump_pressed() -> bool:
+	return Input.is_action_just_pressed("jump") and Engine.get_physics_frames() != Game.resume_frame
+
+
+# ------------------------------------------------------------ caixas (D1/D2)
+## Andando contra uma caixa parada: anda mais devagar e a empurra.
+func _push_boxes() -> void:
+	var probe := _mask(position.x + spdh, position.y)
+	for box in get_tree().get_nodes_in_group("caixa"):
+		if box.state == "idle" and probe.intersects(box.get_rect()):
+			spdh = signf(spdh) * PUSH_SPEED
+			box.push(spdh)
+
+
+## Caixa encostada na frente do pato (faixa de 4 px depois da mascara).
+func _box_in_reach() -> Node2D:
+	var m := get_mask()
+	var zone := Rect2(m.end.x, m.position.y, 4.0, m.size.y) if xscale >= 0 \
+		else Rect2(m.position.x - 4.0, m.position.y, 4.0, m.size.y)
+	for box in get_tree().get_nodes_in_group("caixa"):
+		if box.state == "idle" and zone.intersects(box.get_rect()):
+			return box
+	return null
+
+
+## X/J: pega a caixa da frente; carregando, arremessa (com BAIXO, pousa na frente).
+func _handle_grab() -> void:
+	if not Input.is_action_just_pressed("grab"):
+		return
+	if carrying != null:
+		if carrying.release(xscale, Input.is_action_pressed("down")):
+			carrying = null
+		else:
+			Game.play_sfx("denied")
+		return
+	var box := _box_in_reach()
+	if box == null:
+		return
+	if not box.is_free_at(position + box.CARRY_OFFSET):
+		Game.play_sfx("denied")  # sem espaco acima da cabeca
+		return
+	box.pick_up(self)
+	carrying = box
+	Game.play_sfx("pickup")
+
+
+func _drop_carried() -> void:
+	if carrying != null and is_instance_valid(carrying):
+		carrying.drop()
+	carrying = null
+
+
+# -------------------------------------------------------------------- cipo
+## grow: conta tambem o cipo logo abaixo do pe (no topo o pe so encosta na ponta do cipo).
+func _vine_here(grow: bool) -> Node2D:
+	var m := get_mask()
+	if grow:
+		m = m.grow_side(SIDE_BOTTOM, 1.0)
+	for v in get_tree().get_nodes_in_group("escalavel"):
+		if m.intersects(v.get_rect()):
+			return v
+	return null
+
+
+## Escalando (ou comecando a escalar): CIMA/BAIXO movem, PULO solta. Devolve true se tratou.
+func _step_climb() -> bool:
+	var up := Input.is_action_pressed("up")
+	var down := Input.is_action_pressed("down")
+	var vine: Node2D = _vine_here(climbing or down) if carrying == null else null
+	if vine == null:
+		climbing = false
+		return false
+	if not climbing:
+		var grounded := _place_meeting(position.x, position.y + 1.0)
+		var at_top: bool = position.y <= vine.top_y()
+		# CIMA agarra; BAIXO agarra no ar ou em pe no topo (para descer).
+		if not (up or (down and (not grounded or at_top))):
+			return false
+		climbing = true
+	pulos = 2
+	fall_start_y = -1.0
+	if _jump_pressed():
+		climbing = false
+		spdv = spd_pulo
+		pulos = 1
+		Game.play_sfx("jump")
+		_move_y()
+		return true
+	spdv = (int(down) - int(up)) * CLIMB_SPEED
+	# No topo o pe para na altura do topo do cipo.
+	if position.y + spdv < vine.top_y():
+		spdv = vine.top_y() - position.y
+	_move_y()
+	if move != 0:
+		xscale = move
+	return true
 
 
 ## Machucado ou morrendo: sem controle, mas com gravidade e recuo (antes congelava no ar, B2).
@@ -228,13 +352,15 @@ func _update_sprite() -> void:
 	var next_anim := "idle"
 	if move != 0:
 		next_anim = "run"
-	if spdv < 0.0:
+	if climbing:
+		next_anim = "jump"  # sem sprite de escalar ainda: quadro do pulo, parado
+	elif spdv < 0.0:
 		next_anim = "jump"
 	elif spdv > 0.0:
 		next_anim = "fall"
 
 	_set_anim(next_anim)
-	sprite.speed_scale = 1.0
+	sprite.speed_scale = 0.0 if climbing and spdv == 0.0 else 1.0
 	var blink := invulnerability_timer > 0 and invulnerability_timer % 12 < 6
 	sprite.modulate.a = 0.35 if blink else 1.0
 
@@ -287,6 +413,10 @@ func _on_enemy(enemy) -> void:
 ## Volta ao ultimo checkpoint (ou ao inicio). Com lose_life, custa 1 vida (perigos, sair do mapa).
 func respawn(lose_life: bool) -> void:
 	var at: Vector2 = Game.checkpoint_pos if Game.has_checkpoint else Vector2(start_x, start_y)
+	if carrying != null and is_instance_valid(carrying):
+		carrying.reset_to_start()
+	carrying = null
+	climbing = false
 	position = at
 	spdh = 0.0
 	spdv = 0.0

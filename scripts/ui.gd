@@ -175,6 +175,11 @@ func _draw() -> void:
 				var r: Dictionary = layout[i]
 				var on := sel == i
 				var ty: float = (r["y1"] + r["y2"]) / 2.0
+				if r.has("room"):  # laboratorio (so em debug)
+					_button(r, on, now)
+					_text_plain(r["x1"] + 10, ty, r["label"] + " (DEBUG)",
+						COL_YELLOW_DARK if on else COL_HINT, LEFT)
+					continue
 				var unlocked: bool = Game.is_level_unlocked(r["level"])
 				_button(r, on, now)
 				var fg := COL_YELLOW_DARK if on else (Color.WHITE if unlocked else COL_DIM)
@@ -201,12 +206,13 @@ func _draw() -> void:
 			_panel(30, 6, 290, 176)
 			_title_banner(10, "CONTROLES")
 			var rows := [["MOVER", "SETAS OU A/D"], ["PULAR", "ESPAÇO"], ["PULO DUPLO", "ESPAÇO NO AR"],
-				["PAUSAR", "ESC"], ["DERROTAR INIMIGO", "PULE EM CIMA"]]
+				["PEGAR/ARREMESSAR", "X OU J"], ["POUSAR CAIXA", "BAIXO + X"],
+				["ESCALAR CIPÓ", "CIMA/BAIXO"], ["DERROTAR INIMIGO", "PULE EM CIMA"], ["PAUSAR", "ESC"]]
 			for i in rows.size():
-				var y := 54 + i * 15
+				var y := 48 + i * 11
 				_text(44, y, rows[i][0], Color.WHITE, LEFT)
 				_text(276, y, rows[i][1], COL_YELLOW, RIGHT)
-			_text_plain(cx, 136, "MENUS: SETAS, ENTER OU MOUSE", COL_HINT, CENTER)
+			_text_plain(cx, 139, "MENUS: SETAS, ENTER OU MOUSE", COL_HINT, CENTER)
 
 		"settings":
 			_panel(30, 6, 290, 176)

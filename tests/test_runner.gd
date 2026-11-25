@@ -58,6 +58,24 @@ func press_key(key: Key) -> void:
 	await frames(1)
 
 
+## Segura uma tecla por n frames.
+func hold(key: Key, n: int) -> void:
+	var ev := InputEventKey.new()
+	ev.physical_keycode = key
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	await frames(n)
+	var up := InputEventKey.new()
+	up.physical_keycode = key
+	up.pressed = false
+	Input.parse_input_event(up)
+	await frames(1)
+
+
+func node(path: String) -> Node:
+	return get_tree().current_scene.get_node(path)
+
+
 func player() -> Node2D:
 	return get_tree().get_first_node_in_group("player")
 
@@ -350,6 +368,8 @@ func _run() -> void:
 	await press_key(KEY_F4)
 	check(Game.game_state == "complete", "F4 conclui a fase")
 
+	await _test_mechanics()
+
 	print("-- menus")
 	Game.go_to_menu()
 	await wait_room("menu")
@@ -359,7 +379,9 @@ func _run() -> void:
 	Game._run_menu_action("FASES")
 	check(Game.game_state == "levels", "FASES abre a selecao")
 	var lv: Array = Game.ui_layout()
-	check(lv.size() == Game.LEVELS.size() + 1 and lv[0]["label"] == "TUTORIAL", "lista de fases + VOLTAR")
+	var extra := 1 if OS.is_debug_build() else 0  # LABORATÓRIO
+	check(lv.size() == Game.LEVELS.size() + 1 + extra and lv[0]["label"] == "TUTORIAL",
+		"lista de fases (+ laboratorio em debug) + VOLTAR")
 	Game._handle_back()
 	check(Game.game_state == "main", "ESC na selecao volta ao menu")
 	Game._run_menu_action("CONFIGURAÇÕES")
@@ -385,3 +407,161 @@ func _run() -> void:
 	_delete(TEST_SETTINGS)
 	print("== %d ok, %d falha(s)" % [_passes, _fails])
 	get_tree().quit(_fails)
+
+
+# -------------------------------------------------- Fase 4: laboratorio
+func _test_mechanics() -> void:
+	print("-- laboratorio de mecanicas (Fase 4)")
+	Game.game_state = "playing"
+	Game.room_goto(Game.LAB_LEVEL)
+	await wait_level()
+	check(Game.current_level_name == "laboratorio" and Game.total_collectibles == 3, "laboratorio carregado")
+	var caixa1: Node2D = node("Itens/Caixa1")
+	var caixa2: Node2D = node("Itens/Caixa2")
+	var placa: Node2D = node("Mecanicas/Placa1")
+	var porta: Node2D = node("Mecanicas/Porta1")
+	var fox: Node2D = node("Entidades/Raposa1")
+	await frames(10)
+	check(caixa1.position.y == 336.0, "caixa parada no chao")
+	check(not porta.is_open, "porta comeca fechada")
+
+	print("-- empurrar caixa ate a placa abre a porta")
+	reset_player(Vector2(80, 336))
+	player().xscale = 1
+	var x0 := caixa1.position.x
+	var pushed := false
+	var ev := InputEventKey.new()
+	ev.physical_keycode = KEY_RIGHT
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	for i in 200:
+		await frames(1)
+		if caixa1.position.x >= 184.0:
+			pushed = true
+			break
+	var up := InputEventKey.new()
+	up.physical_keycode = KEY_RIGHT
+	up.pressed = false
+	Input.parse_input_event(up)
+	await frames(3)
+	check(pushed and caixa1.position.x > x0, "pato empurra a caixa (x %.0f -> %.0f)" % [x0, caixa1.position.x])
+	check(placa.pressed, "caixa em cima pressiona a placa")
+	check(porta.is_open, "placa abre a porta")
+	caixa1.position = Vector2(120, 336)
+	reset_player(Vector2(40, 336))
+	await frames(3)
+	check(not placa.pressed and not porta.is_open, "sem peso a porta fecha")
+	reset_player(Vector2(184, 336))
+	await frames(3)
+	check(placa.pressed and porta.is_open, "o pato em cima tambem pressiona")
+
+	print("-- porta fechada bloqueia")
+	reset_player(Vector2(220, 336))
+	await frames(3)  # sai da placa: porta fecha
+	await hold(KEY_RIGHT, 40)
+	check(player().position.x <= 232.0, "nao atravessa a porta fechada (x=%.0f)" % player().position.x)
+
+	print("-- pegar e arremessar (D1/D2)")
+	caixa2.position = Vector2(272, 336)
+	reset_player(Vector2(256, 336))  # mascara termina em 264 = borda da caixa
+	player().xscale = 1
+	porta.set_active(true)
+	await frames(2)
+	await press_key(KEY_X)
+	check(player().carrying == caixa2 and caixa2.state == "carried", "X pega a caixa da frente")
+	check(not caixa2.is_in_group("solid"), "caixa carregada nao e solida")
+	await frames(2)
+	check(caixa2.position.y < player().position.y - 10.0, "caixa acima da cabeca")
+	fox.position = Vector2(330, 336)
+	fox.start_x = 330.0
+	fox.dir = -1
+	await press_key(KEY_X)
+	check(player().carrying == null and caixa2.state == "thrown", "X de novo arremessa")
+	for i in 60:
+		await frames(1)
+		if caixa2.state == "idle":
+			break
+	check(not is_instance_valid(fox) or fox.is_queued_for_deletion(), "caixa arremessada derrota a raposa")
+	check(caixa2.state == "idle" and caixa2.is_in_group("solid"), "caixa pousa e volta a ser solida")
+
+	print("-- pousar com BAIXO + X e sem espaco acima")
+	reset_player(Vector2(caixa2.position.x - 16.0, 336))
+	player().xscale = 1
+	await frames(2)
+	await press_key(KEY_X)
+	check(player().carrying == caixa2, "pega de novo")
+	var down := InputEventKey.new()
+	down.physical_keycode = KEY_DOWN
+	down.pressed = true
+	Input.parse_input_event(down)
+	await press_key(KEY_X)
+	var down_up := InputEventKey.new()
+	down_up.physical_keycode = KEY_DOWN
+	down_up.pressed = false
+	Input.parse_input_event(down_up)
+	await frames(5)
+	check(player().carrying == null and caixa2.state == "idle", "BAIXO + X pousa a caixa")
+	check(absf(caixa2.position.x - (player().position.x + 16.0)) < 1.0 and caixa2.position.y == 336.0,
+		"pousada logo a frente, no chao")
+	var teto := BlockScene.instantiate()
+	teto.position = Vector2(caixa2.position.x - 40.0, 336.0 - 18.0)  # bloco 2 px acima da cabeca
+	teto.tiles_w = 3
+	get_tree().current_scene.add_child(teto)
+	reset_player(Vector2(caixa2.position.x - 16.0, 336))
+	await frames(2)
+	await press_key(KEY_X)
+	check(player().carrying == null, "sem espaco acima da cabeca nao pega")
+	teto.queue_free()
+	await frames(1)
+
+	print("-- cipo")
+	reset_player(Vector2(448, 336))
+	await hold(KEY_UP, 130)
+	check(player().climbing, "CIMA no cipo escala")
+	check(player().position.y == 288.0, "para no topo do cipo (y=%.1f)" % player().position.y)
+	await hold(KEY_RIGHT, 25)
+	await frames(20)
+	check(not player().climbing and player().position.y == 288.0 and player().position.x > 460.0,
+		"sai andando para a plataforma de cima (%s)" % [player().position])
+	reset_player(Vector2(448, 288))  # em pe no topo do cipo
+	player().climbing = false
+	await frames(2)
+	await hold(KEY_DOWN, 20)
+	check(player().position.y > 300.0, "BAIXO no topo desce o cipo (y=%.1f)" % player().position.y)
+	reset_player(Vector2(448, 320))
+	player().climbing = true
+	await frames(1)
+	await press_key(KEY_SPACE)
+	await frames(2)
+	check(not player().climbing and player().spdv < 0.0, "PULO solta do cipo")
+
+	print("-- plataforma movel")
+	var plat: Node2D = node("Mecanicas/PlataformaMovel")
+	for i in 400:  # espera a plataforma voltar ao inicio
+		await frames(1)
+		if plat._t == 0.0 and plat._wait > 0:
+			break
+	reset_player(Vector2(plat.position.x + 24.0, 288))
+	var px0 := player().position.x
+	var plat_x0 := plat.position.x
+	await frames(plat._wait + 80)
+	var moved := plat.position.x - plat_x0
+	check(moved > 20.0, "plataforma anda (%.1f px)" % moved)
+	check(absf((player().position.x - px0) - moved) < 1.5 and player().position.y == 288.0,
+		"leva o pato junto (pato %.1f, plataforma %.1f)" % [player().position.x - px0, moved])
+
+	print("-- agua do laboratorio leva ao checkpoint")
+	reset_player(Vector2(504, 288))
+	await frames(2)
+	check(Game.has_checkpoint, "checkpoint do laboratorio ativo")
+	reset_player(Vector2(620, 336))
+	await frames(3)
+	check(Game.player_lives == Game.max_lives - 1 and player().position.distance_to(Vector2(504, 288)) < 4.0,
+		"cair na agua custa 1 vida e volta ao checkpoint")
+
+	print("-- laboratorio nao salva progresso")
+	var best_before: Dictionary = Game.best.duplicate(true)
+	player().position = Vector2(930, 336)
+	await frames(3)
+	check(Game.game_state == "complete", "saida do laboratorio conclui")
+	check(Game.best == best_before and not Game.best.has("laboratorio"), "nenhum recorde gravado")

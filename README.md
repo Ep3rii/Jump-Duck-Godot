@@ -4,12 +4,15 @@ Conversão do projeto GameMaker `Jump Duck` para **Godot 4.4+** (renderer Compat
 Abra a pasta no Godot (`project.godot`) e rode com F5. Na primeira abertura o editor importa
 os PNGs e o MP3 sozinho.
 
-## Controles (iguais ao original)
+## Controles
 
 | Ação | Teclas |
 |---|---|
 | Mover | Setas ou A / D |
 | Pular (pulo duplo) | Espaço |
+| Pegar / arremessar caixa | X ou J |
+| Pousar caixa na frente | Baixo + X/J |
+| Escalar cipó | Cima / Baixo (Espaço solta) |
 | Pausar | Esc |
 | Menus | Setas/W/S, Enter ou Espaço, mouse |
 
@@ -32,11 +35,22 @@ os PNGs e o MP3 sozinho.
 - Sem corações: FIM DE JOGO, e TENTAR NOVAMENTE recomeça **a mesma fase** com vidas cheias.
 - Recorde e estrelas de cada fase e as fases liberadas ficam em `user://jump_duck_save.cfg`
   (menu CONTINUAR e FASES).
+- **Caixas:** o pato empurra andando contra elas, sobe nelas, pega (X/J) e arremessa. A caixa
+  arremessada derrota inimigos. Caixa que cai para fora do mapa volta ao lugar inicial.
+- **Placa de pressão:** fica apertada com o pato ou uma caixa em cima e liga seus `alvos`
+  (portas e plataformas móveis).
+
+## Laboratório de mecânicas
+
+`scenes/laboratorio.tscn` tem uma de cada mecânica (caixa, placa e porta, raposa, cipó,
+plataforma móvel, água, checkpoint, vida extra, saída). Abra e rode com F6, ou entre por
+FASES → LABORATÓRIO (só aparece rodando pelo editor). Ele não grava recorde nem progresso.
 
 ## Testes automáticos
 
-Jogam a fase sozinhos, sem abrir janela (pausa, Espaço ao despausar, dano, queda, raposa,
-tiles sólidos, checkpoint, perigo, vida extra, saída, progresso salvo, menus, teclas de debug):
+Jogam o tutorial e o laboratório sozinhos, sem abrir janela (pausa, Espaço ao despausar, dano,
+queda, raposa, tiles sólidos, checkpoint, perigo, vida extra, saída, progresso salvo, caixas,
+placa e porta, cipó, plataforma móvel, menus, teclas de debug):
 
 ```
 godot --headless --path . res://tests/test_runner.tscn
@@ -54,16 +68,23 @@ godot --path . res://tests/screenshots.tscn
 
 ## Criando uma fase nova
 
-1. Duplique `scenes/tutorial_fase1.tscn` (ou monte uma cena com o mesmo conjunto de nós).
-2. No nó raiz (script `level.gd` ou um que herde dele) ajuste `level_id` e `room_size`.
+1. Duplique `scenes/fase_base.tscn` (modelo vazio 640x360 com moldura, chão, jogador, câmera,
+   paralaxe, saída e uma camada `TilesChao` com o TileSet `assets/tilesets/grama_solida.tres`,
+   já marcado como sólido: é só pintar).
+2. No nó raiz ajuste `room_size`; `level_id` pode ficar vazio (usa o nome do arquivo).
 3. Acrescente a fase em `Game.LEVELS` (`scripts/game.gd`), na ordem em que deve ser jogada,
    com o nome que aparece nas telas. A seleção de fases, o CONTINUAR e o botão PRÓXIMA FASE
    saem dessa lista.
 4. Chão: nós `Block` **ou** um `TileMapLayer` no grupo `solid_tiles` cujo TileSet tenha a
    camada de *custom data* `solid` (bool) marcada nos tiles que são chão/parede.
 5. Objetos prontos em `scenes/`: `saida` (obrigatória), `checkpoint`, `perigo` (área com
-   `tiles_w`/`tiles_h`, invisível no jogo), `flor`, `vida` (coração extra), `raposa`.
+   `tiles_w`/`tiles_h`; invisível ou com aparência de água), `flor`, `vida` (coração extra),
+   `raposa`, `caixa`, `placa` (ligue os `alvos`), `porta`, `plataforma` (deslocamento,
+   velocidade, espera; desligue `ativa` para só andar com a placa) e `escalavel` (cipó;
+   alinhe o topo com o chão de cima).
 6. Inimigo novo: script com `extends Enemy` (`scripts/enemy.gd` explica o contrato).
+7. A câmera olha 50 px para cima do pato (como no original): perigos muito abaixo de uma
+   plataforma ficam fora da tela.
 
 ## Mapa GameMaker → Godot
 

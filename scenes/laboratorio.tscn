@@ -1,0 +1,157 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/level.gd" id="1_umom5"]
+[ext_resource type="Script" path="res://scripts/parallax.gd" id="2_ggecq"]
+[ext_resource type="PackedScene" path="res://scenes/block.tscn" id="3_mcakb"]
+[ext_resource type="Script" path="res://scripts/block.gd" id="4_xcynu"]
+[ext_resource type="PackedScene" path="res://scenes/perigo.tscn" id="5_3dk3w"]
+[ext_resource type="Script" path="res://scripts/perigo.gd" id="6_ab7c0"]
+[ext_resource type="PackedScene" path="res://scenes/porta.tscn" id="7_j0aj8"]
+[ext_resource type="Script" path="res://scripts/porta.gd" id="8_nt7mx"]
+[ext_resource type="PackedScene" path="res://scenes/placa.tscn" id="9_fyeae"]
+[ext_resource type="Script" path="res://scripts/placa.gd" id="10_ea7fu"]
+[ext_resource type="PackedScene" path="res://scenes/escalavel.tscn" id="11_cuc0a"]
+[ext_resource type="Script" path="res://scripts/escalavel.gd" id="12_usth0"]
+[ext_resource type="PackedScene" path="res://scenes/plataforma.tscn" id="13_sttja"]
+[ext_resource type="Script" path="res://scripts/plataforma.gd" id="14_5oxvk"]
+[ext_resource type="PackedScene" path="res://scenes/caixa.tscn" id="15_kk3hs"]
+[ext_resource type="Script" path="res://scripts/caixa.gd" id="16_0txsn"]
+[ext_resource type="PackedScene" path="res://scenes/flor.tscn" id="17_2hvj6"]
+[ext_resource type="Script" path="res://scripts/flor.gd" id="18_vgic5"]
+[ext_resource type="PackedScene" path="res://scenes/vida.tscn" id="19_vnffb"]
+[ext_resource type="Script" path="res://scripts/vida.gd" id="20_dd1r2"]
+[ext_resource type="PackedScene" path="res://scenes/checkpoint.tscn" id="21_cw3wy"]
+[ext_resource type="Script" path="res://scripts/checkpoint.gd" id="22_xnai3"]
+[ext_resource type="PackedScene" path="res://scenes/saida.tscn" id="23_0ns5f"]
+[ext_resource type="Script" path="res://scripts/saida.gd" id="24_a5ylo"]
+[ext_resource type="PackedScene" path="res://scenes/raposa.tscn" id="25_p6luw"]
+[ext_resource type="Script" path="res://scripts/raposa.gd" id="26_q3y5p"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="27_bb1l3"]
+[ext_resource type="Script" path="res://scripts/player.gd" id="28_j57hk"]
+[ext_resource type="Script" path="res://scripts/camera.gd" id="29_iu3cw"]
+
+[node name="Level" type="Node2D" unique_id=863310596]
+script = ExtResource("1_umom5")
+level_id = "laboratorio"
+room_size = Vector2i(960, 360)
+
+[node name="Parallax" type="Node2D" parent="." unique_id=1795356934]
+z_index = -990
+script = ExtResource("2_ggecq")
+
+[node name="Blocos" type="Node2D" parent="." unique_id=864050173]
+z_index = -800
+
+[node name="ParedeEsq" type="Node2D" parent="Blocos" unique_id=1112886699 instance=ExtResource("3_mcakb")]
+position = Vector2(-16, 360)
+script = ExtResource("4_xcynu")
+tiles_h = 24
+
+[node name="ParedeDir" type="Node2D" parent="Blocos" unique_id=975845176 instance=ExtResource("3_mcakb")]
+position = Vector2(960, 360)
+script = ExtResource("4_xcynu")
+tiles_h = 24
+
+[node name="Teto" type="Node2D" parent="Blocos" unique_id=177377969 instance=ExtResource("3_mcakb")]
+script = ExtResource("4_xcynu")
+tiles_w = 60
+
+[node name="Chao" type="Node2D" parent="Blocos" unique_id=1327023535 instance=ExtResource("3_mcakb")]
+position = Vector2(0, 352)
+script = ExtResource("4_xcynu")
+tiles_w = 60
+
+[node name="PlataformaAlta" type="Node2D" parent="Blocos" unique_id=1749749730 instance=ExtResource("3_mcakb")]
+position = Vector2(456, 304)
+script = ExtResource("4_xcynu")
+tiles_w = 4
+
+[node name="Pouso" type="Node2D" parent="Blocos" unique_id=2054624459 instance=ExtResource("3_mcakb")]
+position = Vector2(768, 304)
+script = ExtResource("4_xcynu")
+tiles_w = 3
+
+[node name="Mecanicas" type="Node2D" parent="." unique_id=930735440]
+z_index = -750
+
+[node name="Agua" type="Node2D" parent="Mecanicas" unique_id=100778778 instance=ExtResource("5_3dk3w")]
+position = Vector2(520, 336)
+script = ExtResource("6_ab7c0")
+tiles_w = 16
+tiles_h = 2
+aparencia = 1
+
+[node name="Porta1" type="Node2D" parent="Mecanicas" unique_id=1510144763 instance=ExtResource("7_j0aj8")]
+position = Vector2(240, 336)
+script = ExtResource("8_nt7mx")
+tiles_h = 6
+
+[node name="Placa1" type="Node2D" parent="Mecanicas" unique_id=281314785 instance=ExtResource("9_fyeae")]
+position = Vector2(176, 336)
+script = ExtResource("10_ea7fu")
+alvos = Array[NodePath]([NodePath("../Porta1")])
+
+[node name="Cipo1" type="Node2D" parent="Mecanicas" unique_id=683371254 instance=ExtResource("11_cuc0a")]
+position = Vector2(440, 336)
+script = ExtResource("12_usth0")
+tiles_h = 3
+
+[node name="PlataformaMovel" type="Node2D" parent="Mecanicas" unique_id=1665247000 instance=ExtResource("13_sttja")]
+position = Vector2(528, 304)
+script = ExtResource("14_5oxvk")
+deslocamento = Vector2(176, 0)
+velocidade = 0.6
+espera = 40
+
+[node name="Itens" type="Node2D" parent="." unique_id=1481465267]
+z_index = -700
+
+[node name="Caixa1" type="Node2D" parent="Itens" unique_id=1535750398 instance=ExtResource("15_kk3hs")]
+position = Vector2(110, 336)
+script = ExtResource("16_0txsn")
+
+[node name="Caixa2" type="Node2D" parent="Itens" unique_id=1352989478 instance=ExtResource("15_kk3hs")]
+position = Vector2(272, 336)
+script = ExtResource("16_0txsn")
+
+[node name="Flor1" type="Node2D" parent="Itens" unique_id=684910004 instance=ExtResource("17_2hvj6")]
+position = Vector2(616, 260)
+script = ExtResource("18_vgic5")
+
+[node name="Flor2" type="Node2D" parent="Itens" unique_id=1901885726 instance=ExtResource("17_2hvj6")]
+position = Vector2(400, 336)
+script = ExtResource("18_vgic5")
+
+[node name="Flor3" type="Node2D" parent="Itens" unique_id=961659585 instance=ExtResource("17_2hvj6")]
+position = Vector2(860, 336)
+script = ExtResource("18_vgic5")
+
+[node name="Vida1" type="Node2D" parent="Itens" unique_id=2121292760 instance=ExtResource("19_vnffb")]
+position = Vector2(890, 336)
+script = ExtResource("20_dd1r2")
+
+[node name="Checkpoint1" type="Node2D" parent="Itens" unique_id=498172653 instance=ExtResource("21_cw3wy")]
+position = Vector2(504, 288)
+script = ExtResource("22_xnai3")
+
+[node name="Saida" type="Node2D" parent="Itens" unique_id=1810102317 instance=ExtResource("23_0ns5f")]
+position = Vector2(930, 336)
+script = ExtResource("24_a5ylo")
+
+[node name="Entidades" type="Node2D" parent="." unique_id=1838954560]
+z_index = -600
+
+[node name="Raposa1" type="Node2D" parent="Entidades" unique_id=1684741493 instance=ExtResource("25_p6luw")]
+position = Vector2(340, 336)
+script = ExtResource("26_q3y5p")
+
+[node name="Jogador" type="Node2D" parent="." unique_id=1896766437]
+z_index = -500
+
+[node name="Player" type="Node2D" parent="Jogador" unique_id=6744704 instance=ExtResource("27_bb1l3")]
+position = Vector2(32, 336)
+script = ExtResource("28_j57hk")
+
+[node name="Camera" type="Camera2D" parent="." unique_id=1771379096]
+anchor_mode = 0
+script = ExtResource("29_iu3cw")

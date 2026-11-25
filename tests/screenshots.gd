@@ -45,6 +45,7 @@ func _run() -> void:
 	Game.load_progress()
 	Game.go_to_menu()
 	await wait_ready()
+	await frames(20)  # fim do fade
 	await frames(10)
 	await shot("01_menu_novo")
 
@@ -86,6 +87,35 @@ func _run() -> void:
 	Game.game_state = "gameover"
 	Game.ui_selection = 0
 	await shot("12_fim_de_jogo")
+
+	# Laboratorio de mecanicas (Fase 4)
+	Game.game_state = "playing"
+	Game.room_goto(Game.LAB_LEVEL)
+	await wait_ready()
+	await frames(20)
+	await shot("13_lab_caixa_placa_porta")
+	p = get_tree().get_first_node_in_group("player")
+	var cx2 := get_tree().current_scene.get_node("Itens/Caixa2")
+	p.position = Vector2(256, 336)
+	p.xscale = 1
+	await frames(5)
+	cx2.pick_up(p)
+	p.carrying = cx2
+	await frames(20)
+	await shot("14_lab_carregando")
+	p.carrying = null
+	cx2.drop()
+	p.position = Vector2(470, 288)
+	await frames(60)
+	await shot("15_lab_cipo_plataforma_agua")
+	Game.game_state = "main"
+	Game.go_to_menu()
+	await wait_ready()
+	await frames(20)  # fim do fade
+	Game.game_state = "levels"
+	await shot("16_fases_com_laboratorio")
+	Game.game_state = "controls"
+	await shot("17_controles")
 
 	for f in [SHOT_SAVE, SHOT_SETTINGS]:
 		if FileAccess.file_exists(f):

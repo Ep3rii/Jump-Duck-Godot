@@ -15,7 +15,8 @@ Base: resumo do Notion (`jump-duck-resumo.md`) + leitura completa do código atu
 | 0 — Preparação | ✅ git + `.gitignore`, teclas de debug F1–F4, repositório privado [Ep3rii/Jump-Duck-Godot](https://github.com/Ep3rii/Jump-Duck-Godot) (o antigo `Jump-Duck` fica com o projeto GameMaker) |
 | 1 — Bugs e base | ✅ B1–B6 e E1, E2, E3, E6, E7, E8 corrigidos; 40 testes automáticos passando (`tests/test_runner.tscn`). E4 e E5 feitos na Fase 2 |
 | 2 — Sistemas | ✅ Saída (D4), checkpoint, perigo, vida extra, `enemy.gd` com raposa por cima, fim de jogo recomeça a fase (D3), recorde/estrelas/fases liberadas salvos, menu com CONTINUAR, FASES, CRÉDITOS e CONTROLES, volumes de música e efeitos separados, efeitos sonoros sintetizados (provisórios), fade entre cenas; 76 testes passando. Ficou para a Fase 4: arremesso de objetos (D2), que depende dos objetos carregáveis |
-| 3 a 6 | Não iniciadas |
+| 4 — Mecânicas | ✅ Caixa (empurrar, subir, pegar, arremessar e pousar), placa de pressão, porta, plataforma móvel, cipó escalável, perigo com aparência de água, laboratório de mecânicas (`scenes/laboratorio.tscn`), cena modelo `fase_base.tscn` com TileSet sólido pronto para pintar; 106 testes passando |
+| 3, 5 e 6 | Não iniciadas |
 
 ---
 
@@ -159,4 +160,4 @@ Só depois das Fases 1–4 prontas. Esboço de estrutura para conversarmos:
 
 ## Próximo passo
 
-**Fase 3 (inimigos)** ou **Fase 4 (mecânicas)**. A Fase 4 traz os objetos carregáveis, que o arremesso (D2) e os puzzles usam, e só precisa de código; a Fase 3 precisa dos sprites do jacaré e do gavião (dá para começar com placeholders).
+**Fase 3 (inimigos)**: jacaré e gavião herdando `enemy.gd`, começando com sprites provisórios se a arte ainda não existir. Ou, com as mecânicas prontas, conversar sobre as suas ideias de fases (Fase 6).

@@ -3,7 +3,8 @@ extends RefCounted
 ## Uso: const Solids := preload("res://scripts/solids.gd")
 ##
 ## E solido:
-## - todo no do grupo "solid" com get_rect() (block.gd);
+## - todo no do grupo "solid" com get_rect() (block.gd, caixa.gd parada, porta.gd fechada,
+##   plataforma.gd);
 ## - toda celula de um TileMapLayer do grupo "solid_tiles" cujo tile tenha o custom data
 ##   "solid" = true no TileSet. Assim da para desenhar o chao das fases novas direto no editor.
 ##
@@ -16,9 +17,10 @@ static func snapshot(tree: SceneTree) -> Array:
 	return [tree.get_nodes_in_group("solid"), tree.get_nodes_in_group("solid_tiles")]
 
 
-static func hits(snap: Array, r: Rect2) -> bool:
+## exclude: solidos que nao contam (ex.: a propria caixa testando o proprio movimento).
+static func hits(snap: Array, r: Rect2, exclude: Array = []) -> bool:
 	for block in snap[0]:
-		if r.intersects(block.get_rect()):
+		if not exclude.has(block) and r.intersects(block.get_rect()):
 			return true
 	for layer: TileMapLayer in snap[1]:
 		if _layer_hits(layer, r):

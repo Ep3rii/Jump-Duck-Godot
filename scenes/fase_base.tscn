@@ -1,0 +1,70 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/level.gd" id="1_m1meq"]
+[ext_resource type="Script" path="res://scripts/parallax.gd" id="2_h4eg1"]
+[ext_resource type="PackedScene" path="res://scenes/block.tscn" id="3_ibgko"]
+[ext_resource type="Script" path="res://scripts/block.gd" id="4_oj0bq"]
+[ext_resource type="TileSet" path="res://assets/tilesets/grama_solida.tres" id="5_77jo8"]
+[ext_resource type="PackedScene" path="res://scenes/saida.tscn" id="6_fdvey"]
+[ext_resource type="Script" path="res://scripts/saida.gd" id="7_rwdo1"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="8_uule2"]
+[ext_resource type="Script" path="res://scripts/player.gd" id="9_scxua"]
+[ext_resource type="Script" path="res://scripts/camera.gd" id="10_ohayb"]
+
+[node name="Level" type="Node2D" unique_id=720693007]
+script = ExtResource("1_m1meq")
+room_size = Vector2i(640, 360)
+
+[node name="Parallax" type="Node2D" parent="." unique_id=1474871705]
+z_index = -990
+script = ExtResource("2_h4eg1")
+
+[node name="Blocos" type="Node2D" parent="." unique_id=1580025782]
+z_index = -800
+
+[node name="ParedeEsq" type="Node2D" parent="Blocos" unique_id=2144342084 instance=ExtResource("3_ibgko")]
+position = Vector2(-16, 360)
+script = ExtResource("4_oj0bq")
+tiles_h = 24
+
+[node name="ParedeDir" type="Node2D" parent="Blocos" unique_id=1185687 instance=ExtResource("3_ibgko")]
+position = Vector2(640, 360)
+script = ExtResource("4_oj0bq")
+tiles_h = 24
+
+[node name="Teto" type="Node2D" parent="Blocos" unique_id=16214526 instance=ExtResource("3_ibgko")]
+script = ExtResource("4_oj0bq")
+tiles_w = 40
+
+[node name="Chao" type="Node2D" parent="Blocos" unique_id=1428538291 instance=ExtResource("3_ibgko")]
+position = Vector2(0, 352)
+script = ExtResource("4_oj0bq")
+tiles_w = 40
+
+[node name="TilesChao" type="TileMapLayer" parent="." unique_id=561408322 groups=["solid_tiles"]]
+z_index = -200
+tile_set = ExtResource("5_77jo8")
+
+[node name="Mecanicas" type="Node2D" parent="." unique_id=628255213]
+z_index = -750
+
+[node name="Itens" type="Node2D" parent="." unique_id=545810653]
+z_index = -700
+
+[node name="Saida" type="Node2D" parent="Itens" unique_id=458750136 instance=ExtResource("6_fdvey")]
+position = Vector2(600, 336)
+script = ExtResource("7_rwdo1")
+
+[node name="Entidades" type="Node2D" parent="." unique_id=288287732]
+z_index = -600
+
+[node name="Jogador" type="Node2D" parent="." unique_id=1951088326]
+z_index = -500
+
+[node name="Player" type="Node2D" parent="Jogador" unique_id=518735251 instance=ExtResource("8_uule2")]
+position = Vector2(32, 336)
+script = ExtResource("9_scxua")
+
+[node name="Camera" type="Camera2D" parent="." unique_id=1259606255]
+anchor_mode = 0
+script = ExtResource("10_ohayb")

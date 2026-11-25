@@ -16,6 +16,9 @@ const LEVELS := [
 	{"id": "tutorial_fase1", "name": "TUTORIAL"},
 ]
 
+## Fase de testes com todas as mecanicas (nao conta progresso; so aparece em build de debug).
+const LAB_LEVEL := "laboratorio"
+
 const FADE_TIME := 0.2
 const SETTINGS_ADJUST_ROWS := 4  # TELA, JANELA, MUSICA, EFEITOS (ajustaveis com esq/dir)
 
@@ -25,6 +28,7 @@ const ACTIONS := {
 	"up": [KEY_UP, KEY_W],
 	"down": [KEY_DOWN, KEY_S],
 	"jump": [KEY_SPACE],
+	"grab": [KEY_X, KEY_J],  # pegar / arremessar caixa
 	"confirm": [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE],
 	"pause": [KEY_ESCAPE],
 }
@@ -358,6 +362,9 @@ static func stars_for(score: int) -> int:
 
 # ------------------------------------------------------------ progresso salvo
 func _record_progress(score: int) -> void:
+	if level_index(current_level_name) < 0:
+		last_result_is_record = false  # laboratorio / cena fora de LEVELS: nao salva nada
+		return
 	var prev: Dictionary = best.get(current_level_name, {})
 	last_result_is_record = prev.is_empty() or score > int(prev.get("score", 0))
 	if last_result_is_record:
@@ -495,6 +502,9 @@ func ui_layout() -> Array:
 			for i in LEVELS.size():
 				var label: String = LEVELS[i]["name"] if is_level_unlocked(i) else "BLOQUEADA"
 				out.append(ui_rect(52 + i * 20, 220, 18, label, {"level": i}))
+			if OS.is_debug_build():
+				out.append(ui_rect(52 + LEVELS.size() * 20, 220, 18, "LABORATÓRIO",
+					{"room": LAB_LEVEL}))
 			out.append(ui_rect(158, 120, 16, "VOLTAR"))
 			return out
 		"credits", "controls":
@@ -629,6 +639,12 @@ func _physics_process(delta: float) -> void:
 	if action < 0:
 		return
 	var chosen: Dictionary = layout[action]
+	if chosen.has("room"):
+		play_sfx("confirm")
+		_reset_run()
+		game_state = "playing"
+		room_goto(chosen["room"])
+		return
 	if chosen.has("level"):
 		if is_level_unlocked(chosen["level"]):
 			play_sfx("confirm")

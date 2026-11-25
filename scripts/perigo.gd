@@ -13,10 +13,27 @@ extends Node2D
 	set(v):
 		tiles_h = v
 		queue_redraw()
+## Invisivel (desenhe por cima com tiles) ou agua animada desenhada aqui mesmo.
+@export_enum("Invisível", "Água") var aparencia := 0:
+	set(v):
+		aparencia = v
+		queue_redraw()
+
+const Sprites := preload("res://scripts/sprites.gd")
+const COL_WATER := Color8(30, 100, 190)
+const COL_WATER_DEEP := Color8(20, 70, 150)
+
+var _time := 0.0
 
 
 func _ready() -> void:
 	add_to_group("hazard")
+
+
+func _process(delta: float) -> void:
+	if aparencia == 1:
+		_time += delta
+		queue_redraw()
 
 
 func get_rect() -> Rect2:
@@ -25,6 +42,13 @@ func get_rect() -> Rect2:
 
 
 func _draw() -> void:
+	if aparencia == 1:
+		var h := 16.0 * tiles_h
+		draw_rect(Rect2(0, -h, 16.0 * tiles_w, h), COL_WATER_DEEP)
+		var frame := int(_time * Sprites.meta("spr_agua01Anima")[5])
+		for i in tiles_w:
+			Sprites.draw(self, "spr_agua01Anima", frame, i * 16.0, -h)
+		return
 	if Engine.is_editor_hint():
 		var r := Rect2(0.0, -16.0 * tiles_h, 16.0 * tiles_w, 16.0 * tiles_h)
 		draw_rect(r, Color(1, 0, 0, 0.3))
