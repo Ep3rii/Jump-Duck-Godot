@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dsr4e28ad0vd8"
-path="res://.godot/imported/spr_bgCeu.png-0c33337b90ae36131ab86adee1891954.ctex"
+uid="uid://c8wf7168w8x2v"
+path="res://.godot/imported/montanhas.png-2b5817c12db3ea20a6fb1b3afeb7617b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/spr_bgCeu.png"
-dest_files=["res://.godot/imported/spr_bgCeu.png-0c33337b90ae36131ab86adee1891954.ctex"]
+source_file="res://assets/sprites/arte/fundo/montanhas.png"
+dest_files=["res://.godot/imported/montanhas.png-2b5817c12db3ea20a6fb1b3afeb7617b.ctex"]
 
 [params]
 

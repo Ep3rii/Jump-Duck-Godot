@@ -52,6 +52,10 @@ var _vel := Vector2.ZERO
 var _target := Vector2.ZERO
 
 
+func sombra_largura() -> float:
+	return 26.0
+
+
 func _enemy_ready() -> void:
 	add_to_group("chefe")
 	max_hp = STAGE_HP * 2

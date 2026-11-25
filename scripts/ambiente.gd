@@ -117,7 +117,7 @@ func _drop_leaf() -> void:
 	var v := _view()
 	for d in get_tree().get_nodes_in_group("decoracao_arvore"):
 		if v.grow(40).has_point(d.position) and randf() < 0.5:
-			Particulas.emit(get_tree(), "folha", d.position + Vector2(randf_range(-16, 16), -44), 1)
+			Particulas.emit(get_tree(), "folha", d.position + Vector2(randf_range(-22, 22), -d.altura_copa()), 1)
 
 
 func _draw() -> void:

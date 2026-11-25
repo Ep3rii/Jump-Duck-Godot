@@ -35,6 +35,10 @@ var _mouth := 0.0  # 0 fechada .. 1 aberta
 var _anim := 0.0
 
 
+func sombra_largura() -> float:
+	return 0.0
+
+
 func _enemy_ready() -> void:
 	add_to_group("jacare")
 	effect_offset = Vector2(0, -6)

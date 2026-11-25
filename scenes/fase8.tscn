@@ -40,6 +40,7 @@ room_size = Vector2i(768, 640)
 z_index = -990
 script = ExtResource("2_re87x")
 cenario = 1
+hora = 4
 
 [node name="Moldura" type="Node2D" parent="." unique_id=684417618]
 z_index = -800

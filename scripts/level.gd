@@ -41,6 +41,17 @@ func _ready() -> void:
 	amb.name = "Ambiente"
 	amb.set_script(preload("res://scripts/ambiente.gd"))
 	add_child(amb)
+	# luz e sombra: sombras no chao (acima do terreno e das plataformas, abaixo dos bichos) e
+	# a pelicula de luz ambiente / tochas (acima do mundo, abaixo do HUD)
+	var sombras := Node2D.new()
+	sombras.name = "Sombras"
+	sombras.z_index = -690
+	sombras.set_script(preload("res://scripts/sombras.gd"))
+	add_child(sombras)
+	var luz := CanvasLayer.new()
+	luz.name = "Luz"
+	luz.set_script(preload("res://scripts/luz.gd"))
+	add_child(luz)
 	Game.begin_level(self)
 
 

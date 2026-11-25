@@ -33,6 +33,7 @@ room_size = Vector2i(1792, 352)
 [node name="Parallax" type="Node2D" parent="." unique_id=96511281]
 z_index = -990
 script = ExtResource("2_210s6")
+hora = 0
 
 [node name="Moldura" type="Node2D" parent="." unique_id=1457679479]
 z_index = -800

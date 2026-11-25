@@ -17,6 +17,13 @@ var _time := 0.0
 func _ready() -> void:
 	add_to_group("chave")
 	add_to_group("item")
+	add_to_group("sombra")
+	add_to_group("luz")
+
+
+## A chave brilha no escuro (luz.gd).
+func luzes() -> Array:
+	return [[global_position + Vector2(0, -8), 24.0, Color(1.0, 0.96, 0.6), 0.9]]
 
 
 func get_mask() -> Rect2:

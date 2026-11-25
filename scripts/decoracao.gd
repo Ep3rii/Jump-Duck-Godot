@@ -1,10 +1,12 @@
 @tool
 extends Node2D
-## Decoracao de cenario desenhada em codigo (provisoria ate existir a arte definitiva).
+## Decoracao de cenario. Moinho, celeiro, cerca, arvores e arbusto usam a arte de
+## assets/sprites/arte/cenario/ (tools/arte/cenario.py), na ESCALA DO PATO: o pato e pequeno e
+## o cenario e grande. Placa de saida, junco e pilar ainda sao desenhados em codigo.
 ## Nao colide com nada. Origem = base, no chao (centro para moinho/celeiro/arvore/arbusto,
-## canto esquerdo para a cerca).
+## canto esquerdo para a cerca). Nao use 'scale': a arte so fica nitida no tamanho dela.
 
-@export_enum("Moinho", "Celeiro", "Cerca", "Árvore", "Arbusto", "Placa de saída", "Junco", "Pilar de pedra") var tipo := 0:
+@export_enum("Moinho", "Celeiro", "Cerca", "Árvore", "Arbusto", "Placa de saída", "Junco", "Pilar de pedra", "Árvore jovem") var tipo := 0:
 	set(v):
 		tipo = v
 		queue_redraw()
@@ -19,31 +21,37 @@ extends Node2D
 		tiles_h = v
 		queue_redraw()
 
+const Sprites := preload("res://scripts/sprites.gd")
+
+## A ultima linha da arte (contorno de baixo) fica em cima da borda do chao, como o pe do pato.
+const BASE := 0.5
+const MOINHO_CUBO_Y := 26.0  # centro das pas, a partir do topo do corpo (px do jogo)
+## Comprimento da sombra deitada no chao de cada tipo (0 = sem sombra), em px.
+const SOMBRA := {0: 70.0, 1: 120.0, 3: 64.0, 4: 34.0, 8: 40.0}
+
 const OUTLINE := Color8(40, 28, 20)
 const STONE := Color8(196, 186, 160)
 const STONE_DARK := Color8(150, 140, 116)
 const WOOD := Color8(150, 92, 44)
 const WOOD_DARK := Color8(104, 60, 28)
 const WOOD_LIGHT := Color8(196, 136, 74)
-const ROOF := Color8(150, 50, 40)
-const ROOF_DARK := Color8(104, 32, 28)
-const BARN := Color8(186, 54, 44)
-const BARN_DARK := Color8(132, 36, 32)
-const WHITE := Color8(240, 236, 220)
 const LEAF := Color8(71, 160, 40)
 const LEAF_DARK := Color8(40, 110, 30)
-const LEAF_LIGHT := Color8(133, 220, 60)
 
 var _time := 0.0
 
 
 func _ready() -> void:
-	if tipo == 3 and not Engine.is_editor_hint():
+	if Engine.is_editor_hint():
+		return
+	if tipo in [3, 8]:
 		add_to_group("decoracao_arvore")  # ambiente.gd solta folhas delas
+	if SOMBRA.has(tipo):
+		add_to_group("sombra_cenario")
 
 
 func _process(delta: float) -> void:
-	if tipo in [0, 3, 4, 6]:  # moinho gira; arvore, arbusto e junco balancam com o vento
+	if tipo in [0, 3, 6, 8]:  # moinho gira; arvores e junco balancam com o vento
 		_time += delta
 		queue_redraw()
 
@@ -62,7 +70,9 @@ func _draw() -> void:
 		2:
 			_draw_cerca()
 		3:
-			_draw_arvore()
+			_draw_arvore("cenario/arvore")
+		8:
+			_draw_arvore("cenario/arvore_jovem")
 		4:
 			_draw_arbusto()
 		5:
@@ -73,109 +83,60 @@ func _draw() -> void:
 			_draw_pilar()
 
 
+## Faixa de sombra no chao (sombras.gd): comeca embaixo da peca e se estende para a direita,
+## porque a luz vem de cima e da esquerda. Rect2(x inicial, y do chao, comprimento, 0).
+func sombra_chao() -> Rect2:
+	var comp: float = SOMBRA.get(tipo, 0.0)
+	return Rect2(global_position.x - comp * 0.3, global_position.y, comp, 0.0)
+
+
+## Altura da copa (px acima da base): ambiente.gd solta as folhas dali.
+func altura_copa() -> float:
+	return 78.0 if tipo == 3 else 46.0
+
+
 func _r(x: float, y: float, w: float, h: float, c: Color) -> void:
 	draw_rect(Rect2(x, y, w, h), c)
 
 
 func _draw_moinho() -> void:
-	# torre de pedra (trapezio em degraus de 4 px)
-	for i in 20:
-		var y := -4.0 - i * 4.0
-		var half := 18.0 - i * 0.5
-		_r(-half - 1, y - 4, half * 2 + 2, 5, OUTLINE)
-		_r(-half, y - 3, half * 2, 3, STONE if i % 2 == 0 else STONE_DARK)
-	# porta e janela
-	_r(-5, -18, 10, 18, OUTLINE)
-	_r(-4, -17, 8, 17, WOOD_DARK)
-	_r(-3, -52, 6, 7, OUTLINE)
-	_r(-2, -51, 4, 5, Color8(250, 220, 120))
-	# telhado conico
-	for i in 10:
-		var half := 14.0 - i * 1.4
-		_r(-half, -84 - i * 2.0, half * 2, 2, ROOF if i % 2 == 0 else ROOF_DARK)
-	# pas girando em volta do eixo
-	var hub := Vector2(0, -74)
-	var a := _time * 1.2
-	for k in 4:
-		var ang := a + k * PI * 0.5
-		draw_set_transform(hub, ang, Vector2.ONE)
-		_r(-1, -40, 3, 40, WOOD_DARK)
-		_r(2, -38, 7, 30, WHITE)
-		for line in 4:
-			_r(2, -36 + line * 7, 7, 1, WOOD_LIGHT)
-		draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
-	_r(hub.x - 3, hub.y - 3, 6, 6, OUTLINE)
-	_r(hub.x - 2, hub.y - 2, 4, 4, WOOD_LIGHT)
+	var tam := Sprites.art_size("cenario/moinho_corpo")
+	var topo := -tam.y + BASE
+	Sprites.draw_art(self, "cenario/moinho_corpo", -tam.x * 0.5, topo)
+	# pas: 8 quadros desenhados para um quarto de volta (as 4 pas sao iguais), sem girar pixel
+	var quadro := int(_time * 6.0) % 8
+	var pas := Sprites.art_size("cenario/moinho_pas", 8)
+	Sprites.draw_art(self, "cenario/moinho_pas", -pas.x * 0.5, topo + MOINHO_CUBO_Y - pas.y * 0.5, quadro, 8)
 
 
 func _draw_celeiro() -> void:
-	_r(-33, -41, 66, 41, OUTLINE)
-	_r(-32, -40, 64, 40, BARN)
-	for x in range(-30, 32, 6):
-		_r(x, -40, 1, 40, BARN_DARK)
-	# telhado
-	for i in 12:
-		var half := 36.0 - i * 3.0
-		_r(-half, -44 - i * 2.0, half * 2, 2, OUTLINE if i == 0 else (ROOF_DARK if i % 2 else ROOF))
-	# portao com X branco
-	_r(-13, -26, 26, 26, WHITE)
-	_r(-11, -24, 22, 24, BARN_DARK)
-	for i in 22:
-		_r(-11 + i, -24 + i, 2, 2, WHITE)
-		_r(9 - i, -24 + i, 2, 2, WHITE)
-	# janela do sotao
-	_r(-5, -56, 10, 8, WHITE)
-	_r(-4, -55, 8, 6, Color8(60, 40, 30))
+	var tam := Sprites.art_size("cenario/celeiro")
+	Sprites.draw_art(self, "cenario/celeiro", -tam.x * 0.5, -tam.y + BASE)
 
 
+## Um mourao por bloco; as pontas fecham as tabuas.
 func _draw_cerca() -> void:
-	var w := 16.0 * tiles_w
-	_r(0, -10, w, 2, WOOD_DARK)
-	_r(0, -5, w, 2, WOOD_DARK)
-	_r(0, -11, w, 1, WOOD_LIGHT)
-	_r(0, -6, w, 1, WOOD_LIGHT)
-	var x := 2.0
-	while x < w:
-		_r(x - 1, -14, 4, 14, OUTLINE)
-		_r(x, -13, 2, 13, WOOD)
-		_r(x, -13, 1, 13, WOOD_LIGHT)
-		x += 8.0
+	for i in tiles_w:
+		var quadro := 1
+		if tiles_w > 1 and i == 0:
+			quadro = 0
+		elif tiles_w > 1 and i == tiles_w - 1:
+			quadro = 2
+		Sprites.draw_art(self, "cenario/cerca", i * 16.0, -24.0 + BASE, quadro, 3)
 
 
-func _draw_arvore() -> void:
-	_r(-4, -28, 8, 28, OUTLINE)
-	_r(-3, -28, 6, 28, WOOD)
-	_r(-3, -28, 2, 28, WOOD_LIGHT)
-	var sx := _sway(1.1, 1.2)
-	var blobs := [[0, -44, 20], [-12, -36, 13], [12, -36, 13], [0, -54, 13]]
-	for blob in blobs:
-		var k: float = 0.5 if blob[1] > -40 else 1.0  # a copa mexe mais em cima
-		draw_circle(Vector2(blob[0] + sx * k, blob[1]), blob[2] + 1, OUTLINE)
-	for blob in blobs:
-		var k: float = 0.5 if blob[1] > -40 else 1.0
-		draw_circle(Vector2(blob[0] + sx * k, blob[1]), blob[2], LEAF)
-	draw_circle(Vector2(-12 + sx * 0.5, -32), 7, LEAF_DARK)
-	draw_circle(Vector2(-5 + sx, -50), 6, LEAF_LIGHT)
-	draw_circle(Vector2(6 + sx, -58), 4, LEAF_LIGHT)
-	draw_circle(Vector2(8 + sx * 0.5, -34), 5, LEAF_DARK)
-	# frutinhas vermelhas
-	for f in [[-8, -44], [9, -48], [2, -38], [-14, -38]]:
-		_r(f[0] + sx, f[1], 2, 2, Color8(220, 50, 50))
+## Tronco parado e copa balancando de leve (meio pixel por vez, sempre na grade da arte).
+func _draw_arvore(nome: String) -> void:
+	var tam := Sprites.art_size(nome + "_copa")
+	var x := -tam.x * 0.5
+	var y := -tam.y + BASE
+	Sprites.draw_art(self, nome + "_tronco", x, y)
+	Sprites.draw_art(self, nome + "_copa", x + _sway(1.1, 1.0) * 0.5, y)
 
 
 func _draw_arbusto() -> void:
-	var sx := _sway(1.6, 0.6)
-	for blob in [[-7, -6, 7], [7, -6, 7], [0, -9, 8]]:
-		draw_circle(Vector2(blob[0] + sx, blob[1]), blob[2] + 1, OUTLINE)
-	for blob in [[-7, -6, 7], [7, -6, 7], [0, -9, 8]]:
-		draw_circle(Vector2(blob[0] + sx, blob[1]), blob[2], LEAF)
-	draw_circle(Vector2(-2 + sx, -12), 3, LEAF_LIGHT)
-	draw_circle(Vector2(6 + sx, -4), 3, LEAF_DARK)
-	# florzinhas no arbusto
-	for f in [[-8, -9], [4, -12], [9, -5]]:
-		_r(f[0] + sx, f[1], 2, 2, WHITE)
-		_r(f[0] + sx, f[1], 1, 1, Color8(255, 220, 80))
-	_r(-14, -1, 28, 1, LEAF_DARK)
+	var tam := Sprites.art_size("cenario/arbusto")
+	Sprites.draw_art(self, "cenario/arbusto", -tam.x * 0.5, -tam.y + BASE)
 
 
 func _draw_placa_saida() -> void:

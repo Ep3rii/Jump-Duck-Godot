@@ -34,8 +34,14 @@ var hp := 1
 var _hurt_until := -1
 
 
+## Largura da sombra no chao em px (0 = sem sombra; quem nada sobrescreve).
+func sombra_largura() -> float:
+	return 12.0
+
+
 func _ready() -> void:
 	add_to_group("enemy")
+	add_to_group("sombra")  # sombras.gd
 	hp = max_hp
 	_enemy_ready()
 

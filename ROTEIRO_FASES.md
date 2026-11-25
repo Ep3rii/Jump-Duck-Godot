@@ -116,8 +116,8 @@ O jogo continua do mesmo tamanho na tela; os desenhos novos só têm mais detalh
 | **Entidades pequenas** (pato, Pata, raposa, jacaré comum, gaviãozinho, águia, flor, chave, coração) | **128x128** por quadro | 1 bloco: o tamanho do pato |
 | **Mini-chefes e chefes** (jacaré gigante, gavião) | **256x256** por quadro | 2 blocos (32 px) |
 | Objetos mais altos que um bloco (bandeiras, porta) | 128 de largura x altura em blocos (ex.: porta de 3 blocos = 128x384) | conforme o objeto |
-| Decoração (moinho, celeiro, árvore, cerca) | múltiplos de 128 | conforme o desenho |
-| Fundos (céu, montanhas, parede da torre, pôr do sol) | 2560x1440 (a tela inteira) ou 2560 de largura | a tela (320x180) |
+| **Cenário grande** (moinho, celeiro, árvore, cerca, arbusto) | direto na grade: **2 px do desenho = 1 px do jogo**, sem ampliar 4x (mesma densidade de pixel do pato, arquivo menor) | ver "Escala" abaixo |
+| **Fundos** (montanhas, colinas, nuvens, torre ao longe, parede da torre) | direto na grade; tiras de 1024 px que emendam nas pontas | repetem a cada 512 px |
 
 Os inimigos comuns foram reduzidos para o tamanho do pato e os chefes para 2 blocos (colisões e
 testes já ajustados), então os desenhos novos encaixam sem mexer nas fases.
@@ -133,11 +133,40 @@ Definida a partir do pato e do tileset originais (25/11/2026). Vale para todos o
 | **Preenchimento** | Cor chapada, mais no máximo 1 ou 2 tons de sombra onde o volume dobra (barriga do pato `#e2e2e2`, base da terra `#d89d40` / `#99692c`). Sem degradê, sem pontilhado, sem suavização e sem textura de ruído. |
 | **Paleta** | Viva e limpa, como a original: branco `#ffffff`, amarelo `#ffff00` / `#fff200`, verdes `#31dc31` `#2ecf2e` `#28b228` `#2ba024`, terra `#e59f43` `#d89d40`, flores brancas com miolo laranja `#f28b57`. Poucas cores por sprite (o pato usa 5). |
 | **Formas** | Silhuetas simples e fáceis de ler, degraus de pixel limpos (sem pixel solto), cantos arredondados por 1 ou 2 pixels. Detalhe mínimo: o olho é um ponto 2x2, sem pupila nem brilho. |
-| **Luz** | Vem de cima: tom claro em cima, sombra na base. |
+| **Luz** | Vem de cima e da **esquerda** (o sol fica à esquerda no céu): tom claro em cima/esquerda, tom de sombra embaixo/direita. Sombra projetada cai para baixo e para a direita. |
+| **Escala** | O pato é pequeno e o cenário é grande. Régua: 1 pato = 32 px da grade (16 no jogo). Cerca 1,5 pato; arbusto 1,5; árvore jovem 4; árvore 7; celeiro 6,5 de altura por 9,5 de largura; moinho 7,5 (10 com as pás); torre ao longe de 4 a 8,5. Nada de cenário menor que o pato perto do chão do jogo. |
+| **Distância** | Quanto mais longe, mais claro e azulado, sem contorno (ou com contorno suave) e com menos detalhe. Só o plano do jogo usa as cores vivas inteiras. |
 | **Blocos** | Faixa de grama com franja de folhas em dentes e florzinhas; terra lisa em duas faixas; borda de 1 px verde-escura; cantos arredondados nas pontas e na base das plataformas. Tudo se repete a cada 8 ou 16 px para emendar sem costura. |
 | **Animação** | Poucos quadros (3 a 6), com movimentos de 1 a 2 pixels: pés e cabeça mexem, o corpo quase não. |
 
 Sem acessórios no pato e sem tema medieval: o estilo é o do original, só que com mais detalhe.
+
+**A base está em código:** `tools/arte/estilo.py` tem a paleta, o contorno de 1 px, os tons de luz
+e sombra (luz da esquerda) e a cor "de longe". Todo sprite novo (cenário, fundos, inimigos, itens,
+chefes) é desenhado com ela, para sair igual ao pato e ao tileset.
+
+### Cenário, parallax, luz e sombra (aprovados em 25/11/2026)
+
+- **Cenário na escala do pato** (`tools/arte/cenario.py` → `assets/sprites/arte/cenario/`): moinho
+  (corpo + 8 quadros das pás, sem girar pixel), celeiro, árvore e árvore jovem (tronco + copa que
+  balança meio pixel), arbusto e cerca (ponta esquerda, meio, ponta direita). `decoracao.gd` usa
+  essa arte; placa de saída, junco e pilar ainda são desenhados em código.
+- **Parallax** (`tools/arte/fundos.py` → `assets/sprites/arte/fundo/`, desenhado por `parallax.gd`):
+  céu em 5 faixas chapadas, sol (ou lua e estrelas), nuvens de longe, montanhas, nuvens de perto,
+  torre do gavião, colinas de longe, pássaros e colinas de perto. Cada camada anda numa velocidade
+  na horizontal e na vertical. A torre cresce de fase em fase (longe → média → perto).
+  Por dentro da torre: parede de tijolos, janelas com o céu da hora, tochas animadas, estandartes
+  e colunas numa camada mais à frente.
+- **Hora do dia** (`hora` no nó Parallax de cada fase): A Fazenda de manhã, O Caminho de dia,
+  O Lago à tarde, O Jacaré Gigante ao entardecer; torre 1 e 2 com o entardecer nas janelas e
+  torre 3 em diante de noite.
+- **Luz** (`luz.gd`): uma película que multiplica a cena pela luz ambiente da hora e abre
+  clareiras em faixas chapadas em volta de tochas, janelas, chave, saída e do pato (só no escuro
+  da torre). De dia fica desligada.
+- **Sombra** (`sombras.gd`): sombra no chão embaixo do pato, dos inimigos, caixas e itens (encolhe
+  e desliza para a direita conforme sobem) e faixa de sombra deitada à direita de árvores, moinho,
+  celeiro e arbustos.
+- O lago ganhou um fundo opaco: os morros do parallax apareciam "dentro" d'água.
 
 ### Arte nova aprovada e já no jogo
 
@@ -150,8 +179,10 @@ Sem acessórios no pato e sem tema medieval: o estilo é o do original, só que 
 | Tileset de grama | `assets/sprites/arte/tileset_grama.png` (4x9 blocos de 128) | os 16 blocos originais ampliados com todas as bordas finas (1 px) e suaves (`#1d6b22`), mais 20 novos: 4 variações do topo (sem flores, flores amarelas, pedrinha, cogumelo), 4 da terra (pedrinhas, raiz, camada, pontinhos), canto interno dos dois lados, coluna de 1 bloco (topo, meio, base), teto de terra (esq., meio, dir.), bloquinho sozinho, tronco (esq., meio, dir.) e ponte. O jogo escolhe sozinho o bloco de cada célula (`Level._retile_grass`), com as variações pela posição; tronco e ponte são colocados à mão (linha 8 do tileset) |
 | Fonte | `assets/sprites/arte/fonte.png` + `scripts/fonte_meta.gd` (gerados por `tools/arte/fonte.py`) | maiúsculas de 7 px, traço grosso e arredondado, largura proporcional; acentos em cima da letra inteira (a letra acentuada tem o mesmo tamanho das outras). Usada em todos os textos (`scripts/pixel_font.gd`) |
 
-Os geradores estão em `tools/arte/` (Python, sem dependências): `pato.py` (animações do pato),
-`tileset.py` e `tileset_novos.py` (tileset de grama) e `tileset_cena.py` (cena de prévia). Cada sprite novo só entra
+Os geradores estão em `tools/arte/` (Python, sem dependências): `estilo.py` (a base de estilo),
+`pato.py` (animações do pato), `tileset.py` e `tileset_novos.py` (tileset de grama),
+`tileset_cena.py` (cena de prévia), `cenario.py` (cenário na escala do pato), `fundos.py` (camadas
+do parallax) e `gif_jogo.py` (GIFs a partir de quadros gravados por `tests/gif_fundo.tscn`). Cada sprite novo só entra
 no jogo depois de aprovado; o pé do pato fica apoiado sobre a borda do chão (o contorno de baixo
 do pato é desenhado por cima da borda do terreno).
 

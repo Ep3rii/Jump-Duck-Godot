@@ -37,6 +37,7 @@ var _start_pos := Vector2.ZERO
 func _ready() -> void:
 	add_to_group("caixa")
 	add_to_group("weight")
+	add_to_group("sombra")
 	_start_pos = position
 	_set_solid(true)
 

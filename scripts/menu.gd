@@ -38,13 +38,18 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	_build_ground()
-	_add_deco(0, Vector2(34, GROUND_Y), 0.75)   # moinho
-	_add_deco(3, Vector2(290, GROUND_Y), 0.9)   # arvore
-	_add_deco(4, Vector2(256, GROUND_Y), 1.0)   # arbusto
+	_add_deco(0, Vector2(26, GROUND_Y))   # moinho
+	_add_deco(3, Vector2(292, GROUND_Y))  # arvore
+	_add_deco(4, Vector2(236, GROUND_Y))  # arbusto
 	var amb := Node2D.new()
 	amb.name = "Ambiente"
 	amb.set_script(preload("res://scripts/ambiente.gd"))
 	add_child(amb)
+	var sombras := Node2D.new()
+	sombras.name = "Sombras"
+	sombras.z_index = -690
+	sombras.set_script(preload("res://scripts/sombras.gd"))
+	add_child(sombras)
 	_duck = Sprites.make_art_sprite(Sprites.art_frames(PlayerScript.ART_ANIMS), PlayerScript.ART_ORIGIN)
 	_duck.name = "Pato"
 	_duck.z_index = 5
@@ -71,11 +76,10 @@ func _build_ground() -> void:
 		layer.set_cell(c, 0, Vector2i(idx % 4, idx / 4))
 
 
-func _add_deco(tipo: int, pos: Vector2, s: float) -> void:
+func _add_deco(tipo: int, pos: Vector2) -> void:
 	var d: Node2D = DecoScene.instantiate()
 	d.set("tipo", tipo)
 	d.position = pos
-	d.scale = Vector2(s, s)
 	d.z_index = -900
 	add_child(d)
 

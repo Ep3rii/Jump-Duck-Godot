@@ -11,6 +11,11 @@ const ART_SCALE := 1.0 / 8.0
 ## como o original). Em 4K cada pixel da grade de 32 vira exatamente 5x5 pixels da tela.
 const ART_FILTER := CanvasItem.TEXTURE_FILTER_NEAREST
 
+## Cenario grande e fundos (assets/sprites/arte/cenario e /fundo) sao gravados direto na grade
+## da arte: 2 pixels do desenho = 1 pixel do jogo (a mesma densidade do pato, sem ampliar 4x).
+const GRID_SCALE := 0.5
+
+static var _art: Dictionary = {}
 static var _frames: Dictionary = {}
 static var _strips: Dictionary = {}
 
@@ -55,6 +60,29 @@ static func draw_tl(ci: CanvasItem, spr: String, index: int, x: float, y: float,
 		scale: float = 1.0) -> void:
 	var m: Array = Meta.META[spr]
 	ci.draw_texture_rect(tex(spr, index), Rect2(x, y, m[0] * scale, m[1] * scale), false)
+
+
+## Textura da arte nova pelo nome dentro de assets/sprites/arte/ (ex.: "cenario/celeiro").
+static func art(art_name: String) -> Texture2D:
+	if not _art.has(art_name):
+		_art[art_name] = load("res://assets/sprites/arte/%s.png" % art_name)
+	return _art[art_name]
+
+
+## Tamanho no jogo (px) de uma peca gravada na grade; 'frames' = quadros lado a lado na tira.
+static func art_size(art_name: String, frames_n := 1) -> Vector2:
+	var t := art(art_name)
+	return Vector2(t.get_width() / float(frames_n), t.get_height()) * GRID_SCALE
+
+
+## Desenha uma peca gravada na grade com o canto superior esquerdo em (x, y).
+static func draw_art(ci: CanvasItem, art_name: String, x: float, y: float, frame := 0,
+		frames_n := 1, color: Color = Color.WHITE) -> void:
+	var t := art(art_name)
+	var fw := t.get_width() / float(frames_n)
+	var h := float(t.get_height())
+	ci.draw_texture_rect_region(t, Rect2(x, y, fw * GRID_SCALE, h * GRID_SCALE),
+		Rect2(frame * fw, 0.0, fw, h), color)
 
 
 ## Sprite animado para a arte nova: frames desenhados em 128/256 px, reduzidos para o tamanho

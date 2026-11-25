@@ -461,6 +461,46 @@ func _test_levels() -> void:
 	check(Game.total_collectibles == 3, "tutorial tem 3 flores (veio %d)" % Game.total_collectibles)
 	check(get_tree().get_nodes_in_group("dica").size() >= 7, "placas de dica no tutorial")
 
+	print("-- cenario na escala do pato, parallax e luz (ceu aberto)")
+	var spr = load("res://scripts/sprites.gd")
+	for peca in ["cenario/arvore_copa", "cenario/arvore_tronco", "cenario/arvore_jovem_copa",
+			"cenario/arbusto", "cenario/cerca", "cenario/celeiro", "cenario/moinho_corpo",
+			"cenario/moinho_pas", "fundo/montanhas", "fundo/colinas_longe", "fundo/colinas_perto",
+			"fundo/torre_longe", "fundo/torre_media", "fundo/torre_perto", "fundo/parede",
+			"fundo/janela", "fundo/tocha", "fundo/coluna", "fundo/sol", "fundo/lua"]:
+		var tex: Texture2D = spr.art(peca)
+		check(tex != null and tex.get_width() % 2 == 0 and tex.get_height() % 2 == 0,
+			"%s existe e tem tamanho par (nada de meio pixel)" % peca)
+	# o pato e pequeno e o cenario e grande: alturas em "patos" (16 px)
+	check(spr.art_size("cenario/arvore_copa").y >= 16.0 * 6.0, "arvore tem 6 patos ou mais de altura")
+	check(spr.art_size("cenario/celeiro").y >= 16.0 * 6.0, "celeiro tem 6 patos ou mais de altura")
+	check(spr.art_size("cenario/moinho_corpo").y >= 16.0 * 7.0, "moinho tem 7 patos ou mais de altura")
+	check(spr.art_size("cenario/cerca", 3) == Vector2(16, 24), "cerca: 1 bloco de largura e 1,5 pato de altura")
+	var par0: Node = node("Parallax")
+	check(par0.hora == 0 and par0.cenario == 0, "tutorial: manha, ceu aberto")
+	check(node("Sombras") != null and node("Luz") != null, "fase cria as sombras e a luz")
+	check(node("Luz").ambiente() == Color.WHITE and not node("Luz").get_child(0).visible,
+		"de dia a luz ambiente e branca e a pelicula fica desligada")
+	check(not par0.usa_luzes() and par0.luzes().is_empty(), "ao ar livre nao ha fontes de luz")
+	check(player().is_in_group("sombra"), "o pato faz sombra")
+	var som: Node2D = node("Sombras")
+	som._snap = load("res://scripts/solids.gd").snapshot(get_tree())
+	var chao_y: float = som.chao_abaixo(player().position.x, player().position.y - 2.0, [player()])
+	check(absf(chao_y - player().position.y) <= 1.0, "sombra do pato cai no chao embaixo dele (y %.0f)" % chao_y)
+	check(som.chao_abaixo(player().position.x, player().position.y - 300.0, []) < 0.0,
+		"muito alto nao ha sombra")
+	var decos := get_tree().get_nodes_in_group("sombra_cenario")
+	check(decos.size() >= 4, "arvores, moinho, celeiro e arbustos fazem sombra no chao (%d)" % decos.size())
+	var faixa: Rect2 = node("Decoracao/Moinho").sombra_chao()
+	check(faixa.size.x > 40.0 and faixa.get_center().x > node("Decoracao/Moinho").position.x,
+		"sombra do moinho cai para a direita (luz da esquerda)")
+	# as camadas de longe andam mais devagar que as de perto
+	check(par0.MONTANHAS[1] < par0.COLINAS_LONGE[1] and par0.COLINAS_LONGE[1] < par0.COLINAS_PERTO[1]
+		and par0.COLINAS_PERTO[1] < 1.0, "parallax: montanhas < colinas de longe < colinas de perto < mundo")
+	var base_baixo: float = par0._layer_base(144.0, 216.0, 0.3, 54.0)
+	var base_alto: float = par0._layer_base(44.0, 216.0, 0.3, 54.0)
+	check(base_alto - 44.0 > base_baixo - 144.0, "camera sobe: a camada desce na tela (parallax vertical)")
+
 	print("-- tileset de grama novo (auto-tile com variacoes)")
 	var terreno: TileMapLayer = node("Terreno")
 	var used := {}
@@ -554,6 +594,7 @@ func _test_levels() -> void:
 	check(Game.current_level_name == "fase1" and Game.total_collectibles == 4, "fase 1 carregada com 4 flores")
 	var par: Node = node("Parallax")
 	check(par.mostrar_torre, "torre aparece ao fundo")
+	check(par.hora == 1 and par.torre_distancia == 0, "fase 1: dia claro, torre longe")
 
 	# buraco sem fundo: perde vida e volta ao inicio
 	reset_player(Vector2(256, 304))
@@ -763,6 +804,9 @@ func _test_fase2() -> void:
 func _test_fase3() -> void:
 	print("-- fase 3 (mini-chefe jacare)")
 	check(Game.current_level_name == "fase3" and Game.total_collectibles == 4, "fase 3 carregada com 4 flores")
+	check(node("Parallax").hora == 3 and node("Parallax").torre_distancia == 2, "fase 3: entardecer, torre perto")
+	check(node("Luz").ambiente() != Color.WHITE and node("Luz").get_child(0).visible,
+		"entardecer: a cena ganha o tom da hora")
 	var boss: Node2D = node("Entidades/JacareGigante")
 	var porta: Node2D = node("Mecanicas/Porta1")
 	for j in [node("Entidades/Jacare1"), node("Entidades/Jacare2")]:
@@ -866,6 +910,19 @@ func _test_fase4() -> void:
 	g1.set_physics_process(false)
 	await frames(5)
 	check(Game.keys == 0 and porta1.trancada and not porta1.is_open, "comeca sem chave e com a porta trancada")
+
+	print("-- luz e sombra dentro da torre")
+	var luz4: Node = node("Luz")
+	var amb4: Color = luz4.ambiente()
+	check(node("Parallax").cenario == 1 and amb4.r < 0.8 and amb4.b > amb4.r, "torre: luz ambiente escura e azulada")
+	var luzes4: Array = luz4.coletar()
+	check(luzes4.size() >= 4 and luzes4.size() <= luz4.MAX_LUZES, "tochas, janelas, pato e chave iluminam (%d luzes)" % luzes4.size())
+	var perto_pato := false
+	for l4: Array in luzes4:
+		if (l4[0] as Vector2).distance_to(player().position) < 12.0:
+			perto_pato = true
+	check(perto_pato, "o pato tem um clarao em volta (nunca some no escuro)")
+	check(get_tree().get_nodes_in_group("chave")[0].luzes().size() == 1, "a chave brilha")
 
 	print("-- porta trancada e chave")
 	reset_player(Vector2(232, 768))
@@ -1180,6 +1237,7 @@ func hop_to(tx: float, ty: float, n := 60) -> void:
 func _test_fase6() -> void:
 	print("-- fase 6 (torre 3/6: pedras que caem e vento)")
 	check(Game.current_level_name == "fase6" and Game.total_collectibles == 4, "fase 6 carregada com 4 flores")
+	check(node("Parallax").hora == 4 and node("Luz").ambiente().r < 0.66, "fase 6: noite, mais escura")
 	park_birds()
 	var pedra: Node2D = node("Mecanicas/Pedra1")
 	await frames(5)

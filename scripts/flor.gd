@@ -9,6 +9,7 @@ const EfeitoScene := preload("res://scenes/efeito.tscn")
 func _ready() -> void:
 	add_to_group("flor")
 	add_to_group("item")
+	add_to_group("sombra")
 	sprite.play("default")
 
 

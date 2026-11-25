@@ -10,6 +10,7 @@ var _time := 0.0
 
 func _ready() -> void:
 	add_to_group("item")
+	add_to_group("sombra")
 
 
 ## Origem = ponto no chao embaixo do coracao.

@@ -39,6 +39,8 @@ camera_offset_y = 0.0
 z_index = -990
 script = ExtResource("2_u552n")
 mostrar_torre = true
+hora = 2
+torre_distancia = 1
 
 [node name="Agua" type="Node2D" parent="." unique_id=892584029]
 z_index = -480

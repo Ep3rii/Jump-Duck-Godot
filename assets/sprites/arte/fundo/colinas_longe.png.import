@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cylyuq1ui2hdc"
-path="res://.godot/imported/spr_bgSol.png-ca29565175f624d7404e4230e02c513c.ctex"
+uid="uid://wmsibvex0k61"
+path="res://.godot/imported/colinas_longe.png-ac397a3167a1d369182d6c36fb0f3cad.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/spr_bgSol.png"
-dest_files=["res://.godot/imported/spr_bgSol.png-ca29565175f624d7404e4230e02c513c.ctex"]
+source_file="res://assets/sprites/arte/fundo/colinas_longe.png"
+dest_files=["res://.godot/imported/colinas_longe.png-ac397a3167a1d369182d6c36fb0f3cad.ctex"]
 
 [params]
 

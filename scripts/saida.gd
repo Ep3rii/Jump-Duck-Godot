@@ -13,6 +13,12 @@ var _time := 0.0
 
 func _ready() -> void:
 	add_to_group("exit")
+	add_to_group("luz")
+
+
+## A saida fica clara no escuro (luz.gd).
+func luzes() -> Array:
+	return [[global_position + Vector2(0, -24), 34.0, Color(1.0, 1.0, 0.92), 0.8]]
 
 
 ## Area que conclui a fase: o mastro e um pouco em volta.

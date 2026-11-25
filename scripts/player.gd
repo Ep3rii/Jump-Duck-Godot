@@ -77,6 +77,8 @@ var _art: AnimatedSprite2D  # sprite do pato (arte nova, assets/sprites/arte/pat
 func _ready() -> void:
 	add_to_group("player")
 	add_to_group("weight")  # pressiona placas
+	add_to_group("sombra")  # sombras.gd
+	add_to_group("luz")  # luz.gd: o pato nunca some no escuro
 	start_x = position.x
 	start_y = position.y
 	invulnerability_timer = Game.invulnerability_remaining
@@ -84,6 +86,16 @@ func _ready() -> void:
 	_art.name = "Arte"
 	add_child(_art)
 	_art.play(_anim)
+
+
+## Sombra no chao (some quando o pato esta dentro d'agua).
+func sombra_largura() -> float:
+	return 0.0 if swim != "none" else 13.0
+
+
+## Um clarao suave em volta do pato nas fases escuras (luz.gd).
+func luzes() -> Array:
+	return [[global_position + Vector2(0, -8), 42.0, Color(1.0, 1.0, 1.0), 0.85]]
 
 
 # ------------------------------------------------------------------ colisao

@@ -48,6 +48,10 @@ var _lunge := 0.0
 var _anim := 0.0
 
 
+func sombra_largura() -> float:
+	return 0.0
+
+
 func _enemy_ready() -> void:
 	add_to_group("chefe")
 	max_hp = 5

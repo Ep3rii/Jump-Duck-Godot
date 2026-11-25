@@ -4,11 +4,8 @@ extends RefCounted
 # nome: [largura, altura, n_frames, origem_x, origem_y, fps]
 const META := {
 	"spr_agua01Anima": [16, 16, 4, 0, 0, 4.0],
-	"spr_bgCeu": [16, 180, 1, 0, 0, 1.0],
-	"spr_bgColinas": [320, 48, 1, 0, 48, 1.0],
 	"spr_bgMontanhas": [320, 72, 1, 0, 72, 1.0],
 	"spr_bgNuvens": [192, 40, 1, 0, 0, 1.0],
-	"spr_bgSol": [28, 28, 1, 14, 14, 1.0],
 	"spr_brilho": [16, 16, 5, 8, 8, 12.0],
 	"spr_estrela": [16, 16, 2, 8, 8, 1.0],
 	"spr_flor01": [16, 16, 4, 8, 14, 5.0],

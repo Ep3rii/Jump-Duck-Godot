@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dxxl7h0r1gll8"
-path="res://.godot/imported/spr_bgColinas.png-4d0037dfd1a32b3a8055e833b13ea459.ctex"
+uid="uid://c73ppqiufob2m"
+path="res://.godot/imported/celeiro.png-15b65eedf3a6e773e32c015fb1f48fae.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/spr_bgColinas.png"
-dest_files=["res://.godot/imported/spr_bgColinas.png-4d0037dfd1a32b3a8055e833b13ea459.ctex"]
+source_file="res://assets/sprites/arte/cenario/celeiro.png"
+dest_files=["res://.godot/imported/celeiro.png-15b65eedf3a6e773e32c015fb1f48fae.ctex"]
 
 [params]
 
