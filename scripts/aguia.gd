@@ -43,6 +43,8 @@ func _enemy_ready() -> void:
 	hurt_frames = 40
 	home = position
 	effect_offset = Vector2.ZERO
+	particula_derrota = "pena"
+	particulas_qtd = 14
 
 
 func get_mask() -> Rect2:
@@ -153,18 +155,16 @@ func _draw() -> void:
 	if state == "mergulho":
 		_draw_diving(f)
 		return
-	var up := int(_anim / 8.0) % 2 == 0 and state != "presa"
-	# asas abertas (grandes)
-	if up:
-		draw_rect(Rect2(o.x - 15, -12, 12, 5), COL_OUT)
-		draw_rect(Rect2(o.x - 14, -11, 10, 3), COL_WING)
-		draw_rect(Rect2(o.x + 3, -12, 12, 5), COL_OUT)
-		draw_rect(Rect2(o.x + 4, -11, 10, 3), COL_WING)
-	else:
-		draw_rect(Rect2(o.x - 16, -2, 12, 5), COL_OUT)
-		draw_rect(Rect2(o.x - 15, -1, 10, 3), COL_WING)
-		draw_rect(Rect2(o.x + 4, -2, 12, 5), COL_OUT)
-		draw_rect(Rect2(o.x + 5, -1, 10, 3), COL_WING)
+	# asas grandes, 4 poses (cima, meio, baixo, meio); presa = caidas no chao
+	var pose := 2 if state == "presa" else int(_anim / 6.0) % 4
+	var wy: float = [-12.0, -7.0, -2.0, -7.0][pose]
+	var reach: float = [12.0, 15.0, 12.0, 15.0][pose]
+	draw_rect(Rect2(o.x - 3 - reach, wy, reach, 5), COL_OUT)
+	draw_rect(Rect2(o.x - 2 - reach, wy + 1, reach - 2, 3), COL_WING)
+	draw_rect(Rect2(o.x - 2 - reach, wy + 1, 3, 3), COL_HEAD.darkened(0.3))
+	draw_rect(Rect2(o.x + 3, wy, reach, 5), COL_OUT)
+	draw_rect(Rect2(o.x + 4, wy + 1, reach - 2, 3), COL_WING)
+	draw_rect(Rect2(o.x + reach - 1, wy + 1, 3, 3), COL_HEAD.darkened(0.3))
 	# corpo e cauda branca
 	draw_rect(Rect2(o.x - 8, -5, 16, 9), COL_OUT)
 	draw_rect(Rect2(o.x - 7, -4, 14, 7), COL_BODY)

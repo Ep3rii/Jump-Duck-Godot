@@ -167,6 +167,44 @@ testes já ajustados), então os desenhos novos encaixam sem mexer nas fases.
 **Alternativa:** pacotes de pixel art prontos (itch.io etc.) aceleram, mas como o jogo tem licença
 proprietária, só servem pacotes com licença que permita uso comercial. Confira a licença de cada um.
 
+## Ambientação e conteúdo
+
+### Feito em 25/11/2026
+- **Câmera** um pouco mais afastada: mostra 384x216 do mundo (20% a mais que antes).
+- **Partículas:** poeira ao correr, pular e pousar; anel de ar no pulo duplo; respingos ao cair na
+  água e bolhas mergulhado; penas, pelo ou respingos ao derrotar inimigos; pedrinhas quando a pedra
+  rachada cai ou o gavião bate na parede; brilho na chave, no checkpoint e na porta destrancada.
+- **Vida no cenário** (montada sozinha em cada fase): tufos de grama, florzinhas e pedrinhas no
+  chão, borboletas e folhas caindo das árvores (fazenda), libélulas (lago), musgo, entulho, teias,
+  musgo pendurado e poeira flutuando na luz (torre). Pássaros distantes no céu, brilho das tochas e
+  feixes de luz das janelas, brilhos e raios de luz na água.
+- **Animações com mais quadros:** pato estica no pulo e achata no pouso; bandeira do checkpoint sobe
+  e tremula ao ativar; chave girando; coração batendo; folhas do cipó, árvores, arbustos e juncos
+  balançando; aves com 4 poses de asa; jacaré piscando, balançando a cauda e soltando bolhas; Pata
+  andando em 4 quadros, piscando e batendo as asas de alegria (e do tamanho do pato).
+- **Posições corrigidas:** paredes no meio dos lagos viraram pilares de pedra com musgo (antes eram
+  colunas de terra com grama no topo); placas, juncos, árvore, cerca e arbusto que se sobrepunham
+  foram afastados; a moldura fora da sala não aparece mais com a câmera afastada.
+
+### Assets que faltam
+- **Arte:** toda a lista de "O que desenhar" acima (os desenhos atuais são provisórios).
+- **Música:** só existe uma (Grasslands), tocando no jogo inteiro. Faltam: menu, fazenda, lago,
+  torre, luta contra chefe (jacaré e gavião) e a música do final/créditos.
+- **Efeitos sonoros:** os atuais são sintetizados em código (provisórios). O ideal é ter sons
+  gravados ou compostos para pulo, flor, pisão, dano, água, vento, gavião, portas etc.
+- **Som ambiente:** pássaros e vento na fazenda, água no lago, eco e goteiras na torre.
+- **Interface:** logo do título, ícone de cada fase na seleção de fases, molduras dos menus.
+
+### Ideias para mais conteúdo (para decidir)
+- **Pena dourada secreta** em cada fase (em áreas escondidas, atrás de paredes falsas), liberando
+  um extra (chapéu para o pato, galeria de artes ou uma cena a mais).
+- **Medalha por tempo** em cada fase (contra-relógio).
+- **Hora do dia:** manhã na fazenda, tarde no lago, anoitecendo na torre (combina com o pôr do sol
+  do final).
+- **Clima:** chuvinha no lago, folhas voando nas fases de vento.
+- **Bichos amigos** dando dicas no lugar de algumas placas (um sapo no lago, uma coruja na torre).
+- **Mais inimigos:** cobra na fazenda, corvo na torre (da família das aves de rapina, como pediu o roteiro).
+
 ## Ordem de construção
 
 Cada fase vira uma entrega jogável, com a mecânica dela feita logo antes:

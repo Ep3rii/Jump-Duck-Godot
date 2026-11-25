@@ -48,3 +48,17 @@ func _draw() -> void:
 	var frame := int(_time * Sprites.meta("spr_agua01Anima")[5])
 	for i in tiles_w:
 		Sprites.draw(self, "spr_agua01Anima", frame + i, i * 16.0, -h, 1.0, 1.0, Color(1, 1, 1, 0.85))
+	# brilhinhos na superficie e raios de luz no fundo
+	for i in tiles_w * 2:
+		var ph := _time * 1.7 + i * 2.39
+		var s := sin(ph)
+		if s > 0.82:
+			var gx := fposmod(i * 8.0 + i * i * 3.0, w - 4.0)
+			var a := (s - 0.82) / 0.18
+			draw_rect(Rect2(gx, -h + 5, 3, 1), Color(1, 1, 1, a))
+			draw_rect(Rect2(gx + 1, -h + 4, 1, 3), Color(1, 1, 1, a * 0.6))
+	for i in int(w / 48.0):
+		var rx := i * 48.0 + 12.0 + sin(_time * 0.6 + i) * 6.0
+		var ray := PackedVector2Array([Vector2(rx, -h + 6), Vector2(rx + 6, -h + 6),
+			Vector2(rx + 14, -4.0), Vector2(rx + 4, -4.0)])
+		draw_colored_polygon(ray, Color(0.85, 0.95, 1.0, 0.05 + 0.03 * sin(_time + i)))

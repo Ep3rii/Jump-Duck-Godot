@@ -47,6 +47,7 @@ func _enemy_ready() -> void:
 	start_x = position.x
 	cruise_y = position.y
 	effect_offset = Vector2.ZERO
+	particula_derrota = "pena"
 
 
 func get_mask() -> Rect2:
@@ -134,8 +135,8 @@ func _draw() -> void:
 		# asas fechadas para tras, corpo inclinado
 		_wing_back(f)
 	else:
-		var up := int(_anim / (4.0 if state == "aviso" else 7.0)) % 2 == 0
-		_wings(up)
+		var pose := int(_anim / (3.0 if state == "aviso" else 5.0)) % 4
+		_wings(pose)
 	# corpo
 	draw_rect(Rect2(-6, -4, 12, 7), COL_OUT)
 	draw_rect(Rect2(-5, -3, 10, 5), body)
@@ -155,17 +156,16 @@ func _draw() -> void:
 	draw_rect(Rect2(1, 3, 1, 2), COL_BEAK)
 
 
-func _wings(up: bool) -> void:
-	if up:
-		draw_rect(Rect2(-11, -9, 9, 4), COL_OUT)
-		draw_rect(Rect2(-10, -8, 7, 2), COL_WING)
-		draw_rect(Rect2(2, -9, 9, 4), COL_OUT)
-		draw_rect(Rect2(3, -8, 7, 2), COL_WING)
-	else:
-		draw_rect(Rect2(-12, -1, 9, 4), COL_OUT)
-		draw_rect(Rect2(-11, 0, 7, 2), COL_WING)
-		draw_rect(Rect2(3, -1, 9, 4), COL_OUT)
-		draw_rect(Rect2(4, 0, 7, 2), COL_WING)
+## pose 0 = asas em cima, 1 e 3 = no meio (abertas), 2 = embaixo.
+func _wings(pose: int) -> void:
+	var y: float = [-9.0, -5.0, -1.0, -5.0][pose]
+	var reach: float = [9.0, 11.0, 9.0, 11.0][pose]  # abertas no meio ficam mais compridas
+	draw_rect(Rect2(-2 - reach, y, reach, 4), COL_OUT)
+	draw_rect(Rect2(-1 - reach, y + 1, reach - 2, 2), COL_WING)
+	draw_rect(Rect2(-1 - reach, y + 1, 2, 2), COL_OUT.lightened(0.15))
+	draw_rect(Rect2(2, y, reach, 4), COL_OUT)
+	draw_rect(Rect2(3, y + 1, reach - 2, 2), COL_WING)
+	draw_rect(Rect2(reach - 1, y + 1, 2, 2), COL_OUT.lightened(0.15))
 
 
 func _wing_back(f: float) -> void:

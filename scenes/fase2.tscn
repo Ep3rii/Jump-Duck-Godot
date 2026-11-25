@@ -97,14 +97,9 @@ script = ExtResource("9_rycvj")
 tipo = 6
 
 [node name="Junco2" type="Node2D" parent="Decoracao" unique_id=1082034152 instance=ExtResource("8_m0wn2")]
-position = Vector2(460, 304)
+position = Vector2(456, 304)
 script = ExtResource("9_rycvj")
 tipo = 6
-
-[node name="Arbusto1" type="Node2D" parent="Decoracao" unique_id=1063627879 instance=ExtResource("8_m0wn2")]
-position = Vector2(480, 304)
-script = ExtResource("9_rycvj")
-tipo = 4
 
 [node name="Junco3" type="Node2D" parent="Decoracao" unique_id=1768394883 instance=ExtResource("8_m0wn2")]
 position = Vector2(526, 304)
@@ -112,7 +107,7 @@ script = ExtResource("9_rycvj")
 tipo = 6
 
 [node name="Arvore2" type="Node2D" parent="Decoracao" unique_id=941995888 instance=ExtResource("8_m0wn2")]
-position = Vector2(888, 240)
+position = Vector2(832, 240)
 script = ExtResource("9_rycvj")
 tipo = 3
 
@@ -127,7 +122,7 @@ script = ExtResource("9_rycvj")
 tipo = 4
 
 [node name="Cerca1" type="Node2D" parent="Decoracao" unique_id=1787118914 instance=ExtResource("8_m0wn2")]
-position = Vector2(1720, 304)
+position = Vector2(1736, 304)
 script = ExtResource("9_rycvj")
 tipo = 2
 
@@ -210,7 +205,7 @@ script = ExtResource("25_uy4op")
 texto = "SEM AR, VOCÊ SE MACHUCA|OLHE AS BOLHAS"
 
 [node name="Dica4" type="Node2D" parent="Dicas" unique_id=1029241856 instance=ExtResource("24_tok42")]
-position = Vector2(1352, 304)
+position = Vector2(1376, 304)
 script = ExtResource("25_uy4op")
 texto = "JACARÉ DE CABEÇA|FORA: PULE EM CIMA"
 alcance = 40.0
@@ -225,3 +220,11 @@ script = ExtResource("27_djxgo")
 [node name="Camera" type="Camera2D" parent="." unique_id=1068127147]
 anchor_mode = 0
 script = ExtResource("28_4j76b")
+
+[node name="Pilar1" type="Node2D" parent="." unique_id=1027586833 instance=ExtResource("8_m0wn2")]
+z_index = -790
+position = Vector2(1088, 352)
+script = ExtResource("9_rycvj")
+tipo = 7
+tiles_w = 2
+tiles_h = 22

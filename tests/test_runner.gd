@@ -1342,8 +1342,8 @@ func _test_fase_final() -> void:
 		"pato na arena: a luta comeca com a barra de 10")
 	await frames(10)
 	check(not entrada.is_open, "a porta da entrada fecha atras do pato")
-	check(Game.camera_limit.has_area() and Game.cam_pos.x == 192.0,
-		"camera presa na arena (x=%.0f)" % Game.cam_pos.x)
+	check(Game.camera_limit.has_area() and Game.cam_pos.x == 160.0,
+		"camera centrada na arena (x=%.0f)" % Game.cam_pos.x)
 
 	print("-- ciclo de ataques sozinho")
 	Game.debug_invincible = true

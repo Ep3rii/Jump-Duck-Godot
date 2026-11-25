@@ -9,6 +9,7 @@ extends Node2D
 
 const Solids := preload("res://scripts/solids.gd")
 const Vento := preload("res://scripts/vento.gd")
+const Particulas := preload("res://scripts/particulas.gd")
 
 const HURT_TIME := 30  # frames parado no estado "hurt"
 const DEATH_TIME := 60  # frames da animacao de morte ate a tela de fim de jogo
@@ -49,6 +50,8 @@ var swim := "none"  # none | surface (boiando) | dive (mergulhado)
 var air := AIR_MAX
 
 var _anim := "idle"
+var _squash := Vector2.ONE  # estica no pulo, achata no pouso (volta sozinho para 1)
+var _run_dust := 0
 var _solids: Array = []
 
 @onready var sprite: AnimatedSprite2D = $Sprite
@@ -195,10 +198,19 @@ func _step_alive() -> void:
 
 	if _place_meeting(position.x, position.y + 1.0):
 		if fall_start_y >= 0.0:
-			if position.y - fall_start_y >= FALL_DAMAGE_HEIGHT:
+			var fell := position.y - fall_start_y
+			if fell >= FALL_DAMAGE_HEIGHT:
 				take_damage()
+			if fell > 10.0:
+				Particulas.emit(get_tree(), "pouso", position, 4 if fell < 40.0 else 8)
+				_squash = Vector2(1.25, 0.78)
 			fall_start_y = -1.0
 		pulos = 2
+		if move != 0:
+			_run_dust -= 1
+			if _run_dust <= 0:
+				_run_dust = 12
+				Particulas.emit(get_tree(), "poeira", position + Vector2(-move * 5.0, 0), 1)
 	else:
 		if spdv >= 0.0 and fall_start_y < 0.0:
 			fall_start_y = position.y
@@ -222,6 +234,11 @@ func _step_alive() -> void:
 		pulos -= 1
 		jump_buffer = 0
 		Game.play_sfx("jump")
+		_squash = Vector2(0.8, 1.22)
+		if pulos == 1:
+			Particulas.emit(get_tree(), "poeira", position, 3)
+		else:  # pulo duplo: anelzinho de ar embaixo do pato
+			Particulas.emit(get_tree(), "anel", position + Vector2(0, -2), 8)
 		fall_start_y = -1.0  # o pulo duplo "amortece" a queda (B4)
 
 	_move_y()
@@ -307,6 +324,7 @@ func _step_swim(water: Node2D) -> void:
 		swim = "dive" if down else "surface"
 		spdv = minf(spdv, 1.5)
 		Game.play_sfx("splash")
+		Particulas.emit(get_tree(), "respingo", Vector2(position.x, water.surface_y()), 10)
 
 	if swim == "surface":
 		spdh = move * SWIM_SPEED
@@ -339,6 +357,8 @@ func _step_swim(water: Node2D) -> void:
 			position.y = surf
 			swim = "surface"
 		air -= 1
+		if air % 30 == 0:
+			Particulas.emit(get_tree(), "bolha", position + Vector2(xscale * 5.0, -12), 1)
 		if air <= 0:
 			_drown(surf)
 	if move != 0:
@@ -447,6 +467,7 @@ func _check_out_of_bounds() -> void:
 func _update_sprite() -> void:
 	sprite.flip_h = xscale < 0
 	if player_state != "alive":
+		sprite.scale = Vector2.ONE
 		_set_anim("dead" if player_state == "dead" else "hurt")
 		sprite.speed_scale = 0.2
 		sprite.modulate.a = 1.0
@@ -472,6 +493,9 @@ func _update_sprite() -> void:
 
 	_set_anim(next_anim)
 	sprite.speed_scale = 0.0 if climbing and spdv == 0.0 else 1.0
+	# estica/achata a partir dos pes e volta ao normal
+	_squash = _squash.lerp(Vector2.ONE, 0.2)
+	sprite.scale = _squash
 	var blink := invulnerability_timer > 0 and invulnerability_timer % 12 < 6
 	sprite.modulate.a = 0.35 if blink else 1.0
 

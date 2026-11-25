@@ -31,6 +31,15 @@ func _enter_tree() -> void:
 
 func _ready() -> void:
 	_build_level()
+	# a moldura (paredes e teto fora da sala) so segura o pato; com a camera afastada ela
+	# aparecia nas salas mais baixas que a tela
+	var frame := get_node_or_null("Moldura")
+	if frame != null:
+		frame.visible = false
+	var amb := Node2D.new()
+	amb.name = "Ambiente"
+	amb.set_script(preload("res://scripts/ambiente.gd"))
+	add_child(amb)
 	Game.begin_level(self)
 
 

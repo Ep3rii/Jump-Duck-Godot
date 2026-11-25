@@ -14,6 +14,7 @@ extends Node2D
 signal defeated
 
 const EfeitoScene := preload("res://scenes/efeito.tscn")
+const Particulas := preload("res://scripts/particulas.gd")
 
 ## Golpes para derrotar (pisao e arremesso tiram 1 cada).
 @export var max_hp := 1
@@ -25,6 +26,9 @@ const EfeitoScene := preload("res://scenes/efeito.tscn")
 @export var hurt_frames := 30
 ## Nos que recebem set_active(true) quando ele e derrotado (ex.: a porta da saida da arena).
 @export var alvos_ao_derrotar: Array[NodePath] = []
+## Particulas soltas ao ser derrotado (particulas.gd): poeira, pelo, pena, respingo...
+var particula_derrota := "poeira"
+var particulas_qtd := 10
 
 var hp := 1
 var _hurt_until := -1
@@ -85,5 +89,6 @@ func defeat() -> void:
 	var fx := EfeitoScene.instantiate()
 	fx.position = position + effect_offset
 	get_parent().add_child(fx)
+	Particulas.emit(get_tree(), particula_derrota, position + effect_offset, particulas_qtd)
 	defeated.emit()
 	queue_free()

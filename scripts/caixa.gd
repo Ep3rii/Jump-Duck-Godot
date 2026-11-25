@@ -7,6 +7,7 @@ extends Node2D
 ## Se cair para fora do mapa, volta para onde comecou (o puzzle nunca trava).
 
 const Solids := preload("res://scripts/solids.gd")
+const Particulas := preload("res://scripts/particulas.gd")
 
 const GRAVITY := 0.25
 const MAX_FALL := 6.0
@@ -247,6 +248,7 @@ func _fly() -> void:
 		if falling:
 			vel = Vector2.ZERO
 			_land()
+			Particulas.emit(get_tree(), "pouso", position, 6)
 			Game.play_sfx("thud")
 			return
 	position.y += vel.y

@@ -72,7 +72,7 @@ script = ExtResource("7_gl8d0")
 tipo = 3
 
 [node name="Cerca1" type="Node2D" parent="Decoracao" unique_id=2107100576 instance=ExtResource("6_5gslw")]
-position = Vector2(120, 304)
+position = Vector2(136, 304)
 script = ExtResource("7_gl8d0")
 tipo = 2
 tiles_w = 4

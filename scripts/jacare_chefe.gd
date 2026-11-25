@@ -54,6 +54,8 @@ func _enemy_ready() -> void:
 	hp = max_hp
 	hurt_frames = HURT_TIME
 	effect_offset = Vector2(0, -10)
+	particula_derrota = "respingo"
+	particulas_qtd = 30
 	for w in get_tree().get_nodes_in_group("agua"):
 		if w.get_rect().has_point(position + Vector2(0, -2)):
 			water = w

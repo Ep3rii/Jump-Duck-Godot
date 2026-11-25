@@ -141,7 +141,9 @@ godot --path . res://tests/screenshots.tscn
    Alturas de referência: pulo simples sobe ~34 px (2 tiles), pulo duplo ~68 px (4 tiles);
    5 tiles só com uma caixa embaixo; queda de 6 tiles (96 px) ou mais machuca.
 6. Inimigo novo: script com `extends Enemy` (`scripts/enemy.gd` explica o contrato).
-7. A câmera olha 50 px para cima do pato (como no original; `camera_offset_y` no nó raiz da fase
+7. A câmera mostra 384x216 do mundo (um pouco mais afastada que os 320x180 do original;
+   `ZOOM` em `scripts/camera.gd`). Detalhes do chão, bichinhos e partículas entram sozinhos
+   (`scripts/ambiente.gd` e `scripts/particulas.gd`). A câmera olha 50 px para cima do pato (como no original; `camera_offset_y` no nó raiz da fase
    muda isso, as fases de lago usam 0): perigos muito abaixo de uma
    plataforma ficam fora da tela.
 

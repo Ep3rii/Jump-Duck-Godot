@@ -12,7 +12,8 @@ const DURATION := 22.0
 const FLOOR_Y := 140.0
 const DUCK_STOP_X := 150.0
 const PATA_START_X := 262.0
-const PATA_STOP_X := 172.0
+const PATA_STOP_X := 168.0
+const PATA_SCALE := 0.7  # a Pata do tamanho do pato
 
 const SKY_TOP_DAY := Color8(250, 150, 96)
 const SKY_TOP_NIGHT := Color8(54, 36, 88)
@@ -186,16 +187,26 @@ func _draw_pata() -> void:
 		hop = -floorf(absf(sin(t * 10.0)) * 2.0)
 	var face := -1.0 if t < 9.0 else 1.0  # olha para o pato; depois para o sol
 	var y := FLOOR_Y + hop
-	# pes
-	var step := 1.0 if walking and int(t * 10.0) % 2 == 0 else 0.0
+	# do tamanho do pato: desenha reduzida a partir dos pes
+	var k := PATA_SCALE
+	draw_set_transform(Vector2(x * (1.0 - k), FLOOR_Y * (1.0 - k)), 0.0, Vector2(k, k))
+	# pes: ciclo de 4 quadros andando (passo, junto, outro passo, junto)
+	var frame := int(t * 10.0) % 4 if walking else 1
+	var step: float = [2.0, 0.0, -2.0, 0.0][frame]
 	draw_rect(Rect2(x - 4 + step, y - 2, 3, 2), BEAK)
 	draw_rect(Rect2(x + 1 - step, y - 2, 3, 2), BEAK)
+	if walking and frame % 2 == 0:
+		y -= 1.0  # sobe um pouco a cada passo
 	# corpo
 	draw_rect(Rect2(x - 8, y - 12, 15, 11), PATA_OUT)
 	draw_rect(Rect2(x - 7, y - 11, 13, 9), PATA_BODY)
 	draw_rect(Rect2(x - 7, y - 5, 13, 3), PATA_SHADE)
-	# asa
-	draw_rect(Rect2(x - 3 * face - 2, y - 9, 6, 4), PATA_SHADE)
+	# asa (bate de alegria quando encontra o pato)
+	var happy := t > 7.0 and t < 9.5
+	var flap := -2.0 if happy and int(t * 12.0) % 2 == 0 else 0.0
+	draw_rect(Rect2(x - 3 * face - 2, y - 9 + flap, 6, 4), PATA_SHADE)
+	if flap < 0.0:
+		draw_rect(Rect2(x - 3 * face - 3, y - 11, 3, 2), PATA_BODY)
 	# cauda
 	var tail := x - 9.0 if face > 0 else x + 6.0
 	draw_rect(Rect2(tail, y - 12, 3, 3), PATA_OUT)
@@ -207,7 +218,16 @@ func _draw_pata() -> void:
 	var bx := hx + 7.0 if face > 0 else hx - 3.0
 	draw_rect(Rect2(bx, y - 15, 4, 2), BEAK)
 	var ex := hx + (4.0 if face > 0 else 2.0)
-	draw_rect(Rect2(ex, y - 17, 2, 2), PATA_OUT)
+	var blink := fposmod(t, 2.6) < 0.12
+	if blink:
+		draw_rect(Rect2(ex, y - 16, 2, 1), PATA_OUT)
+	elif happy:  # olhinho feliz (arco)
+		draw_rect(Rect2(ex, y - 16, 2, 1), PATA_OUT)
+		draw_rect(Rect2(ex, y - 17, 1, 1), PATA_OUT)
+	else:
+		draw_rect(Rect2(ex, y - 17, 2, 2), PATA_OUT)
+	# bochecha rosada
+	draw_rect(Rect2(ex + (1.0 if face < 0 else -1.0), y - 14, 2, 1), Color8(255, 170, 190))
 	draw_rect(Rect2(ex - 1 if face > 0 else ex + 1, y - 19, 1, 1), PATA_OUT)
 	draw_rect(Rect2(ex + 1 if face > 0 else ex, y - 19, 1, 1), PATA_OUT)
 	# laco rosa
@@ -215,6 +235,7 @@ func _draw_pata() -> void:
 	draw_rect(Rect2(lx - 2, y - 23, 3, 3), BOW)
 	draw_rect(Rect2(lx + 2, y - 23, 3, 3), BOW)
 	draw_rect(Rect2(lx + 1, y - 22, 1, 1), Color8(170, 40, 90))
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
 # --------------------------------------------------------- textos e coracoes

@@ -18,6 +18,7 @@ var xscale := 1  # image_xscale: 1 = olhando p/ esquerda (como o sprite original
 func _enemy_ready() -> void:
 	add_to_group("raposa")
 	effect_offset = Vector2(0, -8)
+	particula_derrota = "pelo"
 	start_x = position.x
 	dir = 1 if xscale < 0 else -1
 	sprite.play("default")

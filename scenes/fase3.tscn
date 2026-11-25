@@ -117,7 +117,7 @@ script = ExtResource("9_1nau0")
 tipo = 6
 
 [node name="Junco5" type="Node2D" parent="Decoracao" unique_id=1190170782 instance=ExtResource("8_uo34i")]
-position = Vector2(1302, 304)
+position = Vector2(1290, 304)
 script = ExtResource("9_1nau0")
 tipo = 6
 
@@ -196,7 +196,7 @@ script = ExtResource("25_v3o63")
 texto = "O JACARÉ GIGANTE|GUARDA ESTE LAGO"
 
 [node name="Dica2" type="Node2D" parent="Dicas" unique_id=273155207 instance=ExtResource("24_elwqn")]
-position = Vector2(832, 304)
+position = Vector2(784, 304)
 script = ExtResource("25_v3o63")
 texto = "BOLHAS: ELE VAI SALTAR!|COM DOR DE DENTE, PISE"
 alcance = 40.0
@@ -211,3 +211,11 @@ script = ExtResource("27_ph0rq")
 [node name="Camera" type="Camera2D" parent="." unique_id=1748321035]
 anchor_mode = 0
 script = ExtResource("28_3k8m3")
+
+[node name="Pilar1" type="Node2D" parent="." unique_id=1321430994 instance=ExtResource("8_uo34i")]
+z_index = -790
+position = Vector2(576, 352)
+script = ExtResource("9_1nau0")
+tipo = 7
+tiles_w = 2
+tiles_h = 22

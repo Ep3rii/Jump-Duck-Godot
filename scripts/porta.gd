@@ -23,6 +23,7 @@ extends Node2D
 		trancada = v
 		queue_redraw()
 
+const Particulas := preload("res://scripts/particulas.gd")
 const COL_DARK := Color8(46, 46, 58)
 const COL_STONE := Color8(118, 118, 132)
 const COL_LIGHT := Color8(170, 170, 184)
@@ -68,6 +69,7 @@ func _try_unlock() -> void:
 		trancada = false
 		_want_open = true
 		Game.play_sfx("unlock")
+		Particulas.emit(get_tree(), "brilho", get_rect().get_center(), 14)
 	elif touching and not _touching:
 		Game.play_sfx("denied")
 	_touching = touching

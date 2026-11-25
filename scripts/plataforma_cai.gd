@@ -14,6 +14,7 @@ extends Node2D
 ## Frames ate voltar depois de cair.
 @export var tempo_volta := 180
 
+const Particulas := preload("res://scripts/particulas.gd")
 const FALL_SHOW_PX := 120.0  # depois de cair isso, some (ate voltar)
 
 const COL_OUT := Color8(34, 30, 46)
@@ -83,6 +84,7 @@ func _physics_process(_delta: float) -> void:
 				_fall_y = 0.0
 				_fall_v = 0.0
 				remove_from_group("solid")
+				Particulas.emit(get_tree(), "pedrinha", get_rect().get_center(), 6)
 				Game.play_sfx("fall")
 		"caindo":
 			_timer -= 1

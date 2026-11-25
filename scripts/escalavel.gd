@@ -15,8 +15,18 @@ const COL_STEM_HI := Color8(95, 192, 26)
 const COL_LEAF := Color8(71, 160, 40)
 
 
+var _time := 0.0
+
+
 func _ready() -> void:
 	add_to_group("escalavel")
+
+
+func _process(delta: float) -> void:
+	if Engine.is_editor_hint():
+		return
+	_time += delta
+	queue_redraw()
 
 
 func get_rect() -> Rect2:
@@ -36,5 +46,8 @@ func _draw() -> void:
 	for i in tiles_h * 2:
 		var ly := -h + 4.0 + i * 8.0
 		var left := i % 2 == 0
-		draw_rect(Rect2(3 if left else 10, ly, 4, 2), COL_LEAF)
-		draw_rect(Rect2(4 if left else 11, ly - 1, 2, 1), COL_STEM_HI)
+		var flap := floorf(sin(_time * 2.2 + i * 0.8) * 0.8 + 0.5)
+		draw_rect(Rect2((3 if left else 10) + flap, ly, 4, 2), COL_LEAF)
+		draw_rect(Rect2((4 if left else 11) + flap, ly - 1 + (flap if left else -flap), 2, 1), COL_STEM_HI)
+		if i % 3 == 1:  # florzinha de vez em quando
+			draw_rect(Rect2(8 if left else 5, ly + 2, 2, 2), Color8(255, 240, 240))

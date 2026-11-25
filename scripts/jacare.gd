@@ -32,11 +32,13 @@ var state := "surface"  # surface | dive
 var water: Node2D = null
 var _timer := 0
 var _mouth := 0.0  # 0 fechada .. 1 aberta
+var _anim := 0.0
 
 
 func _enemy_ready() -> void:
 	add_to_group("jacare")
 	effect_offset = Vector2(0, -6)
+	particula_derrota = "respingo"
 	for w in get_tree().get_nodes_in_group("agua"):
 		if w.get_rect().has_point(position + Vector2(0, -2)):
 			water = w
@@ -63,6 +65,10 @@ func _physics_process(_delta: float) -> void:
 	if Game.game_state != "playing" or water == null:
 		return
 	_timer -= 1
+	_anim += 1.0
+	if state == "dive" and int(_anim) % 40 == 0:
+		var Particulas := load("res://scripts/particulas.gd")
+		Particulas.emit(get_tree(), "bolha", position + Vector2(dir * 6.0, -4), 1)
 	if _timer <= 0:
 		state = "dive" if state == "surface" else "surface"
 		_timer = DIVE_TIME if state == "dive" else SURFACE_TIME
@@ -103,7 +109,9 @@ func _draw() -> void:
 		draw_rect(Rect2(-18 + i * 6, -11, 3, 2), Color(COL_SCUTE, a))
 	# cauda (para tras)
 	var tail_x := -22.0 if f > 0 else 14.0
-	draw_rect(Rect2(tail_x - (6 if f > 0 else 0), -7, 8, 5), out)
+	var swish := floorf(sin(_anim * 0.15) * 2.0)  # cauda balancando ao nadar
+	draw_rect(Rect2(tail_x - (6 if f > 0 else 0), -7 + swish, 8, 5), out)
+	draw_rect(Rect2(tail_x - (5 if f > 0 else -1), -6 + swish, 6, 3), Color(COL_BODY, a))
 	# cabeca e focinho (para frente), boca abrindo
 	var head_x := 12.0 if f > 0 else -22.0
 	var open := floorf(_mouth * 5.0)
@@ -119,4 +127,6 @@ func _draw() -> void:
 	# olho (em cima da cabeca, sempre visivel)
 	var eye_x := head_x + (1.0 if f > 0 else 6.0)
 	draw_rect(Rect2(eye_x, -13 - open, 4, 3), out)
-	draw_rect(Rect2(eye_x + 1, -12 - open, 2, 1), Color(1, 0.9, 0.2, a))
+	var blink := int(_anim) % 180 < 6  # pisca de vez em quando
+	if not blink:
+		draw_rect(Rect2(eye_x + 1, -12 - open, 2, 1), Color(1, 0.9, 0.2, a))

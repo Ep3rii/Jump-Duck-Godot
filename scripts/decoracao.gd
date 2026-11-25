@@ -4,14 +4,19 @@ extends Node2D
 ## Nao colide com nada. Origem = base, no chao (centro para moinho/celeiro/arvore/arbusto,
 ## canto esquerdo para a cerca).
 
-@export_enum("Moinho", "Celeiro", "Cerca", "Árvore", "Arbusto", "Placa de saída", "Junco") var tipo := 0:
+@export_enum("Moinho", "Celeiro", "Cerca", "Árvore", "Arbusto", "Placa de saída", "Junco", "Pilar de pedra") var tipo := 0:
 	set(v):
 		tipo = v
 		queue_redraw()
-## Largura da cerca em tiles de 16 px.
+## Largura da cerca / do pilar em tiles de 16 px.
 @export var tiles_w := 3:
 	set(v):
 		tiles_w = v
+		queue_redraw()
+## Altura do pilar de pedra em tiles (o pilar cobre por cima um paredao de terra do mapa).
+@export var tiles_h := 4:
+	set(v):
+		tiles_h = v
 		queue_redraw()
 
 const OUTLINE := Color8(40, 28, 20)
@@ -32,10 +37,20 @@ const LEAF_LIGHT := Color8(133, 220, 60)
 var _time := 0.0
 
 
+func _ready() -> void:
+	if tipo == 3 and not Engine.is_editor_hint():
+		add_to_group("decoracao_arvore")  # ambiente.gd solta folhas delas
+
+
 func _process(delta: float) -> void:
-	if tipo == 0:  # so o moinho anima
+	if tipo in [0, 3, 4, 6]:  # moinho gira; arvore, arbusto e junco balancam com o vento
 		_time += delta
 		queue_redraw()
+
+
+## Balanco suave (px) com fase diferente para cada objeto.
+func _sway(speed: float, amount: float) -> float:
+	return floorf(sin(_time * speed + position.x * 0.07) * amount + 0.5)
 
 
 func _draw() -> void:
@@ -54,6 +69,8 @@ func _draw() -> void:
 			_draw_placa_saida()
 		6:
 			_draw_junco()
+		7:
+			_draw_pilar()
 
 
 func _r(x: float, y: float, w: float, h: float, c: Color) -> void:
@@ -129,20 +146,35 @@ func _draw_arvore() -> void:
 	_r(-4, -28, 8, 28, OUTLINE)
 	_r(-3, -28, 6, 28, WOOD)
 	_r(-3, -28, 2, 28, WOOD_LIGHT)
-	for blob in [[0, -44, 20], [-12, -36, 13], [12, -36, 13], [0, -54, 13]]:
-		draw_circle(Vector2(blob[0], blob[1]), blob[2] + 1, OUTLINE)
-	for blob in [[0, -44, 20], [-12, -36, 13], [12, -36, 13], [0, -54, 13]]:
-		draw_circle(Vector2(blob[0], blob[1]), blob[2], LEAF)
-	draw_circle(Vector2(-5, -50), 6, LEAF_LIGHT)
-	draw_circle(Vector2(8, -34), 5, LEAF_DARK)
+	var sx := _sway(1.1, 1.2)
+	var blobs := [[0, -44, 20], [-12, -36, 13], [12, -36, 13], [0, -54, 13]]
+	for blob in blobs:
+		var k: float = 0.5 if blob[1] > -40 else 1.0  # a copa mexe mais em cima
+		draw_circle(Vector2(blob[0] + sx * k, blob[1]), blob[2] + 1, OUTLINE)
+	for blob in blobs:
+		var k: float = 0.5 if blob[1] > -40 else 1.0
+		draw_circle(Vector2(blob[0] + sx * k, blob[1]), blob[2], LEAF)
+	draw_circle(Vector2(-12 + sx * 0.5, -32), 7, LEAF_DARK)
+	draw_circle(Vector2(-5 + sx, -50), 6, LEAF_LIGHT)
+	draw_circle(Vector2(6 + sx, -58), 4, LEAF_LIGHT)
+	draw_circle(Vector2(8 + sx * 0.5, -34), 5, LEAF_DARK)
+	# frutinhas vermelhas
+	for f in [[-8, -44], [9, -48], [2, -38], [-14, -38]]:
+		_r(f[0] + sx, f[1], 2, 2, Color8(220, 50, 50))
 
 
 func _draw_arbusto() -> void:
+	var sx := _sway(1.6, 0.6)
 	for blob in [[-7, -6, 7], [7, -6, 7], [0, -9, 8]]:
-		draw_circle(Vector2(blob[0], blob[1]), blob[2] + 1, OUTLINE)
+		draw_circle(Vector2(blob[0] + sx, blob[1]), blob[2] + 1, OUTLINE)
 	for blob in [[-7, -6, 7], [7, -6, 7], [0, -9, 8]]:
-		draw_circle(Vector2(blob[0], blob[1]), blob[2], LEAF)
-	draw_circle(Vector2(-2, -12), 3, LEAF_LIGHT)
+		draw_circle(Vector2(blob[0] + sx, blob[1]), blob[2], LEAF)
+	draw_circle(Vector2(-2 + sx, -12), 3, LEAF_LIGHT)
+	draw_circle(Vector2(6 + sx, -4), 3, LEAF_DARK)
+	# florzinhas no arbusto
+	for f in [[-8, -9], [4, -12], [9, -5]]:
+		_r(f[0] + sx, f[1], 2, 2, WHITE)
+		_r(f[0] + sx, f[1], 1, 1, Color8(255, 220, 80))
 	_r(-14, -1, 28, 1, LEAF_DARK)
 
 
@@ -158,10 +190,57 @@ func _draw_placa_saida() -> void:
 
 func _draw_junco() -> void:
 	# moita de juncos/taboas da beira do lago
+	# cada haste se curva com o vento, mais na ponta
 	var stems := [[-6, 22], [-3, 28], [0, 20], [3, 26], [6, 18]]
-	for s in stems:
-		_r(s[0], -s[1], 1, s[1], LEAF_DARK)
-		_r(s[0] + 1, -s[1] + 2, 1, s[1] - 2, LEAF)
-	for s in [[-3, 28], [3, 26]]:
-		_r(s[0] - 1, -s[1] - 1, 3, 7, OUTLINE)
-		_r(s[0], -s[1], 1, 5, WOOD)
+	for i in stems.size():
+		var st: Array = stems[i]
+		var h: int = st[1]
+		for seg in 4:
+			var y0 := -h + seg * h / 4.0
+			var bend := sin(_time * 1.8 + i * 0.9 + position.x * 0.05) * 1.5 * (1.0 - seg / 4.0)
+			var x: float = st[0] + floorf(bend + 0.5)
+			_r(x, y0, 1, ceilf(h / 4.0), LEAF_DARK)
+			_r(x + 1, y0 + 1, 1, ceilf(h / 4.0) - 1, LEAF)
+	for i in [1, 3]:
+		var st: Array = stems[i]
+		var bend := floorf(sin(_time * 1.8 + i * 0.9 + position.x * 0.05) * 1.5 + 0.5)
+		_r(st[0] - 1 + bend, -st[1] - 1, 3, 7, OUTLINE)
+		_r(st[0] + bend, -st[1], 1, 5, WOOD)
+
+
+## Pilar de pedra com musgo (cobre os paredoes no meio dos lagos, que no tileset de grama
+## pareciam uma coluna de terra). Origem no canto inferior esquerdo.
+func _draw_pilar() -> void:
+	var w := 16.0 * tiles_w
+	var h := 16.0 * tiles_h
+	_r(0, -h, w, h, Color8(60, 58, 70))
+	for row in int(h / 8.0):
+		var y := -h + row * 8.0
+		var shift := 6.0 if row % 2 == 1 else 0.0
+		var x := -shift
+		var n := 0
+		while x < w:
+			var bx := maxf(x, 0.0) + 1.0
+			var bw := minf(x + 12.0, w) - bx - 1.0
+			if bw > 0.0:
+				var hsh := posmod(row * 7 + n * 13 + int(position.x), 5)
+				var c := STONE if hsh > 1 else STONE_DARK
+				var wet := clampf((y + h) / h, 0.0, 1.0)  # mais escuro e molhado embaixo
+				c = c.darkened(wet * 0.35)
+				_r(bx, y + 1, bw, 6, c)
+				_r(bx, y + 1, bw, 1, c.lightened(0.25))
+			x += 12.0
+			n += 1
+	# musgo descendo do alto e em manchas
+	for i in tiles_w * 4:
+		var mx := float(i * 4)
+		var drip := 3.0 + posmod(i * 5 + int(position.x), 7)
+		_r(mx, -h, 4, drip, LEAF_DARK)
+		_r(mx, -h, 4, 2, LEAF)
+	for i in int(h / 24.0):
+		var my := -h + 12.0 + i * 24.0
+		var mx := float(posmod(i * 11 + int(position.x), int(w) - 6))
+		_r(mx, my, 6, 3, LEAF_DARK)
+		_r(mx + 1, my, 4, 1, LEAF)
+	_r(0, -h, 1, h, OUTLINE)
+	_r(w - 1, -h, 1, h, OUTLINE)

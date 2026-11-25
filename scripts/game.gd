@@ -105,6 +105,7 @@ var room := "menu"
 var room_width := 320
 var room_height := 180
 var cam_pos := Vector2.ZERO  # canto superior esquerdo da "view" (camera.gd)
+var view_size := Vector2(320, 180)  # area do mundo que a tela mostra (camera.gd afasta nas fases)
 var camera_offset_y := -50.0  # Level.camera_offset_y da fase atual
 ## Faixa de x que a camera pode mostrar (vazio = a sala toda). O chefe trava na arena.
 var camera_limit := Rect2()

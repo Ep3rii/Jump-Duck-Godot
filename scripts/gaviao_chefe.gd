@@ -58,6 +58,8 @@ func _enemy_ready() -> void:
 	hp = max_hp
 	hurt_frames = HURT_TIME
 	effect_offset = Vector2(0, -4)
+	particula_derrota = "pena"
+	particulas_qtd = 40
 
 
 # ------------------------------------------------------------- parametros por etapa
@@ -259,6 +261,7 @@ func _charge_step() -> void:
 		state = "atordoado"
 		_timer = _stun_time()
 		hits_in_stun = 0
+		Particulas.emit(get_tree(), "pedrinha", position + Vector2(dir * 14.0, -6), 10)
 		Game.play_sfx("thud")
 		Game.play_sfx("crack")
 		return
@@ -313,23 +316,21 @@ func _draw_flying(f: float, body: Color) -> void:
 	var shake := 0.0
 	if state == "carga_aviso":
 		shake = 1.0 if int(_anim / 2.0) % 2 == 0 else -1.0
-	var up := int(_anim / (5.0 if state == "aviso" else 8.0)) % 2 == 0
+	var pose := int(_anim / (3.0 if state == "aviso" else 6.0)) % 4
 	var o := shake
-	# asas grandes
-	if up:
-		draw_rect(Rect2(o - 26, -16, 20, 7), COL_OUT)
-		draw_rect(Rect2(o - 25, -15, 18, 5), COL_WING)
-		draw_rect(Rect2(o - 25, -15, 5, 5), COL_WING_TIP)
-		draw_rect(Rect2(o + 6, -16, 20, 7), COL_OUT)
-		draw_rect(Rect2(o + 7, -15, 18, 5), COL_WING)
-		draw_rect(Rect2(o + 20, -15, 5, 5), COL_WING_TIP)
-	else:
-		draw_rect(Rect2(o - 27, -2, 20, 7), COL_OUT)
-		draw_rect(Rect2(o - 26, -1, 18, 5), COL_WING)
-		draw_rect(Rect2(o - 26, -1, 5, 5), COL_WING_TIP)
-		draw_rect(Rect2(o + 7, -2, 20, 7), COL_OUT)
-		draw_rect(Rect2(o + 8, -1, 18, 5), COL_WING)
-		draw_rect(Rect2(o + 21, -1, 5, 5), COL_WING_TIP)
+	# asas grandes, 4 poses (cima, meio, baixo, meio), com penas na ponta
+	var wy: float = [-16.0, -9.0, -2.0, -9.0][pose]
+	var reach: float = [20.0, 24.0, 20.0, 24.0][pose]
+	for side in [-1.0, 1.0]:
+		var x0: float = o - 6.0 - reach if side < 0.0 else o + 6.0
+		draw_rect(Rect2(x0, wy, reach, 7), COL_OUT)
+		draw_rect(Rect2(x0 + 1, wy + 1, reach - 2, 5), COL_WING)
+		var tip_x: float = x0 + 1.0 if side < 0.0 else x0 + reach - 6.0
+		draw_rect(Rect2(tip_x, wy + 1, 5, 5), COL_WING_TIP)
+		for k in 3:  # penas separadas na ponta
+			var fx: float = (x0 - 2.0 - k * 2.0) if side < 0.0 else (x0 + reach + k * 2.0)
+			draw_rect(Rect2(fx, wy + 2 + k, 2, 2), COL_WING_TIP)
+		draw_rect(Rect2(x0 + 4, wy + 4, reach - 8, 1), COL_BODY)
 	_draw_body(f, body, o)
 
 

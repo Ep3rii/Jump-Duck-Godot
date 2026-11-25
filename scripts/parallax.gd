@@ -6,8 +6,6 @@ extends Node2D
 
 const Sprites := preload("res://scripts/sprites.gd")
 
-const VIEW_W := 320.0
-const VIEW_H := 180.0
 
 const TOWER := Color8(120, 130, 160)
 const TOWER_DARK := Color8(96, 104, 136)
@@ -41,8 +39,8 @@ func _process(delta: float) -> void:
 func _draw() -> void:
 	var vx := floorf(Game.cam_pos.x)
 	var vy := floorf(Game.cam_pos.y)
-	var vw := VIEW_W
-	var vh := VIEW_H
+	var vw: float = Game.view_size.x
+	var vh: float = Game.view_size.y
 	var now := _time_ms
 	if cenario == 1:
 		_draw_tower_inside(vx, vy, now)
@@ -61,6 +59,7 @@ func _draw() -> void:
 	while x < vx + vw:
 		Sprites.draw(self, "spr_bgNuvens", 0, floorf(x), vy + 52.0, 1.0, 1.0, Color(1, 1, 1, 0.75))
 		x += cw
+	_draw_birds(vx, vy, vw, now)
 
 	var far_bottom := vy + vh + (Game.room_height - vh - vy) * 0.4
 	var near_bottom := vy + vh + (Game.room_height - vh - vy) * 0.75
@@ -78,10 +77,10 @@ func _draw() -> void:
 		x += hw
 
 
-## Torre ao longe: na tela vai de x~300 (inicio da fase) ate x~210 (fim da fase).
+## Torre ao longe: perto da borda direita da tela no inicio da fase, 90 px mais para o meio no fim.
 func _draw_tower(vx: float, bottom: float) -> void:
-	var progress := clampf(vx / maxf(1.0, Game.room_width - VIEW_W), 0.0, 1.0)
-	var cx := floorf(vx + 300.0 - 90.0 * progress)
+	var progress := clampf(vx / maxf(1.0, Game.room_width - Game.view_size.x), 0.0, 1.0)
+	var cx := floorf(vx + Game.view_size.x - 20.0 - 90.0 * progress)
 	var w := 22.0
 	var h := 118.0
 	var top := bottom - h
@@ -105,15 +104,17 @@ func _draw_tower(vx: float, bottom: float) -> void:
 ## Parede de tijolos ao fundo (anda na metade da velocidade da camera), com janelas em arco
 ## mostrando o ceu e tochas entre elas.
 func _draw_tower_inside(vx: float, vy: float, now: float) -> void:
-	draw_rect(Rect2(vx, vy, VIEW_W, VIEW_H), WALL_MORTAR)
+	var vw: float = Game.view_size.x
+	var vh: float = Game.view_size.y
+	draw_rect(Rect2(vx, vy, vw, vh), WALL_MORTAR)
 	var ox := vx * 0.5
 	var oy := vy * 0.5
 	var row0 := floori(oy / 8.0)
-	for r in range(row0, row0 + 24):
+	for r in range(row0, row0 + int(vh / 8.0) + 2):
 		var sy := r * 8.0 - oy
 		var shift := 8.0 if posmod(r, 2) == 1 else 0.0
 		var col0 := floori((ox - shift) / 16.0)
-		for c in range(col0, col0 + 22):
+		for c in range(col0, col0 + int(vw / 16.0) + 2):
 			var sx := c * 16.0 + shift - ox
 			var h := posmod(c * 31 + r * 17, 7)
 			var col := WALL_BRICK_HI if h == 0 else (WALL_BRICK_LO if h == 3 else WALL_BRICK)
@@ -129,7 +130,32 @@ func _draw_tower_inside(vx: float, vy: float, now: float) -> void:
 			_torch(wx + 80.0, wy + 30.0, now)
 
 
+## Bandinhos de passaros ao longe cruzando o ceu (de tempos em tempos).
+func _draw_birds(vx: float, vy: float, vw: float, now: float) -> void:
+	var period := 14000.0
+	for flock in 2:
+		var t := fposmod(now + flock * 6100.0, period) / period  # 0..1 atravessando a tela
+		var bx := vx - 40.0 + t * (vw + 80.0)
+		var by := vy + 26.0 + flock * 18.0 + sin(now * 0.001 + flock) * 4.0
+		for i in 3:
+			var px := floorf(bx - i * 9.0)
+			var py := floorf(by + absf(i - 1) * 4.0 + (i % 2) * 2.0)
+			var up := int(now / 180.0 + i) % 2 == 0
+			var col := Color8(60, 80, 110, 200)
+			if up:
+				draw_rect(Rect2(px - 2, py - 1, 2, 1), col)
+				draw_rect(Rect2(px + 1, py - 1, 2, 1), col)
+			else:
+				draw_rect(Rect2(px - 2, py + 1, 2, 1), col)
+				draw_rect(Rect2(px + 1, py + 1, 2, 1), col)
+			draw_rect(Rect2(px, py, 1, 1), col)
+
+
 func _window(x: float, y: float) -> void:
+	# feixe de luz entrando pela janela (diagonal para baixo)
+	var beam := PackedVector2Array([Vector2(x, y + 4), Vector2(x + 20, y + 4),
+		Vector2(x + 70, y + 140), Vector2(x + 30, y + 140)])
+	draw_colored_polygon(beam, Color(1.0, 0.95, 0.75, 0.05))
 	draw_rect(Rect2(x - 2, y - 2, 24, 40), WINDOW_FRAME)
 	draw_rect(Rect2(x, y + 4, 20, 32), WINDOW_SKY)
 	draw_rect(Rect2(x, y + 24, 20, 12), WINDOW_SKY_LOW)
@@ -145,5 +171,9 @@ func _torch(x: float, y: float, now: float) -> void:
 	draw_rect(Rect2(x - 1, y, 3, 8), Color8(90, 60, 30))
 	draw_rect(Rect2(x - 3, y - 1, 7, 2), Color8(60, 60, 70))
 	var flick := floorf(sin(now * 0.02 + x) * 1.5)
+	# brilho em volta da chama
+	var glow := 13.0 + sin(now * 0.013 + x) * 1.5
+	draw_circle(Vector2(x + 0.5, y - 3 + flick), glow, Color(1.0, 0.6, 0.2, 0.07))
+	draw_circle(Vector2(x + 0.5, y - 3 + flick), glow * 0.55, Color(1.0, 0.7, 0.3, 0.1))
 	draw_rect(Rect2(x - 2, y - 6 + flick, 5, 5), TORCH_FIRE)
 	draw_rect(Rect2(x - 1, y - 4 + flick, 3, 3), TORCH_CORE)

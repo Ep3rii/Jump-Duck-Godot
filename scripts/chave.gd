@@ -5,6 +5,7 @@ extends Node2D
 ## Origem = ponto no chao embaixo da chave. Desenho provisorio em codigo.
 
 const EfeitoScene := preload("res://scenes/efeito.tscn")
+const Particulas := preload("res://scripts/particulas.gd")
 
 const COL_OUT := Color8(90, 60, 0)
 const COL_GOLD := Color8(255, 206, 60)
@@ -27,6 +28,7 @@ func collect(_player: Node) -> void:
 	fx.position = position + Vector2(0, -8)
 	get_parent().add_child(fx)
 	queue_free()
+	Particulas.emit(get_tree(), "brilho", position + Vector2(0, -8), 10)
 	Game.keys += 1
 	Game.play_sfx("key")
 
@@ -38,7 +40,12 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	var bob := floorf(sin(_time * 3.0) * 1.5)
-	draw_key(self, Vector2(0, -8 + bob))
+	# gira devagar (achata na horizontal e volta)
+	var spin := cos(_time * 2.4)
+	var sx := maxf(0.15, absf(spin))
+	draw_set_transform(Vector2(0, -8 + bob), 0.0, Vector2(sx * (1.0 if spin >= 0.0 else -1.0), 1.0))
+	draw_key(self, Vector2.ZERO)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 	# brilho piscando
 	if int(_time * 4.0) % 6 == 0:
 		draw_rect(Rect2(3, -14 + bob, 1, 3), COL_LIGHT)
