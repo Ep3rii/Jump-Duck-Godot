@@ -288,3 +288,240 @@ def main_run8():
         strip.save(os.path.join(ARTE, "pato_correndo.png"))
         print("salvo em assets/sprites/arte/pato_correndo.png")
     print("ok correndo8")
+
+
+# ------------------------------------------------------------ pulo e queda
+# subindo: perna de tras esticada para tras/baixo, pe da frente encolhendo (2 quadros)
+JUMP_CYCLE = [
+    (3, 3, -4, 0, 0),
+    (3, 4, -5, 1, 0),
+]
+# caindo: pes "pedalando" no ar, um de cada vez (4 quadros)
+FALL_CYCLE = [
+    (2, 0, -2, 0, 0),
+    (3, 0, -2, 2, 0),
+    (1, 1, -1, 1, 0),
+    (2, 2, -3, 0, 0),
+]
+
+
+def build_cycle(cycle):
+    body = look_forward(idle_body())
+    return [run_frame(body, c) for c in cycle]
+
+
+def save_strip(frames, name, salvar):
+    big = [upscale(f, 4) for f in frames]
+    strip = Canvas(128 * len(big), 128)
+    for i, b in enumerate(big):
+        strip.blit(b, i * 128, 0)
+    strip.save(os.path.join(OUT, name + ".png"))
+    if salvar:
+        strip.save(os.path.join(ARTE, name + ".png"))
+        print("salvo em assets/sprites/arte/%s.png" % name)
+    return big
+
+
+def main_jump_fall():
+    salvar = "--salvar" in sys.argv
+    jump = save_strip(build_cycle(JUMP_CYCLE), "pato_pulando", salvar)
+    fall = save_strip(build_cycle(FALL_CYCLE), "pato_caindo", salvar)
+    idle = upscale(build("parado")[0][0], 4)
+    # quadros lado a lado (2x) com um espaco entre subindo e caindo
+    allf = jump + [None] + fall
+    prev = Canvas(len(allf) * (256 + 8), 256)
+    for i, b in enumerate(allf):
+        if b is not None:
+            prev.blit(b, i * (256 + 8), 0, 2)
+    prev.save(os.path.join(OUT, "pato_pulo_quadros_2x.png"))
+    # GIF de um pulo inteiro: sobe (pulando), cai (caindo), pousa (parado); 60 fps simulados
+    H = 128 + 96
+    seq = []
+    vy, y = -4.0 * 8, 0.0  # em pixels do desenho (8 por pixel do jogo)
+    t = 0
+    while True:
+        y += vy
+        vy += 0.25 * 8
+        landed = y >= 0
+        if landed:
+            y = 0
+        if vy < 0:
+            img = jump[(t // 8) % len(jump)]   # 8 fps
+        else:
+            img = fall[(t // 5) % len(fall)]   # 12 fps
+        fr = Canvas(128, H)
+        fr.blit(idle if landed else img, 0, int(H - 128 + y))
+        seq.append(fr)
+        t += 1
+        if landed:
+            break
+    for _ in range(20):
+        fr = Canvas(128, H)
+        fr.blit(idle, 0, H - 128)
+        seq.append(fr)
+    # GIF a 50 fps (2 cs por quadro) e 1 quadro de jogo a cada 1
+    save_gif(os.path.join(OUT, "pato_pulo.gif"), seq, delay_cs=2, scale=1, bg=(191, 228, 250))
+    print("ok pulo/queda")
+
+
+def fill_holes(cv):
+    """Fecha buracos transparentes de 1 px cercados nos 4 lados (viram contorno)."""
+    holes = []
+    for y in range(1, 31):
+        for x in range(1, 31):
+            if cv.px[y][x] is None and all(cv.px[y + dy][x + dx] is not None
+                                           for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                holes.append((x, y))
+    for x, y in holes:
+        cv.px[y][x] = OUTLINE
+    return cv
+
+
+def outline_problems(cv):
+    """Conta buracos de 1 px cercados e manchas 2x2 de contorno (excesso de contorno)."""
+    holes = sum(1 for y in range(1, 31) for x in range(1, 31)
+                if cv.px[y][x] is None and all(cv.px[y + dy][x + dx] is not None
+                                               for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))))
+    blobs = sum(1 for y in range(31) for x in range(31)
+                if all(cv.px[y + dy][x + dx] == OUTLINE for dx in (0, 1) for dy in (0, 1)))
+    return holes, blobs
+
+
+FEET_COLORS = {YELLOW, YELLOW_DARK, YELLOW_BACK, (255, 242, 0, 255)}
+
+
+def clean_feet_outline(cv):
+    """Limpa o contorno na regiao dos pes:
+    - contorno solto (sem encostar em nenhum pixel colorido) sai;
+    - entre dois pes, qualquer sequencia de 2-3 pixels de contorno/vazio vira UMA linha de
+      contorno (o resto e preenchido com a cor de cada pe)."""
+    top = LEG_TOP - 2
+    changed = True
+    while changed:
+        changed = False
+        for y in range(top, 32):
+            for x in range(32):
+                if cv.px[y][x] != OUTLINE:
+                    continue
+                nb = [cv.px[y + dy][x + dx] for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))
+                      if 0 <= x + dx < 32 and 0 <= y + dy < 32]
+                if not any(c is not None and c != OUTLINE for c in nb):
+                    cv.px[y][x] = None
+                    changed = True
+    for y in range(top, 32):
+        x = 0
+        while x < 32:
+            a = cv.px[y][x]
+            if a in FEET_COLORS:
+                j = x + 1
+                while j < 32 and (cv.px[y][j] is None or cv.px[y][j] == OUTLINE):
+                    j += 1
+                gap = j - x - 1
+                if j < 32 and cv.px[y][j] in FEET_COLORS and 2 <= gap <= 3:
+                    b = cv.px[y][j]
+                    mid = x + 1 + gap // 2
+                    for k in range(x + 1, j):
+                        cv.px[y][k] = a if k < mid else (OUTLINE if k == mid else b)
+                x = j
+            else:
+                x += 1
+    return cv
+
+
+def build_cycle(cycle):  # noqa: F811
+    body = look_forward(idle_body())
+    return [clean_feet_outline(run_frame(body, c)) for c in cycle]
+
+
+def build_run8():  # noqa: F811
+    return build_cycle(RUN_CYCLE)
+
+
+WHITE_SET = {(255, 255, 255, 255), (226, 226, 226, 255)}
+
+
+def thin_blocks(cv):
+    """Desfaz quadradinhos 2x2 de contorno (fora o olho, que e cercado de branco): um pixel do
+    bloco que encosta num pe vira a cor desse pe; senao, o que encosta no corpo vira branco."""
+    for _ in range(20):
+        found = False
+        for y in range(LEG_TOP - 3, 31):  # so na regiao dos pes (o olho fica intacto)
+            for x in range(31):
+                block = [(x, y), (x + 1, y), (x, y + 1), (x + 1, y + 1)]
+                if not all(cv.px[by][bx] == OUTLINE for bx, by in block):
+                    continue
+                ring = [cv.px[y + dy][x + dx] for dx in (-1, 0, 1, 2) for dy in (-1, 0, 1, 2)
+                        if (dx in (-1, 2) or dy in (-1, 2)) and 0 <= x + dx < 32 and 0 <= y + dy < 32]
+                if all(c in WHITE_SET for c in ring):
+                    continue  # e o olho
+                best = None
+                for pref in (FEET_COLORS, WHITE_SET):
+                    for bx, by in block:
+                        for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                            nx, ny = bx + dx, by + dy
+                            if (nx, ny) in block or not (0 <= nx < 32 and 0 <= ny < 32):
+                                continue
+                            if cv.px[ny][nx] in pref:
+                                best = (bx, by, cv.px[ny][nx])
+                                break
+                        if best:
+                            break
+                    if best:
+                        break
+                if best:
+                    cv.px[best[1]][best[0]] = best[2]
+                    found = True
+        if not found:
+            break
+    return cv
+
+
+_clean_feet_outline_v1 = clean_feet_outline
+
+
+def clean_feet_outline(cv):  # noqa: F811
+    cv = _clean_feet_outline_v1(cv)
+    # vaos de 4 px entre os pes tambem viram uma linha so
+    top = LEG_TOP - 2
+    for y in range(top, 32):
+        x = 0
+        while x < 32:
+            a = cv.px[y][x]
+            if a in FEET_COLORS:
+                j = x + 1
+                while j < 32 and (cv.px[y][j] is None or cv.px[y][j] == OUTLINE):
+                    j += 1
+                gap = j - x - 1
+                if j < 32 and cv.px[y][j] in FEET_COLORS and gap == 4:
+                    b = cv.px[y][j]
+                    mid = x + 1 + gap // 2
+                    for k in range(x + 1, j):
+                        cv.px[y][k] = a if k < mid else (OUTLINE if k == mid else b)
+                x = j
+            else:
+                x += 1
+    return thin_blocks(cv)
+
+
+# ------------------------------------------------------------ pato parado com os pes limpos
+def idle_fixed():
+    """Pato parado aprovado com a mesma limpeza de contorno dos pes da corrida: a linha entre
+    os dois pes (que ficou com 2 px ao ampliar) vira 1 px e sem quadradinhos de contorno."""
+    dx, dy = registration()
+    g = to_grid32(rebuild(frame(load_png(os.path.join(SPR, "spr_playerAnima.png")), 0)), dx, dy)
+    return clean_feet_outline(g)
+
+
+def main_idle_fixed():
+    old = upscale(build("parado")[0][0], 4)
+    new = upscale(idle_fixed(), 4)
+    # antes (esquerda) e depois (direita), ampliados 2x
+    comp = Canvas(256 * 2 + 32, 256)
+    comp.blit(old, 0, 0, 2)
+    comp.blit(new, 256 + 32, 0, 2)
+    comp.save(os.path.join(OUT, "pato_parado_antes_depois_2x.png"))
+    new.save(os.path.join(OUT, "pato_parado_corrigido.png"))
+    if "--salvar" in sys.argv:
+        new.save(os.path.join(ARTE, "pato_parado.png"))
+        print("salvo em assets/sprites/arte/pato_parado.png")
+    print("ok parado corrigido", outline_problems(idle_fixed()))

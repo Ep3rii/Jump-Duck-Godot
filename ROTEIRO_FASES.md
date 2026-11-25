@@ -143,7 +143,7 @@ Sem acessórios no pato e sem tema medieval: o estilo é o do original, só que 
 
 | Sprite | Arquivo | Observação |
 |---|---|---|
-| Pato parado | `assets/sprites/arte/pato_parado.png` | o original ampliado com contorno de 1 px |
+| Pato parado | `assets/sprites/arte/pato_parado.png` | o original ampliado com contorno de 1 px; pés com a linha entre eles de 1 px (sem contorno dobrado) |
 | Pato correndo | `assets/sprites/arte/pato_correndo.png` | 8 quadros a 16 por segundo: corpo do parado subindo e descendo a cada passo, pés gordinhos redesenhados (o de trás um pouco mais escuro) e só o olho da frente (olhando para onde corre). Pular, cair, dano e morte ainda usam os quadros antigos |
 | Topo do chão de grama (meio) | bloco (1,1) de `assets/sprites/arte/tileset_grama.png` | o original ampliado com a borda de cima fina (1 px) e mais suave (`#1d6b22`); os outros blocos do tileset são os antigos ampliados 8x até serem refeitos |
 
