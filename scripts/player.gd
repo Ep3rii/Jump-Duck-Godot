@@ -8,6 +8,7 @@ extends Node2D
 ## o jogador olha para a esquerda, e testada contra os solidos (ver solids.gd).
 
 const Solids := preload("res://scripts/solids.gd")
+const Vento := preload("res://scripts/vento.gd")
 
 const HURT_TIME := 30  # frames parado no estado "hurt"
 const DEATH_TIME := 60  # frames da animacao de morte ate a tela de fim de jogo
@@ -21,6 +22,7 @@ const SWIM_SPEED := 1.5  # nadando na superficie
 const DIVE_SPEED := 1.2  # nadando debaixo d'agua
 const FLOAT_DEPTH := 6.0  # o pe fica 6 px abaixo da linha d'agua (meio pato submerso)
 const AIR_MAX := 300  # folego: 5 s debaixo d'agua
+const LIFT_MAX := 2.5  # velocidade maxima subindo numa corrente de ar
 
 var spdh := 0.0
 var spdv := 0.0
@@ -182,8 +184,9 @@ func _step_alive() -> void:
 		_step_swim(water)
 		return
 	swim = "none"
-	spdh = move * spd_player
-	if carrying == null and spdh != 0.0:
+	var wind := Vento.total(get_tree(), get_mask())
+	spdh = move * spd_player + wind.x
+	if carrying == null and move != 0 and spdh != 0.0:
 		_push_boxes()
 	_move_x()
 
@@ -200,6 +203,10 @@ func _step_alive() -> void:
 		if spdv >= 0.0 and fall_start_y < 0.0:
 			fall_start_y = position.y
 		spdv = minf(spdv + gravidade, max_fall_speed)
+	if wind.y < 0.0:
+		# corrente de ar para cima: levanta e amortece a queda
+		spdv = maxf(spdv + wind.y, -LIFT_MAX)
+		fall_start_y = -1.0
 
 	if player_state != "alive":  # a queda acabou de machucar
 		_move_y()

@@ -213,6 +213,48 @@ func _run() -> void:
 	p.position = Vector2(392, 352)
 	await frames(40)
 	await shot("22w_fase5_caixa_ressalto")
+
+	# Fases 6 a 8: vento e pedras que caem
+	Game.game_state = "playing"
+	Game.room_goto("fase6")
+	await wait_ready()
+	await frames(30)
+	await shot("22x_fase6_inicio")
+	p = get_tree().get_first_node_in_group("player")
+	p.position = Vector2(240, 768)  # em cima da pedra 1
+	await frames(15)
+	await shot("22y_fase6_pedra_tremendo")
+	var raj := get_tree().current_scene.get_node("Mecanicas/Rajada1")
+	raj._t = 0
+	p.position = Vector2(400, 768)
+	await frames(20)
+	await shot("22z_fase6_rajada")
+	p.position = Vector2(584, 768)
+	await frames(70)
+	await shot("23a_fase6_corrente")
+
+	Game.game_state = "playing"
+	Game.room_goto("fase7")
+	await wait_ready()
+	await frames(30)
+	await shot("23b_fase7_inicio")
+	p = get_tree().get_first_node_in_group("player")
+	p.position = Vector2(136, 640)
+	await frames(40)
+	await shot("23c_fase7_vento_a_favor")
+
+	Game.game_state = "playing"
+	Game.room_goto("fase8")
+	await wait_ready()
+	await frames(30)
+	await shot("23d_fase8_inicio")
+	p = get_tree().get_first_node_in_group("player")
+	p.position = Vector2(440, 576)
+	await frames(40)
+	await shot("23e_fase8_porta_pedras")
+	p.position = Vector2(200, 192)
+	await frames(40)
+	await shot("23f_fase8_vao_final")
 	Game.debug_invincible = false
 
 	# Laboratorio de mecanicas (Fase 4)

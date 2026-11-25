@@ -25,9 +25,9 @@ São 10 fases jogáveis + 1 cutscene.
 | **Fase 3** | Caminho até a torre (lago) | nadar, túnel submerso, arena com plataformas | jacarés + **mini-chefe jacaré** | ✅ jogável (`scenes/fase3.tscn`); falta a arte definitiva |
 | **Fase 4** | Torre (subida 1/6) | **chaves** (novo), cipó, placas | gaviãozinho | ✅ jogável (`scenes/fase4.tscn`); falta a arte definitiva |
 | **Fase 5** | Torre (subida 2/6) | chaves, puzzles com caixa | águia + gaviãozinho | ✅ jogável (`scenes/fase5.tscn`); falta a arte definitiva |
-| **Fase 6** | Torre (subida 3/6) | **vento** e **plataformas que caem** (novos) | aves de rapina | vento, plataforma que cai |
-| **Fase 7** | Torre (subida 4/6) | vento, plataformas que caem | aves de rapina | idem |
-| **Fase 8** | Torre (subida 5/6) | vento, plataformas que caem, chaves | aves de rapina | idem |
+| **Fase 6** | Torre (subida 3/6) | **vento** e **plataformas que caem** (novos) | gaviãozinho | ✅ jogável (`scenes/fase6.tscn`); falta a arte definitiva |
+| **Fase 7** | Torre (subida 4/6) | vento, plataformas que caem | gaviãozinho + águia | ✅ jogável (`scenes/fase7.tscn`); falta a arte definitiva |
+| **Fase 8** | Torre (subida 5/6) | vento, plataformas que caem, chaves | gaviãozinho + águia | ✅ jogável (`scenes/fase8.tscn`); falta a arte definitiva |
 | **Fase Final** | Última sala antes do topo (subida 6/6) | luta contra o gavião em 2 etapas | **gavião (chefe)** | chefe |
 | **Cutscene** | Topo da torre | o pato encontra a **Pata** e os dois olham o pôr do sol | — | cutscene, arte |
 
@@ -71,9 +71,13 @@ Inimigos voadores da família do gavião, em dois tipos:
   `cenario` = "Torre por dentro" na paralaxe (tijolos, janelas com céu e tochas).
 - Fases verticais: andares ligados por cipós, o pato sobe de baixo para cima.
 
-### Vento e plataformas que caem (Fases 6 a 8)
-- **Vento:** área que empurra o pato (e as caixas) numa direção, constante ou em rajadas, com partículas mostrando a direção.
-- **Plataforma que cai:** treme ao ser pisada, cai depois de um tempo e volta alguns segundos depois.
+### Vento e plataformas que caem (Fases 6 a 8) — feito
+- **Vento** (`vento.gd`): área com listras que empurra o pato (e as caixas paradas) para a direita
+  ou para a esquerda, constante ou em **rajadas** (as listras voltam um pouco antes de cada rajada,
+  avisando). A direção **Cima** é uma corrente de ar que levanta o pato até o andar de cima
+  (substitui o cipó em alguns lugares; dentro dela cair não machuca).
+- **Plataforma que cai** (`plataforma_cai.gd`, pedra rachada): treme meio segundo ao ser pisada,
+  despenca e volta 3 segundos depois (só se o lugar estiver livre).
 
 ### Chefe gavião (Fase Final)
 - Ataca em **sequências de mergulhos**. No fim da sequência **bate na parede da torre e fica atordoado**.
@@ -134,7 +138,7 @@ Cada fase vira uma entrega jogável, com a mecânica dela feita logo antes:
 1. ✅ **Tutorial novo** (fazenda/moinho, com arte provisória) e **Fase 1**: os dois só usam mecânicas que já existem.
 2. ✅ **Nado + jacaré comum → Fase 2**, e depois **mini-chefe jacaré → Fase 3**.
 3. ✅ **Chave + aves de rapina → Fases 4 e 5**.
-4. **Vento + plataformas que caem → Fases 6, 7 e 8**.
+4. ✅ **Vento + plataformas que caem → Fases 6, 7 e 8**.
 5. **Chefe gavião → Fase Final**, e depois **cutscene com a Pata**.
 6. Trocar a arte provisória pela definitiva conforme ela for ficando pronta; ajuste geral de dificuldade e de pontuação.
 

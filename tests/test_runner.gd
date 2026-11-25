@@ -10,6 +10,8 @@ const BlockScene := preload("res://scenes/block.tscn")
 const PerigoScene := preload("res://scenes/perigo.tscn")
 const VidaScene := preload("res://scenes/vida.tscn")
 const Sfx := preload("res://scripts/sfx.gd")
+const Solids := preload("res://scripts/solids.gd")
+const CaixaScene := preload("res://scenes/caixa.tscn")
 
 const TEST_SAVE := "user://test_save.cfg"
 const TEST_SETTINGS := "user://test_settings.cfg"
@@ -133,7 +135,7 @@ func _run() -> void:
 	print("-- sons sintetizados")
 	var all_sfx := true
 	for s: String in ["jump", "flower", "stomp", "hurt", "death", "checkpoint", "life",
-			"complete", "select", "confirm", "denied", "key", "unlock", "screech", "swoop"]:
+			"complete", "select", "confirm", "denied", "key", "unlock", "screech", "swoop", "wind", "crack", "fall"]:
 		all_sfx = all_sfx and Sfx.get_stream(s).data.size() > 1000
 	check(all_sfx, "todos os efeitos geram audio")
 	check(AudioServer.get_bus_index("Music") >= 0 and AudioServer.get_bus_index("SFX") >= 0,
@@ -1061,6 +1063,253 @@ func _test_fase5() -> void:
 	player().position = Vector2(568, 240)
 	await frames(3)
 	check(Game.game_state == "complete" and Game.best.has("fase5"), "saida conclui a fase 5 e salva")
+	check(Game.ui_layout()[0]["label"] == "PRÓXIMA FASE", "fase 5 leva a fase 6")
+	Game._run_menu_action("PRÓXIMA FASE")
+	await wait_level()
+	await _test_fase6()
+
+
+# -------------------------------------------------- ajudantes das fases de vento
+## Tira todas as aves do caminho.
+func park_birds() -> void:
+	for b in get_tree().get_nodes_in_group("ave"):
+		b.set_physics_process(false)
+		b.position = Vector2(-500, -500)
+
+
+## Coloca uma rajada no comeco da calmaria (ou da rajada, com blowing).
+func set_gust(path: String, blowing: bool) -> void:
+	var v: Node2D = node(path)
+	v._t = 0 if blowing else v.tempo_ligado
+
+
+func grounded() -> bool:
+	var p := player()
+	return Solids.hits(Solids.snapshot(get_tree()), Rect2(p.position.x - 7.0, p.position.y, 15.0, 1.0))
+
+
+## "Robo" que corre para um lado e pula sempre que o chao acaba logo a frente. Para ao
+## passar de stop_x (se dado) e espera pousar.
+func run_and_hop(key: Key, n: int, stop_x := NAN) -> void:
+	var d := 1.0 if key == KEY_RIGHT else -1.0
+	key_event(key, true)
+	for i in n:
+		var p := player()
+		if not is_nan(stop_x) and (p.position.x - stop_x) * d >= 0.0:
+			break
+		var ahead := Solids.hits(Solids.snapshot(get_tree()),
+			Rect2(p.position.x + d * 12.0, p.position.y, 2.0, 1.0))
+		if grounded() and not ahead:
+			key_event(KEY_SPACE, true)
+			await frames(1)
+			key_event(KEY_SPACE, false)
+		else:
+			await frames(1)
+	key_event(key, false)
+	for i in 60:
+		await frames(1)
+		if grounded():
+			break
+	await frames(2)
+
+
+## Pulo duplo mirando o ponto (tx, topo ty): anda para o alvo e para em cima dele.
+func hop_to(tx: float, ty: float, n := 60) -> void:
+	var held := 0
+	for i in n:
+		if i == 1 or i == 15:
+			key_event(KEY_SPACE, true)
+		var dx := tx - player().position.x
+		var want := 0
+		if absf(dx) > 2.0:
+			want = 1 if dx > 0.0 else -1
+		if want != held:
+			if held != 0:
+				key_event(KEY_RIGHT if held > 0 else KEY_LEFT, false)
+			if want != 0:
+				key_event(KEY_RIGHT if want > 0 else KEY_LEFT, true)
+			held = want
+		await frames(1)
+		if i == 1 or i == 15:
+			key_event(KEY_SPACE, false)
+		if i > 20 and grounded() and absf(player().position.y - ty) < 0.5 and want == 0:
+			break
+	if held != 0:
+		key_event(KEY_RIGHT if held > 0 else KEY_LEFT, false)
+	await frames(2)
+
+
+func _test_fase6() -> void:
+	print("-- fase 6 (torre 3/6: pedras que caem e vento)")
+	check(Game.current_level_name == "fase6" and Game.total_collectibles == 4, "fase 6 carregada com 4 flores")
+	park_birds()
+	var pedra: Node2D = node("Mecanicas/Pedra1")
+	await frames(5)
+
+	print("-- pedra que cai")
+	reset_player(Vector2(240, 768))
+	await frames(5)
+	check(pedra.state == "tremendo" and pedra.is_in_group("solid"), "pisou: a pedra treme e ainda segura")
+	await frames(30)
+	check(pedra.state == "caindo" and not pedra.is_in_group("solid"), "depois de meio segundo ela cai")
+	await frames(10)
+	check(player().position.y > 768.0, "o pato cai junto")
+	await frames(120)
+	check(Game.player_lives == Game.max_lives - 1, "cair no poco sem fundo custa 1 coracao")
+	await frames(80)
+	check(pedra.state != "caindo" and pedra.is_in_group("solid"), "a pedra volta para o lugar")
+
+	print("-- atravessar o poco pelas pedras")
+	reset_player(Vector2(150, 768))
+	await run_and_hop(KEY_RIGHT, 130)
+	check(player().position.x > 368.0 and player().position.y == 768.0 and Game.player_lives == Game.max_lives,
+		"pedras que caem atravessam o poco (x=%.0f)" % player().position.x)
+
+	print("-- rajada de vento")
+	set_gust("Mecanicas/Rajada1", true)
+	reset_player(Vector2(424, 768))
+	await frames(30)
+	check(player().position.x < 410.0, "rajada contra empurra o pato parado (x=%.0f)" % player().position.x)
+	set_gust("Mecanicas/Rajada1", false)
+	reset_player(Vector2(424, 768))
+	await frames(30)
+	check(player().position.x == 424.0, "na calmaria nada empurra")
+	var box: Node2D = CaixaScene.instantiate()
+	box.position = Vector2(424, 768)
+	node("Itens").add_child(box)
+	reset_player(Vector2(520, 768))
+	set_gust("Mecanicas/Rajada1", true)
+	await frames(20)
+	check(box.position.x < 420.0, "a rajada arrasta a caixa (x=%.0f)" % box.position.x)
+	box.queue_free()
+	set_gust("Mecanicas/Rajada1", true)
+	reset_player(Vector2(400, 768))
+	await play(60, [KEY_RIGHT])
+	check(player().position.x < 460.0, "contra a rajada o pato quase nao anda (x=%.0f)" % player().position.x)
+	set_gust("Mecanicas/Rajada1", false)
+	reset_player(Vector2(400, 768))
+	await run_and_hop(KEY_RIGHT, 60)
+	check(player().position.x > 480.0 and player().position.y == 768.0, "na calmaria passa o vao")
+
+	print("-- corrente de ar")
+	reset_player(Vector2(584, 768))
+	await frames(120)
+	check(player().position.y < 592.0, "a corrente levanta o pato acima do andar 1 (y=%.0f)" % player().position.y)
+	await hold(KEY_LEFT, 30)
+	await frames(10)
+	check(player().position.y == 592.0 and Game.player_lives == Game.max_lives, "sai da corrente no andar 1 sem se machucar")
+
+	print("-- andares 1 a 3")
+	reset_player(Vector2(420, 592))
+	await run_and_hop(KEY_LEFT, 140, 200.0)
+	check(player().position.x < 216.0 and player().position.y == 592.0, "andar 1: pedras sobre o vao (%s)" % player().position)
+	set_gust("Mecanicas/Rajada2", false)
+	reset_player(Vector2(184, 416))
+	await run_and_hop(KEY_RIGHT, 115)
+	check(player().position.x > 392.0 and player().position.y == 416.0, "andar 2: vaos na calmaria da rajada (x=%.0f)" % player().position.x)
+	reset_player(Vector2(584, 416))
+	await frames(120)
+	await hold(KEY_LEFT, 30)
+	await frames(10)
+	check(player().position.y == 240.0, "corrente 2 leva ao andar 3")
+	set_gust("Mecanicas/Rajada3", false)
+	reset_player(Vector2(440, 240))
+	await run_and_hop(KEY_LEFT, 160, 110.0)
+	check(player().position.x < 128.0 and player().position.y == 240.0, "andar 3: pedras na calmaria (%s)" % player().position)
+
+	player().position = Vector2(48, 240)
+	await frames(3)
+	check(Game.game_state == "complete" and Game.best.has("fase6"), "saida conclui a fase 6")
+	Game._run_menu_action("PRÓXIMA FASE")
+	await wait_level()
+	await _test_fase7()
+
+
+func _test_fase7() -> void:
+	print("-- fase 7 (torre 4/6: poco alto)")
+	check(Game.current_level_name == "fase7" and Game.total_collectibles == 4, "fase 7 carregada com 4 flores")
+	park_birds()
+	await frames(5)
+	reset_player(Vector2(40, 1088))
+	await hop_to(80, 1040)
+	await hop_to(160, 992)
+	await hop_to(240, 944)
+	await hop_to(320, 896)
+	check(player().position == Vector2(320, 896), "escada de pedras: chega na 4a pedra (%s)" % player().position)
+	await hop_to(264, 848)
+	check(player().position.y == 848.0 and Game.player_lives == Game.max_lives, "e no ressalto 1")
+	reset_player(Vector2(120, 848))
+	await hold(KEY_LEFT, 40)
+	await frames(80)
+	await hold(KEY_RIGHT, 30)
+	await frames(10)
+	check(player().position.y == 640.0, "corrente 1 leva ao ressalto 2 (y=%.0f)" % player().position.y)
+	reset_player(Vector2(136, 640))
+	await run_and_hop(KEY_RIGHT, 100, 316.0)
+	check(player().position.x >= 310.0 and player().position.y == 640.0, "vento a favor: pedra ate o ressalto 3 (%s)" % player().position)
+	reset_player(Vector2(360, 640))
+	await hold(KEY_UP, 220)
+	await hold(KEY_LEFT, 20)
+	check(player().position.y == 448.0, "cipo leva ao ressalto 4")
+	set_gust("Mecanicas/Rajada1", false)
+	reset_player(Vector2(232, 448))
+	await hop_to(160, 416)
+	await hop_to(80, 384)
+	await hop_to(24, 336)
+	check(player().position.y < 340.0 and player().position.x < 40.0, "pedras com a rajada calma ate o ressalto 5 (%s)" % player().position)
+	await frames(120)
+	await hold(KEY_RIGHT, 30)
+	await frames(10)
+	check(player().position.y == 160.0, "corrente 2 leva a sacada da saida (y=%.0f)" % player().position.y)
+	player().position = Vector2(328, 160)
+	await frames(3)
+	check(Game.game_state == "complete" and Game.best.has("fase7"), "saida conclui a fase 7")
+	Game._run_menu_action("PRÓXIMA FASE")
+	await wait_level()
+	await _test_fase8()
+
+
+func _test_fase8() -> void:
+	print("-- fase 8 (torre 5/6: tudo junto)")
+	check(Game.current_level_name == "fase8" and Game.total_collectibles == 4, "fase 8 carregada com 4 flores")
+	park_birds()
+	await frames(5)
+	set_gust("Mecanicas/Rajada1", false)
+	reset_player(Vector2(120, 576))
+	await run_and_hop(KEY_RIGHT, 125, 370.0)
+	check(Game.keys == 1 and player().position.y == 576.0, "vaos na calmaria e chave 1 (x=%.0f)" % player().position.x)
+	await hold(KEY_RIGHT, 50)
+	check(node("Mecanicas/Porta1").is_open, "chave 1 abre a porta 1")
+	reset_player(Vector2(440, 576))
+	await run_and_hop(KEY_RIGHT, 110, 672.0)
+	check(player().position.x >= 660.0 and player().position.y == 576.0, "pedras sobre o poco (%s)" % player().position)
+	reset_player(Vector2(712, 576))
+	await frames(120)
+	await hold(KEY_LEFT, 25)
+	await frames(10)
+	check(player().position.y == 384.0, "corrente 1 leva ao andar 1")
+	set_gust("Mecanicas/Rajada2", false)
+	reset_player(Vector2(520, 384))
+	await run_and_hop(KEY_LEFT, 150, 280.0)
+	check(player().position.x < 290.0 and player().position.y == 384.0, "pedras com a rajada calma (%s)" % player().position)
+	reset_player(Vector2(184, 384))
+	await play(22, [], {2: KEY_SPACE, 16: KEY_SPACE})
+	await play(25, [KEY_RIGHT])
+	check(Game.keys == 1, "chave 2 no ressalto")
+	reset_player(Vector2(120, 384))
+	await hold(KEY_LEFT, 30)
+	check(node("Mecanicas/Porta2").is_open, "chave 2 abre a porta 2")
+	reset_player(Vector2(40, 384))
+	await frames(120)
+	await hold(KEY_RIGHT, 30)
+	await frames(40)
+	check(player().position.y == 192.0, "corrente 2 leva ao andar 2 (%s)" % player().position)
+	reset_player(Vector2(180, 192))
+	await run_and_hop(KEY_RIGHT, 160, 572.0)
+	check(player().position.x > 560.0 and player().position.y == 192.0, "vento a favor: pedras sobre o vao enorme (%s)" % player().position)
+	player().position = Vector2(712, 192)
+	await frames(3)
+	check(Game.game_state == "complete" and Game.best.has("fase8"), "saida conclui a fase 8 e salva")
 	check(Game.ui_layout()[0]["label"] == "MENU PRINCIPAL", "ultima fase: sem PROXIMA FASE")
 
 

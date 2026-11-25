@@ -45,6 +45,11 @@ os PNGs e o MP3 sozinho.
 - **Aves de rapina:** o gaviãozinho patrulha no alto e dá um rasante em arco onde o pato estava
   quando ele gritou (correr depois do grito escapa); a águia circula, grita, mergulha em
   diagonal e, se bate no chão, fica com o bico preso (2 golpes). Pisão ou caixa arremessada.
+- **Vento:** áreas com listras empurram o pato (e caixas paradas) para o lado; as rajadas
+  ligam e desligam, e as listras voltam um pouco antes de cada rajada. A **corrente de ar** para
+  cima levanta o pato até o andar de cima, e dentro dela cair não machuca.
+- **Pedra rachada:** treme quando o pato (ou uma caixa) pisa, cai depois de meio segundo e volta
+  para o lugar uns 3 segundos depois.
 
 ## Fases
 
@@ -56,6 +61,9 @@ os PNGs e o MP3 sozinho.
 | Fase 3 | `scenes/fase3.tscn` | lago com jacarés e túnel submerso, depois a arena do **jacaré gigante** (mini-chefe): bolhas avisam o salto contra as plataformas, mordida forte e "dor de dente", a hora do pisão; 5 pisões abrem a porta da saída |
 | Fase 4 | `scenes/fase4.tscn` | dentro da torre (1/6), 4 andares ligados por cipós: a primeira chave e porta trancada, um gaviãozinho por andar, caixa empurrada para um buraco segurando a placa da sala da 2ª chave, saída numa sacada no alto |
 | Fase 5 | `scenes/fase5.tscn` | torre (2/6), de baixo à direita: paredão de 5 tiles (empurrar a caixa para subir), a águia, chave num ressalto alto (levar a caixa até embaixo), derrubar a caixa de um ressalto até a placa, porta trancada antes da saída |
+| Fase 6 | `scenes/fase6.tscn` | torre (3/6): apresenta as pedras que caem (sobre um poço sem fundo), a rajada de vento contra (esperar acalmar para pular o vão) e a corrente de ar que sobe; depois pedras sobre vãos, rajadas e gaviões em 4 andares |
+| Fase 7 | `scenes/fase7.tscn` | torre (4/6), um poço estreito e alto: escada de pedras que caem, corrente de ar, travessia com vento a favor e gavião, cipó, pedras com rajada contra e a águia, e a última corrente até a saída |
+| Fase 8 | `scenes/fase8.tscn` | torre (5/6), tudo junto: rajada com vãos sem fundo, duas chaves e portas trancadas, pedras sobre poços, correntes de ar, águia e gaviões; vento a favor sobre um vão enorme no fim |
 
 O roteiro das fases seguintes está em [ROTEIRO_FASES.md](ROTEIRO_FASES.md). Toda a decoração
 (moinho, celeiro, cerca, árvores, placas, caixa/feno) é provisória, desenhada em código, até
@@ -106,7 +114,9 @@ godot --path . res://tests/screenshots.tscn
    `decoracao` (moinho, celeiro, cerca, árvore, arbusto, seta de saída, junco), `agua` (água
    nadável, desenhada translúcida na frente do pato; caixas boiam nela), `chave`, `porta` com
    `trancada` (abre com a chave), `gaviaozinho` (`alcance` da patrulha), `aguia` (circula em
-   volta de onde foi posta), `jacare_chefe` (use
+   volta de onde foi posta), `vento` (direção Direita/Esquerda/Cima, `forca`, `rajada` com
+   tempos e `atraso`), `plataforma_cai` (pedra rachada; `tempo_tremendo`, `tempo_volta`),
+   `jacare_chefe` (use
    `alvos_ao_derrotar` para abrir a porta da arena; todo inimigo tem esse campo) e `jacare` (vive numa
    `agua`; `comeca_mergulhado` alterna o ciclo entre jacarés). A paralaxe tem
    `mostrar_torre` para a torre aparecer ao fundo e `cenario` = "Torre por dentro" (parede de

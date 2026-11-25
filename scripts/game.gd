@@ -20,6 +20,9 @@ var levels: Array = [
 	{"id": "fase3", "name": "FASE 3"},
 	{"id": "fase4", "name": "FASE 4"},
 	{"id": "fase5", "name": "FASE 5"},
+	{"id": "fase6", "name": "FASE 6"},
+	{"id": "fase7", "name": "FASE 7"},
+	{"id": "fase8", "name": "FASE 8"},
 ]
 
 ## Fase de testes com todas as mecanicas (nao conta progresso; so aparece em build de debug).
