@@ -1121,3 +1121,126 @@ def air3(body, legs, bob, wing):  # noqa: F811
 # versao escolhida (asa_sem_contorno_2x.png): asa pequena so no ar, separada do corpo por cores
 # leves, sem as remocoes de contorno que vieram depois
 air3 = _air3_v1  # noqa: F811
+
+
+# ------------------------------------------------------------ dano e morte
+def recolor(cv, mapping):
+    out = Canvas(32, 32)
+    for y in range(32):
+        for x in range(32):
+            c = cv.px[y][x]
+            out.px[y][x] = None if c is None else mapping.get(c, c)
+    return out
+
+
+def find_eyes(cv):
+    """Pixels de contorno cercados de pixels coloridos (os olhos)."""
+    eyes = []
+    for y in range(2, 14):
+        for x in range(10, 26):
+            if cv.px[y][x] == OUTLINE and all(cv.px[y + dy][x + dx] is not None
+                                               for dx in (-1, 0, 1) for dy in (-1, 0, 1)):
+                eyes.append((x, y))
+    return eyes
+
+
+def closed_eyes(cv):
+    """Olhos fechados de dor: de cada olho 2x2 fica so a linha de baixo."""
+    b = recolor(cv, {})
+    eyes = find_eyes(cv)
+    for x, y in eyes:
+        if (x, y + 1) in eyes:
+            b.px[y][x] = (255, 255, 255, 255)
+    return b
+
+
+W_, G_ = (255, 255, 255, 255), (226, 226, 226, 255)
+HURT_PALETTES = [
+    # vermelho forte
+    {OUTLINE: (176, 20, 26, 255), W_: (255, 76, 76, 255), G_: (255, 68, 68, 255),
+     YELLOW: (255, 76, 0, 255), YELLOW_DARK: (255, 73, 0, 255)},
+    # rosa claro
+    {OUTLINE: (255, 120, 120, 255), W_: (255, 192, 192, 255), G_: (255, 189, 189, 255),
+     YELLOW: (255, 192, 165, 255), YELLOW_DARK: (255, 191, 165, 255)},
+    # vermelho forte de novo
+    None,
+    # rosa medio
+    {OUTLINE: (214, 70, 70, 255), W_: (255, 147, 147, 255), G_: (255, 142, 142, 255),
+     YELLOW: (255, 147, 102, 255), YELLOW_DARK: (255, 145, 102, 255)},
+]
+HURT_PALETTES[2] = HURT_PALETTES[0]
+
+DEAD_PALETTE = {OUTLINE: (45, 45, 45, 255), W_: (138, 138, 138, 255), G_: (115, 115, 115, 255),
+                YELLOW: (90, 90, 90, 255), YELLOW_DARK: (80, 80, 80, 255)}
+
+
+def hurt_frames():
+    base = closed_eyes(idle_fixed())
+    return [recolor(base, p) for p in HURT_PALETTES]
+
+
+def dead_frames():
+    """De barriga para cima (virado na vertical), cinza, olhos em X, pes se mexendo de leve."""
+    idle = idle_fixed()
+    eyes = find_eyes(idle)
+    flipped = Canvas(32, 32)
+    for y in range(32):
+        for x in range(32):
+            flipped.px[31 - y][x] = idle.px[y][x]
+    fl_eyes = [(x, 31 - y) for x, y in eyes]
+    # olhos em X (3x3 centrado em cada olho)
+    groups = []
+    for e in sorted(fl_eyes):
+        for g in groups:
+            if any(abs(e[0] - p[0]) <= 1 and abs(e[1] - p[1]) <= 1 for p in g):
+                g.append(e)
+                break
+        else:
+            groups.append([e])
+    for g in groups:
+        for p in g:
+            flipped.px[p[1]][p[0]] = W_
+        cx = min(p[0] for p in g)
+        cy = min(p[1] for p in g)
+        for d in range(3):
+            flipped.set(cx - 1 + d, cy - 1 + d, OUTLINE)
+            flipped.set(cx + 1 - d, cy - 1 + d, OUTLINE)
+    base = recolor(flipped, DEAD_PALETTE)
+    frames = []
+    for shift in (0, 1, 0, -1):  # pes mexendo de leve para os lados
+        f = recolor(base, {})
+        if shift:
+            for y in range(0, 8):
+                row = [base.px[y][x] for x in range(32)]
+                for x in range(32):
+                    src = x - shift
+                    f.px[y][x] = row[src] if 0 <= src < 32 else None
+        frames.append(f)
+    return frames
+
+
+def main_hurt_dead():
+    salvar = "--salvar" in sys.argv
+    hurt = save_strip(hurt_frames(), "pato_dano", salvar)
+    dead = save_strip(dead_frames(), "pato_morte", salvar)
+    for nm, g in (("dano", hurt), ("morte", dead)):
+        cv = Canvas(len(g) * 136, 128)
+        for i, f in enumerate(g):
+            cv.blit(f, i * 136, 0)
+        cv.save(os.path.join(OUT, "pato_%s_quadros.png" % nm))
+    save_gif(os.path.join(OUT, "pato_dano.gif"), hurt, delay_cs=8, scale=1, bg=(191, 228, 250))
+    # morte: o pulinho (fisica do jogo: sobe a -2 e cai com gravidade 0.25), pes mexendo
+    H = 128 + 64
+    seq = []
+    vy, y, t = -2.0, 0.0, 0
+    for _ in range(90):
+        y += vy * 8
+        vy += 0.25
+        if y > 0:
+            y, vy = 0.0, 0.0
+        fr = Canvas(128, H)
+        fr.blit(dead[(t // 8) % len(dead)], 0, int(H - 128 + y))
+        seq.append(fr)
+        t += 1
+    save_gif(os.path.join(OUT, "pato_morte.gif"), seq, delay_cs=2, scale=1, bg=(191, 228, 250))
+    print("ok dano/morte", [outline_problems(f) for f in hurt_frames()], [outline_problems(f) for f in dead_frames()])

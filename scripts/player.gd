@@ -20,6 +20,8 @@ const ART_ANIMS := {
 	"jump": ["res://assets/sprites/arte/pato_pulando.png", 4, 8.0, false],
 	"apex": ["res://assets/sprites/arte/pato_apice.png", 2, 6.0, false],
 	"fall": ["res://assets/sprites/arte/pato_caindo.png", 6, 8.0],
+	"hurt": ["res://assets/sprites/arte/pato_dano.png", 4, 12.0],
+	"dead": ["res://assets/sprites/arte/pato_morte.png", 4, 8.0],
 }
 ## Velocidade vertical abaixo da qual, no ar, o pato esta no "apice" (transicao entre subir e cair).
 const APEX_SPEED := 0.8
@@ -164,6 +166,7 @@ func take_damage(source_x: float = NAN) -> void:
 		Game.play_sfx("death")
 	_set_anim("dead" if player_state == "dead" else "hurt")
 	sprite.frame = 0  # image_index = 0
+	_art.frame = 0
 
 
 func _set_anim(anim_name: String) -> void:
@@ -502,6 +505,7 @@ func _update_sprite() -> void:
 	if player_state != "alive":
 		sprite.scale = Vector2.ONE
 		_art.scale = Vector2.ONE * Sprites.ART_SCALE
+		_art.modulate.a = 1.0
 		_set_anim("dead" if player_state == "dead" else "hurt")
 		sprite.speed_scale = 0.2
 		sprite.modulate.a = 1.0
