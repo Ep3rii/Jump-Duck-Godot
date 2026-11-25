@@ -4,6 +4,13 @@ extends RefCounted
 
 const Meta := preload("res://scripts/sprites_meta.gd")
 
+## Arte nova (ver "Arte" no ROTEIRO_FASES.md): 8 pixels do desenho = 1 pixel do jogo.
+## Bloco e entidade pequena: 128x128 -> 16 px no jogo. Chefe: 256x256 -> 32 px.
+const ART_SCALE := 1.0 / 8.0
+## Filtro da arte nova (pixel art reduzida): suave com mipmaps para nao "picotar" os pixels
+## ao reduzir. Fica perfeitamente nitida com a janela em 2560x1440 (8x).
+const ART_FILTER := CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+
 static var _frames: Dictionary = {}
 static var _strips: Dictionary = {}
 
@@ -48,3 +55,15 @@ static func draw_tl(ci: CanvasItem, spr: String, index: int, x: float, y: float,
 		scale: float = 1.0) -> void:
 	var m: Array = Meta.META[spr]
 	ci.draw_texture_rect(tex(spr, index), Rect2(x, y, m[0] * scale, m[1] * scale), false)
+
+
+## Sprite animado para a arte nova: frames desenhados em 128/256 px, reduzidos para o tamanho
+## do jogo. origin_art = ponto do quadro (em pixels do desenho) que fica na origem do no.
+static func make_art_sprite(sprite_frames: SpriteFrames, origin_art: Vector2) -> AnimatedSprite2D:
+	var s := AnimatedSprite2D.new()
+	s.sprite_frames = sprite_frames
+	s.centered = false
+	s.offset = -origin_art
+	s.scale = Vector2(ART_SCALE, ART_SCALE)
+	s.texture_filter = ART_FILTER
+	return s

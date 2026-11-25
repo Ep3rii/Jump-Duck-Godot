@@ -98,43 +98,71 @@ Inimigos voadores da família do gavião, em dois tipos:
   o céu escurece com estrelas, "JUNTOS, ENFIM." e "FIM". Depois os créditos com "OBRIGADO POR
   JOGAR!". Entra pelo botão VER O FINAL da tela de vitória da Fase Final.
 
-## Arte: sugestão
+## Arte
 
-**Como fazer:** você desenha no Aseprite, que já está instalado, no mesmo estilo dos sprites atuais.
-Enquanto a arte não chega, eu sigo com desenhos provisórios em código (como a caixa e as bandeiras),
-então a programação não fica esperando. Quando um sprite ficar pronto, é só me avisar: eu ligo ele
-no jogo e apago o provisório.
+**Como fazer:** você desenha no Aseprite, em **pixel art detalhada**. Enquanto a arte não chega,
+o jogo usa desenhos provisórios em código. Quando um sprite ficar pronto, é só me avisar: eu ligo
+ele no jogo e apago o provisório.
 
-**Padrão para exportar (igual ao que o jogo já usa):**
+### Tamanhos (definidos em 25/11/2026)
+
+O jogo continua do mesmo tamanho na tela; os desenhos novos só têm mais detalhe. A regra é uma só:
+**8 pixels do desenho = 1 pixel do jogo** (`Sprites.ART_SCALE` em `scripts/sprites.gd`).
+
+| Tipo | Tamanho do desenho | Tamanho no jogo |
+|---|---|---|
+| **Blocos e texturas** (chão, parede, caixa, pedra que cai, cipó, água) | **128x128** por bloco | 1 bloco (16 px) |
+| **Entidades pequenas** (pato, Pata, raposa, jacaré comum, gaviãozinho, águia, flor, chave, coração) | **128x128** por quadro | 1 bloco: o tamanho do pato |
+| **Mini-chefes e chefes** (jacaré gigante, gavião) | **256x256** por quadro | 2 blocos (32 px) |
+| Objetos mais altos que um bloco (bandeiras, porta) | 128 de largura x altura em blocos (ex.: porta de 3 blocos = 128x384) | conforme o objeto |
+| Decoração (moinho, celeiro, árvore, cerca) | múltiplos de 128 | conforme o desenho |
+| Fundos (céu, montanhas, parede da torre, pôr do sol) | 2560x1440 (a tela inteira) ou 2560 de largura | a tela (320x180) |
+
+Os inimigos comuns foram reduzidos para o tamanho do pato e os chefes para 2 blocos (colisões e
+testes já ajustados), então os desenhos novos encaixam sem mexer nas fases.
+
+### Padrão para exportar
 - PNG em **tira horizontal** (todos os quadros lado a lado), fundo transparente, em `assets/sprites/`.
-- Mesma grade dos atuais: tiles de **16x16**, tileset de **64x64** (4x4 tiles), pato e aves de **32x32**,
-  bichos grandes de **64x64**.
-- Paleta: a mesma do jogo (verdes do HUD, amarelo, contorno escuro).
-- Para cada sprite, anote **quantos quadros** e o **FPS**; o resto eu configuro (origem, animações).
+- O personagem deve **ocupar o quadro**, com uma folga pequena (uns 4 a 8 px do desenho) nas bordas:
+  o quadro de 128 corresponde à área de colisão.
+- **Origem:** para quem anda no chão, o meio da base (os pés); para quem voa ou nada, o centro.
+- **Tileset:** 512x512 (4x4 blocos de 128), na mesma grade do `spr_tileSetGrama01` atual: linha 2 =
+  topo do chão grosso (esquerda, meio, direita) + plataforma de 1 bloco; linha 3 = plataforma fina
+  (esquerda, meio, direita); linha 4 = interior (esquerda, meio, direita).
+- Paleta: a mesma do jogo (verdes do HUD, amarelo, contorno escuro). Sem suavização nas bordas (pixel art).
+- Para cada sprite, anote **quantos quadros** e o **FPS**; o resto eu configuro (origem, animações, mipmaps).
+- O jogo reduz a arte 8x com filtro suave para não picotar os pixels. Ela aparece perfeitamente
+  nítida com a janela em 2560x1440; em 1920x1080 fica levemente suavizada.
 
-**O que desenhar, na ordem em que as fases vão precisar:**
+### O que desenhar, na ordem em que as fases vão precisar
 
 | Para | Sprite | Tamanho | Quadros |
 |---|---|---|---|
-| Tutorial | moinho (pás girando) | ~64x96 | 4 |
-| Tutorial | celeiro, cerca, feno (decoração) | livre | 1 |
-| Tutorial | fardo de feno (substitui a caixa na fazenda) | 16x16 | 1 |
-| Tutorial | tileset da fazenda (terra, grama, cerca) | 64x64 | — |
-| Fase 1 | caixa de madeira (substitui a provisória) | 16x16 | 1 |
-| Fases 2–3 | pato nadando (boiando / mergulhando) | 32x32 | 2–4 cada |
-| Fases 2–3 | bolhas do fôlego (HUD) | 8x8 | 1–2 |
-| Fases 2–3 | jacaré comum (nadando, mordendo) | 64x32 | 4 + 3 |
-| Fase 3 | jacaré mini-chefe (nadando, saltando, mordendo, dor de dente) | ~96x48 | 4 + 2 + 3 + 2 |
-| Fases 4–8 | tileset de pedra da torre | 64x64 | — |
-| Fases 4–8 | chave (brilhando) | 16x16 | 2–4 |
-| Fases 4–8 | porta trancada (com fechadura) | 16x48 | 1 |
-| Fases 4–8 | gaviãozinho (voo, rasante) | 32x32 | 4 + 2 |
-| Fases 4–8 | águia (voo, mergulho) | 32x32 ou 48x48 | 4 + 2 |
-| Fases 6–8 | plataforma que cai (normal, rachada) | 16x16 | 2 |
-| Final | gavião chefe (voo, mergulho, batida na parede, atordoado, dano) | 64x64 | 4 + 2 + 1 + 3 + 2 |
-| Cutscene | Pata (parada, andando) | 32x32 | 3 + 4 |
-| Cutscene | céu de pôr do sol e sol grande (fundo) | 320x180 | 1 |
-| Geral | pato escalando o cipó | 32x32 | 2 |
+| Geral | pato (parado, correndo, pulando, caindo, dano, morte) | 128x128 | 4 + 6 + 1 + 1 + 2 + 4 |
+| Geral | pato escalando o cipó | 128x128 | 2 |
+| Geral | flor, coração (vida extra) | 128x128 | 4 / 1 |
+| Geral | bandeira de checkpoint (apagada, acesa) e bandeira de saída | 128x256 / 128x384 | 1–2 / 2–4 |
+| Tutorial | tileset da fazenda (terra, grama) | 512x512 | — |
+| Tutorial | moinho (pás girando) | ~512x768 | 4 |
+| Tutorial | celeiro, cerca, árvore, arbusto, junco (decoração) | múltiplos de 128 | 1 |
+| Tutorial | fardo de feno | 128x128 | 1 |
+| Tutorial e Fase 1 | raposa (andando) | 128x128 | 4–6 |
+| Fase 1 | caixa de madeira | 128x128 | 1 |
+| Fase 1 | placa de pressão (solta, apertada) e porta (fechada, com fechadura) | 128x128 / 128x384 | 2 / 2 |
+| Fases 2–3 | pato nadando (boiando / mergulhando) | 128x128 | 2–4 cada |
+| Fases 2–3 | água (superfície e fundo, animada) | 128x128 | 4 |
+| Fases 2–3 | jacaré comum (nadando, mordendo) | 128x128 | 4 + 3 |
+| Fase 3 | jacaré gigante (nadando, saltando, mordendo, dor de dente) | 256x256 | 4 + 2 + 3 + 2 |
+| Fases 4–8 | tileset de pedra da torre | 512x512 | — |
+| Fases 4–8 | fundo: parede de tijolos com janelas e tochas | 2560x1440 | 1 (+ tochas 2–4) |
+| Fases 4–8 | chave (brilhando) | 128x128 | 2–4 |
+| Fases 4–8 | gaviãozinho (voo, grito, rasante) | 128x128 | 4 + 1 + 2 |
+| Fases 4–8 | águia (voo, grito, mergulho, bico preso) | 128x128 | 4 + 1 + 2 + 2 |
+| Fases 6–8 | pedra que cai (inteira, rachada) | 128x128 | 2 |
+| Fases 6–8 | vento (listras) | 128x128 | 3–4 |
+| Final | gavião chefe (voo, grito, mergulho, investida, atordoado, dano) | 256x256 | 4 + 2 + 2 + 2 + 3 + 2 |
+| Cutscene | Pata (parada, andando, pulinho) | 128x128 | 3 + 4 + 2 |
+| Cutscene | céu de pôr do sol com sol e montanhas, topo da torre, ninho | 2560x1440 / 128x128 | 1 |
 
 **Alternativa:** pacotes de pixel art prontos (itch.io etc.) aceleram, mas como o jogo tem licença
 proprietária, só servem pacotes com licença que permita uso comercial. Confira a licença de cada um.

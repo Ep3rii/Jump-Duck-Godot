@@ -3,14 +3,18 @@ extends Enemy
 ## - Na superficie, com a cabeca e as costas para fora: pode ser pisado (1 pisao derrota).
 ## - De tempos em tempos mergulha: ai nao pode ser pisado e so pega quem esta mergulhado.
 ## - Encostar nele machuca (mordida); ele abre a boca quando o pato chega perto.
-## Origem = meio da barriga, embaixo. Desenho provisorio em codigo.
+## Origem = meio da barriga, embaixo. Do tamanho do pato (1 bloco); desenho provisorio em
+## codigo, reduzido (DRAW_SCALE) ate chegar a arte nova (128x128 -> 16 px).
 
 const Solids := preload("res://scripts/solids.gd")
 
 const SURFACE_TIME := 240  # frames na superficie
 const DIVE_TIME := 120  # frames mergulhado
-const DIVE_DEPTH := 22.0  # quanto afunda (px)
-const FLOAT_DEPTH := 6.0  # na superficie a barriga fica 6 px abaixo da linha d'agua
+const DIVE_DEPTH := 14.0  # quanto afunda (px)
+const FLOAT_DEPTH := 9.0  # na superficie fica meio afundado: costas e olhos para fora
+const HALF_W := 8.0  # meia largura (16 px, como o pato)
+const DRAW_SCALE := Vector2(0.32, 0.7)  # desenho provisorio (feito em 56x13) reduzido
+const BODY_H := 9.0
 
 const COL_OUT := Color8(20, 50, 20)
 const COL_BODY := Color8(70, 130, 50)
@@ -32,6 +36,7 @@ var _mouth := 0.0  # 0 fechada .. 1 aberta
 
 func _enemy_ready() -> void:
 	add_to_group("jacare")
+	effect_offset = Vector2(0, -6)
 	for w in get_tree().get_nodes_in_group("agua"):
 		if w.get_rect().has_point(position + Vector2(0, -2)):
 			water = w
@@ -51,7 +56,7 @@ func _target_y() -> float:
 
 
 func get_mask() -> Rect2:
-	return Rect2(roundf(position.x) - 24.0, roundf(position.y) - 12.0, 48.0, 12.0)
+	return Rect2(roundf(position.x) - HALF_W, roundf(position.y) - BODY_H, HALF_W * 2.0, BODY_H)
 
 
 func _physics_process(_delta: float) -> void:
@@ -68,16 +73,16 @@ func _physics_process(_delta: float) -> void:
 	var r: Rect2 = water.get_rect()
 	var nx := position.x + dir * velocidade
 	var snap := Solids.snapshot(get_tree())
-	var front := Rect2(nx + (24.0 if dir > 0 else -25.0), position.y - 12.0, 1.0, 12.0)
-	if nx - 24.0 < r.position.x or nx + 24.0 > r.end.x or Solids.hits(snap, front):
+	var front := Rect2(nx + (HALF_W if dir > 0 else -HALF_W - 1.0), position.y - BODY_H, 1.0, BODY_H)
+	if nx - HALF_W < r.position.x or nx + HALF_W > r.end.x or Solids.hits(snap, front):
 		dir = -dir
 	else:
 		position.x = nx
 
 	# boca abre com o pato perto (aviso da mordida)
 	var p := get_tree().get_first_node_in_group("player")
-	var near := p != null and absf(p.position.x - position.x) < 44.0 \
-		and absf(p.position.y - position.y) < 24.0
+	var near := p != null and absf(p.position.x - position.x) < 24.0 \
+		and absf(p.position.y - position.y) < 16.0
 	var before := _mouth
 	_mouth = move_toward(_mouth, 1.0 if near else 0.0, 0.15)
 	if near and before < 0.5 and _mouth >= 0.5:
@@ -86,6 +91,7 @@ func _physics_process(_delta: float) -> void:
 
 
 func _draw() -> void:
+	draw_set_transform(Vector2.ZERO, 0.0, DRAW_SCALE)
 	var a := 1.0 if state == "surface" else 0.55
 	var f := float(dir)  # desenha virado para onde nada
 	var out := Color(COL_OUT, a)

@@ -50,7 +50,7 @@ func _enemy_ready() -> void:
 
 
 func get_mask() -> Rect2:
-	return Rect2(roundf(position.x) - 9.0, roundf(position.y) - 6.0, 18.0, 10.0)
+	return Rect2(roundf(position.x) - 8.0, roundf(position.y) - 6.0, 16.0, 10.0)
 
 
 func stomp_line_y() -> float:
@@ -126,6 +126,7 @@ func _start_swoop(p: Node2D) -> void:
 
 # ---------------------------------------------------------------- desenho
 func _draw() -> void:
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(0.85, 0.85))  # do tamanho do pato
 	var f := float(dir)
 	var flash := state == "aviso" and int(_anim / 3.0) % 2 == 0
 	var body := COL_BELLY if flash else COL_BODY

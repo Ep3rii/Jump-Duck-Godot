@@ -283,7 +283,7 @@ func _run() -> void:
 	for i in 200:
 		await frames(1)
 		fox_min = minf(fox_min, fox.position.x)
-	check(fox_min - 24.0 >= 1396.0 and fox_min - 24.0 <= 1398.0,
+	check(fox_min - 8.0 >= 1396.0 and fox_min - 8.0 <= 1398.0,
 		"vira encostando na parede (menor x=%.1f)" % fox_min)
 	check(fox.position.x > fox_min, "depois de virar volta a andar")
 	wall.queue_free()
@@ -301,7 +301,7 @@ func _run() -> void:
 	fox.position = Vector2(1440, 480)
 	fox.start_x = 1440.0
 	fox.dir = -1  # andando na direcao do pato
-	reset_player(Vector2(1400, 480))
+	reset_player(Vector2(1420, 480))
 	await frames(40)
 	check(Game.player_lives == Game.max_lives - 1, "encostar de lado machuca")
 	reset_player(Vector2(fox.position.x, 440))
@@ -690,8 +690,8 @@ func _test_fase2() -> void:
 	check(player().position.x > 1120.0, "mergulhando passa por baixo da parede (x=%.0f)" % player().position.x)
 
 	# jacare: pisao na superficie derrota; mergulhado nao pode ser pisado; encostar morde
-	j1.position = Vector2(664, 310)
 	j1.state = "surface"
+	j1.position = Vector2(664, j1._target_y())
 	j1.set_physics_process(true)
 	await frames(3)
 	check(j1.stompable, "jacare na superficie pode ser pisado")
@@ -709,7 +709,7 @@ func _test_fase2() -> void:
 	check(not j2.stompable, "jacare mergulhado nao pode ser pisado")
 	j2.state = "surface"
 	await frames(60)
-	reset_player(Vector2(1180, 310))
+	reset_player(Vector2(1194, 310))
 	await frames(10)
 	check(Game.player_lives == Game.max_lives - 1, "encostar no jacare machuca")
 

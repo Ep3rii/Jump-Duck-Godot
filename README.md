@@ -76,6 +76,15 @@ O roteiro das fases seguintes está em [ROTEIRO_FASES.md](ROTEIRO_FASES.md). Tod
 (moinho, celeiro, cerca, árvores, placas, caixa/feno) é provisória, desenhada em código, até
 existir a arte definitiva.
 
+## Arte
+
+Toda a arte atual é provisória (sprites convertidos do GameMaker e desenhos em código). A arte
+definitiva segue a regra **8 pixels do desenho = 1 pixel do jogo**: blocos e entidades pequenas
+em **128x128**, chefes em **256x256**. A lista completa, com tamanhos e quadros, está em
+[ROTEIRO_FASES.md](ROTEIRO_FASES.md#arte). No código, `Sprites.make_art_sprite()` cria o sprite
+já reduzido (`Sprites.ART_SCALE`). A janela desenha em alta resolução (`stretch mode` =
+`canvas_items`), então o detalhe aparece na tela mesmo com o jogo em 320x180.
+
 ## Laboratório de mecânicas
 
 `scenes/laboratorio.tscn` tem uma de cada mecânica (caixa, placa e porta, raposa, cipó,

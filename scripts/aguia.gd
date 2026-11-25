@@ -46,7 +46,7 @@ func _enemy_ready() -> void:
 
 
 func get_mask() -> Rect2:
-	return Rect2(roundf(position.x) - 11.0, roundf(position.y) - 7.0, 22.0, 12.0)
+	return Rect2(roundf(position.x) - 8.0, roundf(position.y) - 6.0, 16.0, 10.0)
 
 
 func stomp_line_y() -> float:
@@ -130,7 +130,7 @@ func _start_dive(p: Node2D) -> void:
 func _dive_step() -> void:
 	var snap := Solids.snapshot(get_tree())
 	var next := position + _vel
-	var r := Rect2(roundf(next.x) - 8.0, roundf(next.y) - 5.0, 16.0, 10.0)
+	var r := Rect2(roundf(next.x) - 6.0, roundf(next.y) - 4.0, 12.0, 8.0)
 	if Solids.hits(snap, r):
 		state = "presa"
 		_timer = STUCK_TIME
@@ -144,6 +144,7 @@ func _dive_step() -> void:
 
 # ---------------------------------------------------------------- desenho
 func _draw() -> void:
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(0.7, 0.7))  # do tamanho do pato
 	var f := float(dir)
 	var shake := 0.0
 	if state == "aviso":

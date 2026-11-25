@@ -1,5 +1,5 @@
 extends Node
-## Tira capturas (320x180) de cada tela do jogo para revisar o layout sem jogar.
+## Tira capturas de cada tela do jogo (no tamanho da janela) para revisar o layout sem jogar.
 ##   godot --path . res://tests/screenshots.tscn
 ## (precisa de janela; nao funciona com --headless). Salva em user://screenshots/.
 

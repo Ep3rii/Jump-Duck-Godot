@@ -20,8 +20,12 @@ const PAIN_TIME := 180
 const HURT_TIME := 50
 const LEAP_GRAVITY := 0.25
 const SURFACE_DEPTH := 8.0  # na superficie a barriga fica 8 px abaixo da linha d'agua
-const DEEP := 40.0  # submerso
-const BITE_DISTANCE := 56.0  # emerge a esta distancia do pato
+const DEEP := 26.0  # submerso
+const BITE_DISTANCE := 32.0  # emerge a esta distancia do pato
+const HALF_W := 16.0  # 2 blocos de largura (arte de chefe: 256x256 -> 32 px)
+const HEIGHT := 10.0
+const BITE_REACH := 10.0
+const DRAW_SCALE := Vector2(0.5, 0.55)  # desenho provisorio (feito em ~84x20) reduzido
 
 const COL_OUT := Color8(16, 40, 16)
 const COL_BODY := Color8(60, 112, 44)
@@ -49,7 +53,7 @@ func _enemy_ready() -> void:
 	max_hp = 5
 	hp = max_hp
 	hurt_frames = HURT_TIME
-	effect_offset = Vector2(0, -20)
+	effect_offset = Vector2(0, -10)
 	for w in get_tree().get_nodes_in_group("agua"):
 		if w.get_rect().has_point(position + Vector2(0, -2)):
 			water = w
@@ -63,16 +67,16 @@ func _surface() -> float:
 
 
 func get_mask() -> Rect2:
-	var r := Rect2(roundf(position.x) - 32.0, roundf(position.y) - 18.0, 64.0, 18.0)
+	var r := Rect2(roundf(position.x) - HALF_W, roundf(position.y) - HEIGHT, HALF_W * 2.0, HEIGHT)
 	if state == "mordida":
 		# a bocarra avanca para a frente
-		var reach_x := r.end.x + 20.0 if dir > 0 else r.position.x - 20.0
+		var reach_x := r.end.x + BITE_REACH if dir > 0 else r.position.x - BITE_REACH
 		r = r.expand(Vector2(reach_x, r.position.y))
 	return r
 
 
 func stomp_line_y() -> float:
-	return position.y - 12.0
+	return position.y - 7.0
 
 
 func harmful() -> bool:
@@ -110,7 +114,7 @@ func _player() -> Node2D:
 
 func _clamp_x(x: float) -> float:
 	var r: Rect2 = water.get_rect()
-	return clampf(x, r.position.x + 36.0, r.end.x - 36.0)
+	return clampf(x, r.position.x + HALF_W + 4.0, r.end.x - HALF_W - 4.0)
 
 
 func _physics_process(_delta: float) -> void:
@@ -167,7 +171,7 @@ func _physics_process(_delta: float) -> void:
 				_timer = BITE_TIME
 				Game.play_sfx("bite")
 		"mordida":
-			_lunge = move_toward(_lunge, 20.0, 4.0)
+			_lunge = move_toward(_lunge, BITE_REACH / DRAW_SCALE.x, 4.0)
 			_mouth = 0.0 if _timer < BITE_TIME - 4 else 1.0
 			if _timer <= 0:
 				state = "dor"
@@ -211,7 +215,7 @@ func _pick_bite_spot(p: Node2D) -> void:
 func _start_leap(p: Node2D) -> void:
 	var peak := _surface() - 48.0
 	if p != null and p.position.y < water.surface_y():
-		peak = p.position.y + 6.0
+		peak = p.position.y + 2.0
 	peak = clampf(peak, _surface() - 130.0, _surface() - 32.0)
 	position.y = _surface()
 	_vy = -sqrt(2.0 * LEAP_GRAVITY * (position.y - peak))
@@ -232,6 +236,7 @@ func _draw() -> void:
 
 	if state == "aviso":
 		_draw_bubbles()
+	draw_set_transform(Vector2.ZERO, 0.0, DRAW_SCALE)
 
 	# corpo
 	draw_rect(Rect2(-34 + lx, -16, 56, 16), out)
