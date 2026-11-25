@@ -12,7 +12,7 @@ Base: resumo do Notion (`jump-duck-resumo.md`) + leitura completa do código atu
 
 | Fase | Status |
 |---|---|
-| 0 — Preparação | ✅ git local + `.gitignore`, teclas de debug F1–F4. **Pendente:** decidir como ligar ao GitHub (o repositório remoto tem o projeto GameMaker) |
+| 0 — Preparação | ✅ git + `.gitignore`, teclas de debug F1–F4, repositório privado [Ep3rii/Jump-Duck-Godot](https://github.com/Ep3rii/Jump-Duck-Godot) (o antigo `Jump-Duck` fica com o projeto GameMaker) |
 | 1 — Bugs e base | ✅ B1–B6 e E1, E2, E3, E6, E7, E8 corrigidos; 40 testes automáticos passando (`tests/test_runner.tscn`). E4 e E5 aguardam as decisões D3/D4 |
 | 2 a 6 | Não iniciadas |
 
@@ -67,7 +67,7 @@ A ordem segue a regra "base sólida antes de conteúdo". Tamanho: **P** = alguma
 
 ### Fase 0 — Preparação (P)
 
-1. Ligar a pasta local ao repositório do GitHub (`Ep3rii/Jump-Duck`); a pasta atual não é um repositório git. Commit inicial do estado atual antes de qualquer mudança.
+1. ✅ Repositório git próprio para o projeto Godot: `Ep3rii/Jump-Duck-Godot` (privado).
 2. `.gitignore` do Godot: ignorar a pasta `.godot/` (cache), mas versionar os arquivos `*.import`.
 3. Menu de depuração só no editor (`OS.is_debug_build()`): pular fase, invencível, +1 vida, recarregar fase. Acelera todo o resto.
 
