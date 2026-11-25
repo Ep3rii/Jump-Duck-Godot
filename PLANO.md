@@ -140,12 +140,9 @@ Todos herdam `enemy.gd` da Fase 2.
 - **Cutscene final**: pato chega ao topo da torre, gavião derrotado, encontro com a amada, créditos. Feita com `AnimationPlayer` + caixa de diálogo simples; pode ser pulada.
 - (Opcional) cutscene de abertura curta contando a história.
 
-### Fase 6 — Fases (depois de discutir suas ideias)
+### Fase 6 — Fases
 
-Só depois das Fases 1–4 prontas. Esboço de estrutura para conversarmos:
-- Iniciais: ensinam pulo duplo, flores, raposa, queda.
-- Intermediárias: jacaré/água, gavião comum, puzzles com arrastáveis.
-- Final: subida da torre + luta com o gavião + cutscene.
+Roteiro completo em [ROTEIRO_FASES.md](ROTEIRO_FASES.md): Tutorial (fazenda/moinho), Fases 1–3 (caminho até a torre, nado, mini-chefe jacaré), Fases 4–8 (subida da torre: chaves, vento, plataformas que caem), Fase Final (gavião) e cutscene. A Fase 3 (inimigos) e a Fase 5 (cutscene) passam a ser feitas junto com as fases que as usam.
 
 ---
 
