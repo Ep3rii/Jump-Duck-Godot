@@ -457,6 +457,17 @@ func _test_levels() -> void:
 	check(Game.total_collectibles == 3, "tutorial tem 3 flores (veio %d)" % Game.total_collectibles)
 	check(get_tree().get_nodes_in_group("dica").size() >= 7, "placas de dica no tutorial")
 
+	print("-- tileset de grama novo (auto-tile com variacoes)")
+	var terreno: TileMapLayer = node("Terreno")
+	var used := {}
+	for c in terreno.get_used_cells():
+		var a := terreno.get_cell_atlas_coords(c)
+		used[a.y * 4 + a.x] = true
+	check(used.has(5) and (used.has(16) or used.has(17) or used.has(18) or used.has(19)),
+		"topos com variacoes (%s)" % [used.keys()])
+	check(used.has(20) or used.has(21) or used.has(22) or used.has(23), "terra com variacoes")
+	check(used.has(11) or used.has(24), "canto interno no pe dos degraus")
+
 	print("-- arte nova do pato (parado, pulo: subida, apice, queda)")
 	reset_player(Vector2(150, 304))
 	await frames(5)

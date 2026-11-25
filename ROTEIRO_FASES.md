@@ -147,10 +147,10 @@ Sem acessórios no pato e sem tema medieval: o estilo é o do original, só que 
 | Pato correndo | `assets/sprites/arte/pato_correndo.png` | 8 quadros a 16 por segundo: corpo do parado subindo e descendo a cada passo, pés gordinhos (o de trás um pouco mais escuro), só o olho da frente e uma linha só de contorno entre os pés |
 | Pato pulando, no ápice e caindo | `pato_pulando.png` (4 quadros, 8/s), `pato_apice.png` (2, 6/s), `pato_caindo.png` (6, 8/s) | subindo: pés encolhendo, sem asa; ápice: transição em que a asa pequena bate e os pés começam a descer; caindo: pernas penduradas e asa batendo. A asa se separa do corpo por cores leves (sombra `#e2e2e2` embaixo, tom `#f0f0f0` na parte de baixo dela), com contorno escuro só na borda de fora. |
 | Pato levando dano e morrendo | `pato_dano.png` (4 quadros, 12/s), `pato_morte.png` (4, 8/s) | dano: olhos fechados de dor, piscando vermelho e rosa; morte: de barriga para cima, cinza, olhos em X, pés mexendo (o pulinho é da física do jogo). Com isso, todas as animações do pato usam a arte nova |
-| Topo do chão de grama (meio) | bloco (1,1) de `assets/sprites/arte/tileset_grama.png` | o original ampliado com a borda de cima fina (1 px) e mais suave (`#1d6b22`); os outros blocos do tileset são os antigos ampliados 8x até serem refeitos |
+| Tileset de grama | `assets/sprites/arte/tileset_grama.png` (4x9 blocos de 128) | os 16 blocos originais ampliados com todas as bordas finas (1 px) e suaves (`#1d6b22`), mais 20 novos: 4 variações do topo (sem flores, flores amarelas, pedrinha, cogumelo), 4 da terra (pedrinhas, raiz, camada, pontinhos), canto interno dos dois lados, coluna de 1 bloco (topo, meio, base), teto de terra (esq., meio, dir.), bloquinho sozinho, tronco (esq., meio, dir.) e ponte. O jogo escolhe sozinho o bloco de cada célula (`Level._retile_grass`), com as variações pela posição; tronco e ponte são colocados à mão (linha 8 do tileset) |
 
-O gerador do pato está em `tools/arte/pato.py` (Python, sem dependências; lê os sprites
-originais e gera as tiras e GIFs de prévia). Cada sprite novo só entra
+Os geradores estão em `tools/arte/` (Python, sem dependências): `pato.py` (animações do pato),
+`tileset.py` e `tileset_novos.py` (tileset de grama) e `tileset_cena.py` (cena de prévia). Cada sprite novo só entra
 no jogo depois de aprovado; o pé do pato fica apoiado sobre a borda do chão (o contorno de baixo
 do pato é desenhado por cima da borda do terreno).
 
