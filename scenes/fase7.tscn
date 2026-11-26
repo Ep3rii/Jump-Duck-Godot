@@ -106,6 +106,7 @@ forca = 0.8
 position = Vector2(352, 640)
 script = ExtResource("11_47d3g")
 tiles_h = 12
+encosto_x = 6
 
 [node name="Pedra7" type="Node2D" parent="Mecanicas" unique_id=993571186 instance=ExtResource("6_gw76k")]
 position = Vector2(144, 432)

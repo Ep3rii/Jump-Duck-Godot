@@ -161,6 +161,8 @@ def estrela(cheia=True):
             if forma[y][x] == "Y" and (forma[y][x + 1] == "O" or
                                        (forma[y + 1][x] == "O" and (x >= 7 or y >= 13))):
                 d.cv.px[y][x] = sombra
+    for (x, y) in ((3, 13), (12, 13)):  # pontas de baixo: o pixel do meio fica no miolo
+        d.cv.px[y][x] = cor
     return x2(d.cv)
 
 

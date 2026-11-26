@@ -1,5 +1,7 @@
 """Chefes na pixel art quadradinha (lote 2): jacare gigante (Fase 3) e gaviao chefe (Fase final).
-Tamanho: 64x64 por quadro na grade (32x32 no jogo). O jacare e o atordoado do gaviao sao desenhados
+Tamanho: 64x64 por quadro na grade (32x32 no jogo); o jacare gigante tem 96x64 (48x32 no jogo:
+como todo quadro dele e uma ampliacao 2x, o reduz2 so amostra e o QUADRO_32 de 64 do pixelkit
+nao atrapalha). O jacare e o atordoado do gaviao sao desenhados
 direto em 32x32 e ampliados 2x; as poses de voo do gaviao vem de inimigos.ave(), sao reduzidas aqui
 mesmo e ganham os acabamentos do chefe (cores Endesga, contorno #181425, olho, bico, cauda).
 Estilo: formas simples em blocos (retangulos de cantos arredondados), contorno de 1 px na cor
@@ -29,9 +31,11 @@ BARRIGA, ESCAMA = hexc("ead4aa"), hexc("265c42")
 DENTE, BOCA, BOCA_ESC = hexc("ffffff"), hexc("e43b44"), hexc("a22633")
 BOCHECHA, BOCHECHA_ESC = hexc("f6757a"), hexc("a22633")
 ESTRELA, OLHO, PUPILA = hexc("fee761"), hexc("fee761"), hexc("181425")
-CURATIVO = hexc("e4a672")
+CURATIVO, CURATIVO_ESC, CURATIVO_CONT = hexc("e4a672"), hexc("b86f50"), hexc("3e2731")
+CONT_ESTRELA = hexc("181425")
 PINGO, PINGO_LUZ = hexc("2ce8f5"), hexc("ffffff")
 JG_BARRIGA = 28  # linha da barriga no quadro de 32 (PIVO.y em scripts/jacare_chefe.gd)
+JG_W = 48  # largura do quadro do jacare gigante em px do jogo (grade de 96; PIVO.x = JG_W / 2)
 
 
 def _amplia2(cv):
@@ -56,119 +60,152 @@ def _estrela(cv, cx, cy, cor=None, miolo=None, contorno=None):
     cv.set(cx, cy, miolo)
 
 
+def _laco(cv, x0, y0, linhas, cores, contorno):
+    """Desenha um mapa de caracteres (cores = {char: cor}) e poe contorno de 1 px nas casas
+    vazias em volta (nao pinta por cima do que ja esta desenhado)."""
+    pts = []
+    for j, r in enumerate(linhas):
+        for i, ch in enumerate(r):
+            if ch in cores:
+                cv.set(x0 + i, y0 + j, cores[ch])
+                pts.append((x0 + i, y0 + j))
+    for x, y in pts:
+        for ex, ey in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            if cv.inside(x + ex, y + ey) and cv.px[y + ey][x + ex] is None:
+                cv.px[y + ey][x + ex] = contorno
+
+
 def jacare_gigante(q):
     """64 quadros, 16 por estado: 0..15 nadando (cauda ondula, pernas remam); 16..31 saltando
     (16..23 subindo com o focinho para cima, 24..31 descendo com o focinho para baixo; boca
     aberta, patas esticadas e pingos caindo); 32..47 mordida (a boca abre aos poucos; o jogo
-    escolhe pela abertura); 48..63 dor de dente (bochecha inchada e estrelas girando).
-    Desenhado em 32x32 (pixels do jogo) usando quase o quadro inteiro: o corpo tem ~20 px de
-    altura (o jacare comum tem 11), cabeca grande, cristas de 2 px nas costas, dentes de 2 px.
+    escolhe pela abertura; a cabeca sobe ate 3 px junto, para a mandibula e os dentes de baixo
+    ficarem acima da linha d'agua); 48..63 dor de dente (bochecha inchada com contorno, faixa de
+    curativo amarrada no alto da cabeca e estrelas girando).
+    Desenhado em JG_W x 32 (pixels do jogo; 48 de largura, 1,5x o jacare comum de 32) usando o
+    quadro inteiro: cauda e focinho vao ate as bordas, o corpo tem ~20 px de altura (o comum
+    tem 11), cabeca grande, cristas de 2 px nas costas, dentes de 2 px.
     A barriga fica na linha B = 28 (PIVO de jacare_chefe.gd); no salto o desenho inteiro e
     inclinado em degraus de 1 px (cada coluna desce/sobe, sem girar nem borrar)."""
     bloco, i = divmod(q, 16)
     nado, salto, mordida, dor = bloco == 0, bloco == 1, bloco == 2, bloco == 3
     subindo = salto and i < 8
     fase = 2 * math.pi * (i % 8 if salto else i) / (8.0 if salto else 16.0)
-    d = Desenho(32, 32)
+    d = Desenho(JG_W, 32)
     B = JG_BARRIGA
-    # cauda grossa que afina em degraus; so a ponta ondula 1 px
+    H = 29  # x onde comeca a cabeca
+    # cauda grossa e comprida que afina em degraus; so a ponta ondula 1 px
     o = int(round(math.sin(fase))) if (nado or salto) else 0
-    d.rect(0, B - 7 + o, 4, 4, VERDE, "corpo")
-    d.rect(2, B - 9, 5, 7, VERDE, "corpo")
-    d.rect(5, B - 11, 6, 10, VERDE, "corpo")
+    d.rect(0, B - 7 + o, 6, 4, VERDE, "corpo")
+    d.rect(4, B - 9, 7, 7, VERDE, "corpo")
+    d.rect(9, B - 11, 8, 10, VERDE, "corpo")
     # corpo alto; cristas de 3x2 com o bico de 1 px (o miolo verde fica a mostra)
-    d.rect(8, B - 13, 14, 13, VERDE, "corpo")
-    d.apaga([(8, B - 13), (8, B - 1)])
-    for cx in (3, 7, 11, 15):
-        y0 = B - 11 if cx == 3 else (B - 13 if cx == 7 else B - 15)
+    d.rect(14, B - 13, 18, 13, VERDE, "corpo")
+    d.apaga([(14, B - 13), (14, B - 1)])
+    for cx in (5, 10, 15, 20, 25):
+        y0 = B - 11 if cx == 5 else (B - 13 if cx == 10 else B - 15)
         d.rect(cx, y0, 3, 2, VERDE, "corpo")
         d.rect(cx + 1, y0 - 1, 1, 1, VERDE, "corpo")
-    # patas (miolo verde 3 x 2): nadando remam; no salto esticadas (frente para a frente,
-    # tras para tras); na mordida e na dor paradas
+    # patas (miolo verde): nadando remam; no salto esticadas (frente para a frente, tras para
+    # tras); na mordida e na dor paradas
     passo = int(round(math.cos(fase)))
     if salto:
-        d.rect(4, B - 3, 6, 3, VERDE, "pata")      # pata de tras esticada para tras
-        d.rect(19, B - 2, 6, 3, VERDE, "pata")     # pata da frente esticada para a frente
+        d.rect(8, B - 3, 7, 3, VERDE, "pata")      # pata de tras esticada para tras
+        d.rect(28, B - 2, 7, 3, VERDE, "pata")     # pata da frente esticada para a frente
     else:
         p = passo if nado else 0
-        d.rect(9 - p, B - 2, 5, 4, VERDE, "pata")
-        d.rect(17 + p, B - 2, 5, 4, VERDE, "pata")
-    # cabeca: cranio alto com a bossa do olho, focinho comprido; a maxila sobe k px quando a
-    # boca abre, a mandibula fica parada e a nuca liga as duas
+        d.rect(15 - p, B - 2, 6, 4, VERDE, "pata")
+        d.rect(26 + p, B - 2, 6, 4, VERDE, "pata")
+    # cabeca: cranio alto com a bossa do olho, focinho comprido ate a borda; a maxila sobe k px
+    # quando a boca abre, a mandibula fica parada e a nuca liga as duas
     k = int(round(7 * i / 15.0)) if mordida else (4 if salto else 0)
-    d.rect(19, B - 15 - k, 9, 8, VERDE, "cabeca")        # cranio (B-15-k .. B-8-k)
-    d.rect(21, B - 17 - k, 5, 3, VERDE, "cabeca")        # bossa do olho
-    d.rect(27, B - 12 - k, 5, 4, VERDE, "cabeca")        # focinho (B-12-k .. B-9-k)
-    d.rect(29, B - 13 - k, 2, 1, VERDE, "cabeca")        # narina
-    d.rect(19, B - 8 - k, 4, k + 2, VERDE, "cabeca")     # nuca / dobradica
-    d.rect(19, B - 7, 13, 6, VERDE, "cabeca")            # mandibula (B-7 .. B-2)
+    # na mordida o chefe fica com a barriga 8 px abaixo da linha d'agua: a cabeca inteira sobe
+    # junto com a abertura (ate 3 px; a mandibula estica para baixo) para o labio de baixo e os
+    # dentes de baixo aparecerem fora d'agua e a boca ler como bocarra, nao como caixa vermelha
+    Bh = B - (min(3, k) if mordida else 0)
+    d.rect(H, Bh - 15 - k, 10, 8, VERDE, "cabeca")                # cranio
+    d.rect(H + 2, Bh - 17 - k, 6, 3, VERDE, "cabeca")             # bossa do olho
+    d.rect(H + 9, Bh - 12 - k, JG_W - H - 9, 4, VERDE, "cabeca")  # focinho
+    d.rect(JG_W - 5, Bh - 13 - k, 3, 1, VERDE, "cabeca")          # narina
+    d.rect(H, Bh - 8 - k, 4, k + 2, VERDE, "cabeca")              # nuca / dobradica
+    d.rect(H, Bh - 7, JG_W - H, 6 + B - Bh, VERDE, "cabeca")      # mandibula (Bh-7 .. B-2)
     if k:  # boca aberta: vermelho da base da maxila ao topo da mandibula
-        d.rect(23, B - 7 - k, 9, k, BOCA, "boca")
-    d.rect(9, B - 4, 12, 3, BARRIGA, None, so=["corpo"])
-    d.rect(20, B - 4, 11, 2, BARRIGA, None, so=["cabeca"])
+        d.rect(H + 4, Bh - 7 - k, JG_W - H - 4, k, BOCA, "boca")
+    d.rect(15, B - 4, 15, 3, BARRIGA, None, so=["corpo"])
+    d.rect(H + 1, B - 4, JG_W - H - 2, 2, BARRIGA, None, so=["cabeca"])
     d.luz("corpo", VERDE_L, dx=0, dy=2)
     d.luz("cabeca", VERDE_L, dx=0, dy=2)
-    d.contorno({"corpo": VERDE_ESC, "cabeca": VERDE_ESC, "pata": VERDE_ESC, "boca": BOCA_ESC},
-               juntas=[("cabeca", "boca")])
+    if dor:
+        # bochecha inchada: bolota de cantos cortados com contorno proprio; pulsa 1 px (depois
+        # da luz, para a cabeca nao ganhar faixa clara embaixo da bochecha)
+        grande = i % 8 < 4
+        bx0, by0, bl = (H, B - 10, 7) if grande else (H + 1, B - 9, 6)
+        d.rect(bx0, by0, bl, bl, BOCHECHA, "bochecha")
+        for cx, cy in ((bx0, by0), (bx0 + bl - 1, by0), (bx0, by0 + bl - 1), (bx0 + bl - 1, by0 + bl - 1)):
+            d.rect(cx, cy, 1, 1, VERDE, "cabeca")
+    d.contorno({"corpo": VERDE_ESC, "cabeca": VERDE_ESC, "pata": VERDE_ESC, "boca": BOCA_ESC,
+                "bochecha": BOCHECHA_ESC},
+               juntas=[("cabeca", "boca"), ("bochecha", "cabeca"), ("bochecha", "corpo")])
     cv = d.cv
-    if k:  # sem faixa de luz no topo da mandibula (fica dentro da boca)
-        for x in range(23, 32):
-            for y in (B - 6, B - 5):
+    if k and not mordida:  # sem faixa de luz no topo da mandibula (fica dentro da boca); na
+        # mordida ela fica: e o labio de baixo, a unica linha da mandibula fora d'agua
+        for x in range(H + 4, JG_W):
+            for y in (Bh - 6, Bh - 5):
                 if cv.px[y][x] == VERDE_L:
                     cv.px[y][x] = VERDE
-    for x in range(10, 20, 3):  # escamas mais escuras no lombo
+    for x in range(16, 30, 3):  # escamas mais escuras no lombo
         for y in (B - 11, B - 12):
             if cv.px[y][x] == VERDE_L:
                 cv.px[y][x] = ESCAMA
     # olho de 2x2: iris amarela atras, pupila escura na frente; sobrancelha brava em cima
-    for y in (B - 15 - k, B - 14 - k):
-        cv.set(22, y, OLHO)
-        cv.set(23, y, PUPILA)
-    cv.set(22, B - 16 - k, VERDE_ESC)
-    cv.set(23, B - 16 - k, VERDE_ESC)
+    ox = H + 3
+    for y in (Bh - 15 - k, Bh - 14 - k):
+        cv.set(ox, y, OLHO)
+        cv.set(ox + 1, y, PUPILA)
+    cv.set(ox, Bh - 16 - k, VERDE_ESC)
+    cv.set(ox + 1, Bh - 16 - k, VERDE_ESC)
+    dentes_cima = (H + 5, H + 8, H + 11, H + 14, H + 17)
+    dentes_baixo = (H + 6, H + 9, H + 12, H + 15)
     if k == 0:  # boca fechada: linha da boca e presas de 2 px saindo dela
-        for x in range(23, 31):
+        for x in range(H + 7 if dor else H + 4, JG_W - 1):
             cv.px[B - 8][x] = VERDE_ESC
         if not dor:
-            for x in (24, 27, 30):
+            for x in dentes_cima:
                 cv.set(x, B - 7, DENTE)
                 cv.set(x, B - 6, DENTE)
     else:  # presas de cima penduradas na maxila e de baixo na mandibula, alternadas
-        for x in (24, 27, 30):
-            cv.set(x, B - 7 - k, DENTE)
+        for x in dentes_cima:
+            cv.set(x, Bh - 7 - k, DENTE)
             if k >= 6:
-                cv.set(x, B - 6 - k, DENTE)
-        for x in (25, 28):
-            cv.set(x, B - 8, DENTE)
+                cv.set(x, Bh - 6 - k, DENTE)
+        for x in dentes_baixo:
+            cv.set(x, Bh - 8, DENTE)
             if k >= 6:
-                cv.set(x, B - 9, DENTE)
+                cv.set(x, Bh - 9, DENTE)
     if dor:
-        # bochecha inchada inteira dentro da mandibula, atras do canto da boca; pulsa 1 px
-        grande = i % 8 < 4
-        topo = B - 7 if grande else B - 6
-        for x in (21, 22):
-            cv.set(x, topo, BOCHECHA)
-        for x in (20, 21, 22, 23):
-            for y in range(topo + 1, B - 2):
-                cv.set(x, y, BOCHECHA)
-        # dente com curativo: dente de 2 px pendurado na linha da boca e a faixa bege enrolada
-        for x in (26, 27):
-            cv.set(x, B - 7, DENTE)
-        for x in range(25, 29):
-            cv.set(x, B - 6, CURATIVO)
-        # 3 estrelas em "+" de forma fixa girando sobre a cabeca (so a posicao muda)
+        # brilho de 1 px no alto da bochecha
+        cv.set(bx0 + 2, by0 + 2, DENTE)
+        # faixa de curativo de desenho animado: desce do alto do cranio ate a mandibula (por
+        # cima da linha da boca, logo a frente da bochecha) e amarra num laco no alto da cabeca
+        for y in range(B - 15, B - 2):
+            cv.set(H + 8, y, CURATIVO)
+            cv.set(H + 9, y, CURATIVO_ESC)
+        _laco(cv, H + 6, B - 18, ["cc..cc", "ccxxcc", "..cx.."],
+              {"c": CURATIVO, "x": CURATIVO_ESC}, CURATIVO_CONT)
+        # 3 estrelas em "+" de forma fixa, com contorno, girando acima da cabeca (so a posicao muda)
         for e in range(3):
             a = fase + e * 2.094
-            _estrela(cv, 23 + int(round(6 * math.cos(a))), 4 + int(round(2 * math.sin(a))))
+            _estrela(cv, H + 8 + int(round(9 * math.cos(a))), 4 + int(round(2 * math.sin(a))),
+                     contorno=CONT_ESTRELA)
     if salto:
         # pingos de agua caindo da cauda e da barriga (2-3 px, ciano com brilho branco)
-        for j, (px0, py0) in enumerate(((2, B - 2), (8, B), (14, B + 1))):
+        for j, (px0, py0) in enumerate(((3, B - 2), (12, B), (21, B + 1))):
             y = py0 + (i % 8 + j * 3) % 6
             if 0 <= y < 31 and cv.px[y][px0] is None and cv.px[y + 1][px0] is None:
                 cv.set(px0, y, PINGO_LUZ)
                 cv.set(px0, y + 1, PINGO)
         # inclina em degraus de 1 px: subindo o focinho fica alto, descendo fica baixo
-        cv = _inclina(cv, -0.16 if subindo else 0.12, 16)
+        cv = _inclina(cv, -0.16 if subindo else 0.12, JG_W // 2)
     return _amplia2(cv)
 
 
@@ -197,12 +234,16 @@ G_CONT, G_CONT_DENTRO = hexc("181425"), hexc("3e2731")
 G_ESC_DESENHO = (ini.ESC_AVE[:3], (0x2a, 0x16, 0x08))  # contornos que a ave() usa
 # asa "baixo" do chefe inclinada para tras (a vertical de ave() parecia quatro patas no chao)
 G_ASA_BAIXO = [(-7, -1, 9, 7), (-12, 3, 7, 5), (-16, 5, 5, 4), (-18, 7, 3, 3)]
-# cauda em leque de 3 penas (ponta para a esquerda; a ultima coluna encosta no corpo)
+# cauda em leque de 3 penas (ponta para a esquerda; a ultima coluna encosta no corpo). As penas
+# de cima e de baixo tem 2 linhas de marrom entre o contorno de fora e a linha de dentro (com 1
+# linha so, a pena parecia colada no contorno, sobretudo quando a asa de longe cobre a ponta)
 G_CAUDA_MAPA = ["..#####",
                 ".#mlmmm",
+                "#mlmmmm",
                 "#mldddd",
                 "#mlrrmm",
                 "#mldddd",
+                "#mlmmmm",
                 ".#mlmmm",
                 "..#####"]
 # pata do mergulho/investida (coluna 1 = a perna; linha 0 = a linha de baixo do corpo)
@@ -284,7 +325,7 @@ def _gaviao_32(pose):
                 if miolo and all(m in cauda for m in miolo):
                     px[y][x] = None
         xr = max(x for x, _ in cauda)
-        topo = int((min(y for _, y in cauda) + max(y for _, y in cauda)) / 2.0) - 3
+        topo = int((min(y for _, y in cauda) + max(y for _, y in cauda)) / 2.0) - len(G_CAUDA_MAPA) // 2
         cores = {"#": G_CONT, "d": G_CONT_DENTRO, "m": G_CAUDA_COR, "l": G_LUZ, "r": G_CAUDA_MEIO}
         for j, linha in enumerate(G_CAUDA_MAPA):
             for i, ch in enumerate(linha):
@@ -502,17 +543,20 @@ def atordoado(ang0):
         cv.px[y][x] = G_CONT
     for k in range(3):
         a = ang0 + k * 2.094
-        # orbita mais alta (raio vertical 3.6): as 3 estrelas ficam sempre a 7+ px uma da outra
-        # (os contornos nao se tocam) e a de baixo nao encosta na cabeca
-        _estrela(cv, 22 + int(round(7 * math.cos(a))), 5 + int(round(3.6 * math.sin(a))), contorno=G_CONT)
+        # orbita de raio vertical 3.4: o centro fica entre as linhas 2 e 8, entao o contorno da
+        # estrela de cima cabe no quadro (linha 0) e o da de baixo (linha 10) nao encosta na
+        # cabeca (contorno na 12); as 3 estrelas ficam sempre a 7+ px uma da outra (distancia
+        # em "taxi"), entao os contornos nunca se tocam
+        _estrela(cv, 22 + int(round(7 * math.cos(a))), 5 + int(round(3.4 * math.sin(a))), contorno=G_CONT)
     return _amplia2(cv)
 
 
 # ---------------------------------------------------------------- saida
 def tira(quadros):
-    cv = Canvas(64 * len(quadros), 64)
+    w = quadros[0].w  # 64 (gaviao) ou 96 (jacare gigante) na grade
+    cv = Canvas(w * len(quadros), quadros[0].h)
     for i, q in enumerate(quadros):
-        cv.blit(q, i * 64, 0)
+        cv.blit(q, i * w, 0)
     return cv
 
 

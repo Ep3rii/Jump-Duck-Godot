@@ -48,8 +48,16 @@ func sombra_largura() -> float:
 	return 26.0
 
 
+## Clarao em volta do chefe nas fases escuras (luz.gd): o miolo (raio * 0.45 = 16 px) cobre o
+## corpo 32x32 inteiro, entao ele fica com a cor da propria arte em qualquer ponto da arena,
+## como o pato. Sem o 5o campo: nao conta como luz da parede.
+func luzes() -> Array:
+	return [[global_position, 36.0, Color(1.0, 1.0, 1.0), 0.85]]
+
+
 func _enemy_ready() -> void:
 	add_to_group("chefe")
+	add_to_group("luz")  # luz.gd: como o pato, o chefe nao escurece longe das tochas
 	max_hp = STAGE_HP * 2
 	hp = max_hp
 	hurt_frames = HURT_TIME
@@ -330,37 +338,56 @@ func _draw() -> void:
 		tremor.x = 1.0 if int(_anim / 2.0) % 2 == 0 else -1.0
 	elif state == "atordoado":
 		tremor.y = _ajuste_atordoado()  # caido: a ultima linha da arte encosta no chao
+	elif state == "mergulho":
+		# o mergulho para com o centro em chao - 8 (a colisao nao muda), mas a pose em diagonal
+		# desce ate o bico bem abaixo disso: perto do chao so o desenho sobe, para o bico
+		# encostar no piso sem atravessar
+		tremor.y = minf(0.0, chao - (position.y - PIVO.y + _fundo_quadro(q) + 1.0))
 	Sprites.draw_bicho(self, "chefe_gaviao", q, QUADROS, PIVO, f < 0.0, cor, tremor)
 
 
-## Atordoado o corpo fica em chao - 8 (a colisao nao muda). Desloca so o desenho para que a
-## linha opaca mais baixa dos quadros de atordoado (64..79) termine exatamente no chao, em vez
-## de entrar no piso. Lido uma vez da propria arte (vale mesmo se o PNG for refeito).
-static var _ajuste_chao := INF
+## Linha opaca mais baixa de cada quadro do chefe_gaviao.png (-1 = quadro vazio). Lida uma vez
+## da propria arte (vale mesmo se o PNG for refeito).
+static var _fundos := PackedInt32Array()
 
 
-static func _ajuste_atordoado() -> float:
-	if _ajuste_chao == INF:
-		_ajuste_chao = 0.0
+static func _fundo_quadro(q: int) -> int:
+	if _fundos.is_empty():
+		_fundos.resize(QUADROS)
+		_fundos.fill(-1)
 		var t := Sprites.art("chefe_gaviao")
 		var img := t.get_image() if t != null else null
 		if img != null:
 			if img.is_compressed():
 				img.decompress()
 			var fw := img.get_width() / QUADROS
-			var fundo := -1
-			for q in range(64, 80):
+			for k in QUADROS:
 				for y in range(img.get_height() - 1, -1, -1):
 					var achou := false
 					for x in fw:
-						if img.get_pixel(q * fw + x, y).a > 0.5:
+						if img.get_pixel(k * fw + x, y).a > 0.5:
 							achou = true
 							break
 					if achou:
-						fundo = maxi(fundo, y)
+						_fundos[k] = y
 						break
-			if fundo >= 0:
-				# linha y do quadro ocupa [chao - 8 - PIVO.y + y, +1): termina no chao com
-				# y = PIVO.y + 7
-				_ajuste_chao = PIVO.y + 7.0 - fundo
+	return _fundos[posmod(q, QUADROS)]
+
+
+## Atordoado o corpo fica em chao - 8 (a colisao nao muda). Desloca so o desenho para que a
+## linha opaca mais baixa dos quadros de atordoado (64..79) termine exatamente no chao, em vez
+## de entrar no piso.
+static var _ajuste_chao := INF
+
+
+static func _ajuste_atordoado() -> float:
+	if _ajuste_chao == INF:
+		_ajuste_chao = 0.0
+		var fundo := -1
+		for q in range(64, 80):
+			fundo = maxi(fundo, _fundo_quadro(q))
+		if fundo >= 0:
+			# linha y do quadro ocupa [chao - 8 - PIVO.y + y, +1): termina no chao com
+			# y = PIVO.y + 7
+			_ajuste_chao = PIVO.y + 7.0 - fundo
 	return _ajuste_chao

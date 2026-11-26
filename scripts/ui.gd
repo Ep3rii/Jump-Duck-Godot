@@ -18,8 +18,9 @@ const COL_DIM := Color("8b9bb4")
 const COL_HINT := Color("c0cbdc")
 const COL_RED := Color("e43b44")  # vida do chefe
 const COL_RED_DARK := Color("3e2731")  # encaixe vazio da vida do chefe
-const COL_BUBBLE := Color("2ce8f5")  # bolha de folego
-const COL_BUBBLE_OFF := Color("5a6988")
+const COL_BUBBLE := Color("2ce8f5")  # bolha de folego (miolo)
+const COL_BUBBLE_EDGE := Color("0099db")  # contorno da bolha cheia
+const COL_BUBBLE_OFF := Color("5a6988")  # anel da bolha vazia
 
 const PixelFont := preload("res://scripts/pixel_font.gd")
 const Chave := preload("res://scripts/chave.gd")
@@ -95,10 +96,23 @@ func _button(r: Dictionary, selected: bool, now: int) -> void:
 			floorf((y1 + y2) / 2.0 - 7.0 - hop), 16.0, 16.0), (now / 50) % 16)
 
 
+## Altura (centro vertical) do texto de escala 1 dentro do botao 'r': centrado, mas com as
+## letras comecando no minimo 5 linhas abaixo da borda de cima (borda, brilho, 2 linhas do
+## acento e 1 de folga), para o acento de "PRÓXIMA" ou "MÚSICA" nao invadir a borda. So vale
+## para botoes de 14 px ou mais (cabem acento + letra + cedilha); os menores ficam centrados.
+func _button_text_y(r: Dictionary) -> float:
+	var ty: float = (r["y1"] + r["y2"]) / 2.0
+	if r["y2"] - r["y1"] < 14:
+		return ty
+	return maxf(ty, r["y1"] + 8.5)  # topo das letras = floor(y - 3.5)
+
+
 ## Botao com o texto centralizado (texto em dobro nos botoes marcados com "big").
 func _plain_button(r: Dictionary, on: bool, now: int) -> void:
 	_button(r, on, now)
 	var ty: float = (r["y1"] + r["y2"]) / 2.0
+	if not r.get("big", false):
+		ty = _button_text_y(r)
 	var tx: float = (r["x1"] + r["x2"] + 1.0) / 2.0
 	var sc := 2.0 if r.get("big", false) else 1.0
 	if on:
@@ -159,13 +173,29 @@ func _mini_star(x: float, y: float, cheia: bool) -> void:
 	_fill(x0 + 1, y0 + 4, x0 + 7, y0 + 4, cor)
 
 
+## Bolha de folego do HUD em pixel art (7x7, contorno de 1 px, cores da Endesga 32) com o
+## canto em (x, y). Cheia: azul-claro com brilho branco; vazia: so o anel apagado.
+func _air_bubble(x: float, y: float, cheia: bool) -> void:
+	var edge := COL_BUBBLE_EDGE if cheia else COL_BUBBLE_OFF
+	if cheia:
+		_fill(x + 1, y + 2, x + 5, y + 4, COL_BUBBLE)
+		_fill(x + 2, y + 1, x + 4, y + 5, COL_BUBBLE)
+		_fill(x + 2, y + 2, x + 2, y + 2, Color.WHITE)  # brilho
+	_fill(x + 2, y, x + 4, y, edge)  # topo
+	_fill(x + 2, y + 6, x + 4, y + 6, edge)  # base
+	_fill(x, y + 2, x, y + 4, edge)  # esquerda
+	_fill(x + 6, y + 2, x + 6, y + 4, edge)  # direita
+	for c in [Vector2(1, 1), Vector2(5, 1), Vector2(1, 5), Vector2(5, 5)]:  # cantos
+		_fill(x + c.x, y + c.y, x + c.x, y + c.y, edge)
+
+
+## Barra de volume: 10 segmentos, cheios amarelos e vazios escuros. Na linha selecionada
+## (amarela) a barra ganha uma moldura marrom atras, para manter a mesma leitura das outras.
 func _volume_bar(x: float, ty: float, level: int, on: bool) -> void:
+	if on:
+		_fill(x - 1, ty - 5, x + 78, ty + 4, COL_YELLOW_DARK)
 	for b in 10:
-		var bar_col := COL_DARK
-		if b < level:
-			bar_col = COL_YELLOW_DARK if on else COL_YELLOW
-		elif on:
-			bar_col = COL_ORANGE
+		var bar_col := COL_YELLOW if b < level else COL_DARK
 		_fill(x + b * 8, ty - 4, x + b * 8 + 5, ty + 3, bar_col)
 
 
@@ -231,7 +261,11 @@ func _draw_menus(state: String, now: int) -> void:
 				if not rec.is_empty():
 					_text_plain(r["x2"] - 40, ty + 1, str(rec["score"]), fg, RIGHT)
 					# estrelas pequenas (9x9, estrela_mini) de 11 em 11 px (2 px de folga): cabem
-					# dentro da linha de 11 px, entre a borda de cima e a de baixo do botao
+					# dentro da linha de 11 px, entre a borda de cima e a de baixo do botao.
+					# Na linha selecionada (amarela) elas ganham uma plaquinha escura atras: o
+					# miolo da estrela cheia e do mesmo amarelo e sumiria no fundo.
+					if on:
+						_round(r["x2"] - 38.0, ty - 4.0, r["x2"] - 4.0, ty + 4.0, COL_DARK, 1)
 					for s in 3:
 						_mini_star(r["x2"] - 36.0 + s * 11.0, ty - 4.0, s < int(rec["stars"]))
 			generic_from = layout.size() - 1
@@ -273,7 +307,8 @@ func _draw_menus(state: String, now: int) -> void:
 				_text_plain(cx, 165, "ESQUERDA E DIREITA MUDAM   ESC VOLTA", COL_HINT, CENTER)
 
 		"pause":
-			_panel(70, 22, 250, 156)
+			# 10 px mais largo de cada lado que os botoes + flor-cursor: a flor fica dentro do painel
+			_panel(60, 22, 260, 156)
 			_title_banner(28, "PAUSA")
 
 		"complete":
@@ -282,6 +317,8 @@ func _draw_menus(state: String, now: int) -> void:
 			_draw_result(now)
 
 		"gameover":
+			# painel como nas outras telas: o cenario nao aparece atras do texto
+			_panel(50, 14, 270, 164)
 			var wob := floorf(sin(now / 200.0) * 2.0)
 			_text(cx, 46 + wob, "QUACK!", COL_YELLOW, CENTER, 4.0)
 			_text(cx, 82, "NÃO FOI DESSA VEZ...", Color.WHITE, CENTER, 1.0)
@@ -334,12 +371,7 @@ func _draw_hud(w: int, h: int) -> void:
 		var left := ceili(Game.air_ratio * 5.0 - 0.001)
 		var blink := Game.air_ratio < 0.25 and (Time.get_ticks_msec() / 150) % 2 == 0
 		for i in 5:
-			var c := Vector2(9 + i * 10, row_y + 5.5)
-			if i < left and not blink:
-				draw_circle(c, 3.5, COL_BUBBLE)
-				draw_circle(c + Vector2(-1, -1), 1.0, Color.WHITE)
-			else:
-				draw_arc(c, 3.0, 0.0, TAU, 12, COL_BUBBLE_OFF, 1.0)
+			_air_bubble(6.0 + i * 10.0, row_y + 2.0, i < left and not blink)
 
 	for heart in Game.max_lives:
 		var cheio := heart < Game.player_lives
@@ -371,7 +403,7 @@ func _draw_settings_rows(layout: Array, sel: int, now: int) -> void:
 	for i in Game.SETTINGS_ADJUST_ROWS:
 		var r: Dictionary = layout[i]
 		var on := sel == i
-		var ty: float = (r["y1"] + r["y2"]) / 2.0
+		var ty := _button_text_y(r)
 		var fg := COL_YELLOW_DARK if on else Color.WHITE
 		if i == 1 and Game.screen_mode == "fullscreen":
 			fg = COL_YELLOW_DARK if on else COL_DIM
@@ -383,7 +415,8 @@ func _draw_settings_rows(layout: Array, sel: int, now: int) -> void:
 		if i < 2:
 			_text_plain(mid, ty, values[i], fg, CENTER)
 		else:
-			_volume_bar(mid - 39.0, ty, volumes[i - 2], on)
+			# a barra (8 linhas) fica no meio da area livre do botao, nao do texto
+			_volume_bar(mid - 39.0, floorf((r["y1"] + r["y2"]) / 2.0) + 1.0, volumes[i - 2], on)
 
 
 ## Tela de fase concluida: recorde, estrelas, tempo, flores e pontos.
@@ -394,9 +427,14 @@ func _draw_result(now: int) -> void:
 		result = Game.level_history[Game.level_history.size() - 1]
 	if result.is_empty():
 		return
+	# sem "NOVO RECORDE!" o resto sobe 6 px: nao sobra vao embaixo do titulo e os pontos
+	# ficam com folga acima dos botoes (que comecam em y = 120)
+	var oy := 0.0
 	if Game.last_result_is_record:
 		var blink := (now / 300) % 2 == 0
-		_text(cx, 47, "NOVO RECORDE!", COL_YELLOW if blink else Color.WHITE, CENTER)
+		_text(cx, 45, "NOVO RECORDE!", COL_YELLOW if blink else Color.WHITE, CENTER)
+	else:
+		oy = -6.0
 	var stars := Game.stars_for(result["score"])
 	for s in 3:
 		var bounce := 0.0
@@ -404,14 +442,14 @@ func _draw_result(now: int) -> void:
 			bounce = floorf(sin(now / 220.0 + s) * 1.5)
 		# 1:1 (16x16), de 24 em 24 px, centradas em cx, em pixels inteiros
 		Sprites.draw_frame(self, "estrela", Rect2(floorf(cx - 24.0 + s * 24.0 - 8.0),
-			floorf(70.0 + bounce - 8.0), 16.0, 16.0), 0 if s < stars else 1)
-	_text(cx, 90, "TEMPO: %.1f S   +%d" % [result["time_seconds"], result["time_points"]],
+			floorf(66.0 + oy + bounce - 8.0), 16.0, 16.0), 0 if s < stars else 1)
+	_text(cx, 86 + oy, "TEMPO: %.1f S   +%d" % [result["time_seconds"], result["time_points"]],
 		Color.WHITE, CENTER)
-	_text(cx, 101, "FLORES: %d DE %d   +%d" % [result["collectibles"],
+	_text(cx, 97 + oy, "FLORES: %d DE %d   +%d" % [result["collectibles"],
 		result["collectible_total"], result["collectible_points"]], Color.WHITE, CENTER)
 	# Pontos da fase (0..100); com mais de uma fase jogada, mostra tambem o total do jogo.
 	if Game.level_history.size() > 1:
-		_text(cx, 113, "PONTOS: %d DE 100   TOTAL: %d" % [result["score"], Game.total_score],
+		_text(cx, 108 + oy, "PONTOS: %d DE 100   TOTAL: %d" % [result["score"], Game.total_score],
 			COL_YELLOW, CENTER)
 	else:
-		_text(cx, 113, "PONTOS: %d DE 100" % result["score"], COL_YELLOW, CENTER)
+		_text(cx, 108 + oy, "PONTOS: %d DE 100" % result["score"], COL_YELLOW, CENTER)

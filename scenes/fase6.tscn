@@ -144,6 +144,7 @@ tempo_desligado = 150
 position = Vector2(16, 592)
 script = ExtResource("11_hvtcp")
 tiles_h = 11
+encosto_x = -7
 
 [node name="Itens" type="Node2D" parent="." unique_id=841697585]
 z_index = -700

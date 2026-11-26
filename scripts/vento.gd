@@ -32,7 +32,9 @@ const Sprites := preload("res://scripts/sprites.gd")
 @export var atraso := 0
 
 const WARN := 40  # frames de aviso antes da rajada
-const STREAKS := 14
+## Largura de cada faixa de listras (px) e distancia entre duas listras da mesma faixa.
+const FAIXA := 16.0
+const ESPACO := 96.0
 
 var _t := 0
 var _anim := 0.0
@@ -123,29 +125,33 @@ func _draw() -> void:
 	if Engine.is_editor_hint():
 		draw_rect(Rect2(0, -h, w, h), Color(0.7, 0.9, 1.0, 0.15))
 		draw_rect(Rect2(0, -h, w, h), Color(0.7, 0.9, 1.0, 0.6), false)
-	var alpha := 0.55
-	if not is_blowing():
-		alpha = 0.3 if is_warning() else 0.08
+	# listras em faixas fixas (uma por linha de tile, centrada), com a mesma velocidade e o
+	# mesmo espacamento dentro da faixa: nunca uma em cima da outra. Arte opaca (cores da
+	# paleta); no intervalo da rajada somem e, no aviso, volta so a metade delas.
+	if not is_blowing() and not is_warning():
+		return
 	var speed := 3.0 if is_blowing() else 1.0
-	var col := Color(0.86, 0.95, 1.0, alpha)
-	var count := int(STREAKS * maxf(1.0, w * h / 4096.0))
-	for i in count:
-		# cada listra tem uma "faixa" fixa e anda ao longo da direcao do vento
-		var lane := fposmod(i * 37.0 + i * i * 13.0, 97.0) / 97.0
-		var phase := fposmod(_anim * speed + i * 53.0, 1000.0)
-		if direcao == 2:
-			var x := floorf(lane * (w - 2.0))
-			var y := -fposmod(phase, h)
-			Sprites.draw_art(self, "vento", x - 6.0, y - 12.0, 1, 2, col)
-		else:
-			var y := -floorf(lane * (h - 2.0)) - 1.0
-			var x := fposmod(phase, w)
-			if direcao == 1:
+	var vertical := direcao == 2
+	var lado := w if vertical else h  # largura das faixas lado a lado
+	var comp := h if vertical else w  # comprimento de cada faixa
+	var faixas := maxi(1, int(lado / FAIXA))
+	var por_faixa := maxi(1, roundi(comp / ESPACO))
+	var passo := comp / por_faixa
+	for f in faixas:
+		var centro := floorf((f + 0.5) * lado / faixas)
+		# cada faixa comeca num ponto diferente (sem formar colunas de setas)
+		var inicio := fposmod(f * 41.0 + f * f * 17.0, passo)
+		for k in por_faixa:
+			if not is_blowing() and (f + k) % 2 == 1:
+				continue
+			var d := floorf(fposmod(_anim * speed + inicio + k * passo, comp))
+			if vertical:
+				Sprites.draw_art(self, "vento", centro - 6.0, -d - 12.0, 1, 2)
+			elif direcao == 1:
 				# para a esquerda: o quadro horizontal aponta para a direita, entao e espelhado
 				# (o risco de 12 px fica no mesmo lugar, centrado em x)
-				x = w - x
-				draw_set_transform(Vector2(floorf(x), 0.0), 0.0, Vector2(-1, 1))
-				Sprites.draw_art(self, "vento", -6.0, y - 6.0, 0, 2, col)
+				draw_set_transform(Vector2(w - d, 0.0), 0.0, Vector2(-1, 1))
+				Sprites.draw_art(self, "vento", -6.0, -centro - 6.0, 0, 2)
 				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 			else:
-				Sprites.draw_art(self, "vento", x - 6.0, y - 6.0, 0, 2, col)
+				Sprites.draw_art(self, "vento", d - 6.0, -centro - 6.0, 0, 2)

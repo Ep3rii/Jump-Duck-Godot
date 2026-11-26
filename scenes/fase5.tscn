@@ -93,11 +93,13 @@ trancada = true
 position = Vector2(608, 592)
 script = ExtResource("11_k1wje")
 tiles_h = 11
+encosto_x = 6
 
 [node name="Cipo2" type="Node2D" parent="Mecanicas" unique_id=1586476027 instance=ExtResource("10_vkwoh")]
 position = Vector2(16, 416)
 script = ExtResource("11_k1wje")
 tiles_h = 11
+encosto_x = -7
 
 [node name="Itens" type="Node2D" parent="." unique_id=2002458162]
 z_index = -700

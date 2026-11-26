@@ -17,7 +17,11 @@ DEST = os.path.join(ARTE, "cenario")
 OUT = os.path.join(HERE, "saida")
 os.makedirs(OUT, exist_ok=True)
 
-ESC_MADEIRA = {"tronco": P["contorno_madeira"], "copa": P["contorno_verde"]}
+# Contorno da copa no verde mais escuro (#193c3e), como o arbusto e as copas do morro de perto:
+# com #265c42 a borda direita da copa (sombra #3e8948, a cor do morro de longe) sumia no fundo e,
+# com a arvore cortada pela beira da tela, sobrava so um arco solto (captura 16)
+CONTORNO_COPA = hexc("193c3e")
+ESC_MADEIRA = {"tronco": P["contorno_madeira"], "copa": CONTORNO_COPA}
 
 
 # ------------------------------------------------------------------ retoque em 16x16
@@ -160,7 +164,7 @@ def copa16(d):
     sombra ir inteira ate o contorno (luz de cima/esquerda), sem fiapo claro de 1 px entre
     duas sombras."""
     cv, cor = em16(d.cv)
-    luz, som, esc = cor(P["folha"]), cor(P["folha_sombra"]), cor(P["contorno_verde"])
+    luz, som, esc = cor(P["folha"]), cor(P["folha_sombra"]), cor(CONTORNO_COPA)
     xs = [x for y in range(cv.h) for x in range(cv.w) if cv.px[y][x] is not None]
     ys = [y for y in range(cv.h) for x in range(cv.w) if cv.px[y][x] is not None]
     mx, my = (min(xs) + max(xs)) / 2.0, (min(ys) + max(ys)) / 2.0

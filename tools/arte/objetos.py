@@ -140,10 +140,10 @@ def _mastro(d, x, y0, y1):
 def _ponteira(d, x):
     """Bolinha dourada de 5x4 em cima do mastro (x = coluna do contorno esquerdo). Desenhada
     por ultimo, igual em todos os quadros."""
-    d.rect(x + 1, 0, 3, 1, E_OURO_ESC)
-    d.rect(x + 1, 3, 3, 1, E_OURO_ESC)
-    d.rect(x, 1, 1, 2, E_OURO_ESC)
-    d.rect(x + 4, 1, 1, 2, E_OURO_ESC)
+    d.rect(x + 1, 0, 3, 1, E_CONT)
+    d.rect(x + 1, 3, 3, 1, E_CONT)
+    d.rect(x, 1, 1, 2, E_CONT)
+    d.rect(x + 4, 1, 1, 2, E_CONT)
     d.rect(x + 1, 1, 3, 2, E_OURO)
     ponto(d, x + 1, 1, E_OURO_L)
 
@@ -159,7 +159,9 @@ def saida(q):
         dy = int(round(math.sin(q * 2 * math.pi / 16.0 + c * 0.6)))
         y = 5 + (11 - h) // 2 + dy
         d.rect(6 + c, y, 1, h, E_OURO_L if c % 4 != 3 else E_OURO, "bandeira")
-    d.contorno({"bandeira": E_OURO_ESC})
+    # contorno escuro de 1 px como as outras pecas (caixa, placa, cerca); o laranja #be4a2f
+    # nao e escuro e deixava a bandeira sem borda
+    d.contorno({"bandeira": E_CONT})
     _ponteira(d, 2)
     return x2(d.cv)
 
@@ -327,8 +329,10 @@ def junco(q):
         if i in taboas:
             o = ond(topo + 2)
             tx, ty = x + o - 1, topo + 1
-            d.rect(tx, ty, 4, 6, E_MAD, "taboa")
-            d.contorno({"taboa": E_CONT})
+            # contorno so nas laterais, desenhado direto (sem contorno de silhueta): o miolo
+            # 2x6 fica inteiro em todos os quadros, mesmo quando a folha de baixo se desloca
+            d.rect(tx, ty, 4, 6, E_CONT, "taboa")
+            d.rect(tx + 1, ty, 2, 6, E_MAD, "taboa")
             d.rect(tx + 1, ty + 1, 1, 2, E_MAD_L)
     return x2(d.cv)
 

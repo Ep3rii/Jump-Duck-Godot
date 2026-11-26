@@ -114,11 +114,62 @@ func _draw() -> void:
 		a = _fade
 	# pedra inteira parada; rachada tremendo, caindo e voltando (pedra_cai.png)
 	var q := 0 if state == "parada" else 1
-	for k in tiles_w:
-		Sprites.draw_frame(self, "pedra_cai", Rect2(o.x + k * 16.0, o.y - 16.0, 16, 16), q, Color(1, 1, 1, a))
+	var luz: Node = null
+	if not Engine.is_editor_hint() and is_inside_tree():
+		luz = get_tree().get_first_node_in_group("pelicula_luz")
+	var area := Rect2(global_position + Vector2(o.x, o.y - 16.0), Vector2(w, 16.0))
+	if luz == null or not luz.fundo_ilumina(area):
+		for k in tiles_w:
+			Sprites.draw_frame(self, "pedra_cai", Rect2(o.x + k * 16.0, o.y - 16.0, 16, 16), q, Color(1, 1, 1, a))
+	else:
+		_draw_sem_clareira(luz, o, q, a)
 	# poeira caindo enquanto treme
 	if state == "tremendo":
 		for i in 3:
 			var px := fposmod(i * 11.0 + _anim * 0.7, w)
 			var py := fposmod(_anim * 1.5 + i * 7.0, 14.0)
 			draw_rect(Rect2(px, py + 1.0, 1, 1), Color(COL_LIGHT, 0.8))
+
+
+## Perto de uma tocha a pelicula de luz (luz.gd) clareia so parte das pedras e o mesmo
+## objeto aparece em duas cores na tela. Aqui cada pixel desconta a luz que as tochas e
+## janelas da parede vao somar nele: a pedra fica no tom da luz ambiente (ou do brilho do
+## pato, que continua valendo), igual em qualquer lugar.
+## A conta e feita em blocos de 2x2 px (as faixas de luz sao largas) e pixels vizinhos de
+## mesma luz vao num desenho so (uma faixa por linha).
+func _draw_sem_clareira(luz: Node, o: Vector2, q: int, a: float) -> void:
+	var tex := Sprites.art("pedra_cai")
+	var s := float(Sprites.QUADRO_DE.get("pedra_cai", Sprites.QUADRO)) / 16.0
+	var w := 16 * tiles_w
+	var canto := global_position + o + Vector2(0.0, -16.0)
+	var lista: Array = luz.perto(Rect2(canto, Vector2(w, 16.0)))
+	var base := canto + Vector2(1.0, 1.0)  # centro de cada bloco de 2x2
+	for y in range(0, 16, 2):
+		var x0 := 0
+		var cor0 := Color.WHITE
+		var x := 0
+		while x <= w:
+			var cor := Color.WHITE
+			if x < w:
+				var pp := base + Vector2(x, y)
+				var l: Color = luz.luz_em(pp, false, lista)
+				var sem: Color = luz.luz_em(pp, true, lista)
+				cor = Color(sem.r / l.r, sem.g / l.g, sem.b / l.b, a)
+			if x == w or (x > x0 and not cor.is_equal_approx(cor0)):
+				_faixa(tex, o, q, s, x0, x, y, cor0)
+				x0 = x
+			if x == x0:
+				cor0 = cor
+			x += 2
+
+
+## Faixa de pixels [x0, x1) das linhas y e y + 1 das pedras, cortada nos limites de cada tile.
+func _faixa(tex: Texture2D, o: Vector2, q: int, s: float, x0: int, x1: int, y: int, cor: Color) -> void:
+	var x := x0
+	while x < x1:
+		var fim := mini(x1, (floori(x / 16.0) + 1) * 16)
+		var u := float(x % 16)
+		var n := float(fim - x)
+		draw_texture_rect_region(tex, Rect2(o.x + x, o.y - 16.0 + y, n, 2.0),
+			Rect2(q * 16.0 * s + u * s, y * s, n * s, 2.0 * s), cor)
+		x = fim

@@ -22,20 +22,34 @@ const MOSS_DARK := Color("#265c42")
 const RUBBLE := Color("#8b9bb4")
 const RUBBLE_DARK := Color("#5a6988")
 const WEB := Color("#c0cbdc")
-## Borboletas amarelas e laranjas (a branca sumia nas nuvens), corpo escuro.
-const BUTTERFLY := [Color("#fee761"), Color("#feae34")]
+## Borboletas amarelas e laranjas (a branca sumia nas nuvens): asa e ponta da asa, corpo escuro.
+const BUTTERFLY := [[Color("#fee761"), Color("#feae34")], [Color("#feae34"), Color("#f77622")]]
 const BUTTERFLY_BODY := Color("#3e2731")
+## Borboleta em "V" (corpo em x = 0): asas abertas e fechadas (as duas para cima); as pontas
+## das asas (BUTTERFLY_TIP_*) sao do tom mais forte, para ler como bicho ate em cima da nuvem.
+const BUTTERFLY_OPEN := [Vector2i(-2, -1), Vector2i(2, -1), Vector2i(-2, 0), Vector2i(-1, 0),
+	Vector2i(1, 0), Vector2i(2, 0), Vector2i(-1, 1), Vector2i(1, 1)]
+const BUTTERFLY_TIP_OPEN := [Vector2i(-2, -2), Vector2i(2, -2), Vector2i(-1, -1), Vector2i(1, -1)]
+const BUTTERFLY_SHUT := [Vector2i(-1, -1), Vector2i(1, -1)]
+const BUTTERFLY_TIP_SHUT := [Vector2i(-1, -2), Vector2i(1, -2)]
 const DRAGONFLY := Color("#0099db")
 const DRAGONFLY_WING := Color("#c0cbdc")
+## Cabeca (2 px de altura na frente do corpo de 5 px): da a forma de bicho, e nao de tracinho.
+const DRAGONFLY_HEAD := Color("#124e89")
+## Dois pares de asas (x para quem voa para a direita; espelha em x): erguidas e abertas.
+const DRAGONFLY_WINGS_UP := [Vector2i(-2, -1), Vector2i(-2, -2), Vector2i(0, -1), Vector2i(0, -2)]
+const DRAGONFLY_WINGS_OPEN := [Vector2i(-3, -1), Vector2i(-2, -1), Vector2i(0, -1),
+	Vector2i(1, -1)]
 const DUST := Color("#ead4aa")
-## Teia de canto presa no teto, pixel a pixel (1 px opaco): 3 fios (no teto, a 45 graus e na
-## vertical) e 2 arcos em degrau ligando os fios.
+## Teia de canto (so onde parede encontra teto), pixel a pixel (1 px opaco), com o canto em
+## (0, 0): um fio na diagonal e dois arcos ligando teto e parede. Sem fio colado no teto nem na
+## parede (com eles a teia virava uma letra).
 const WEB_PIXELS := [
-	Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0), Vector2i(4, 0), Vector2i(5, 0),
-	Vector2i(6, 0), Vector2i(0, 1), Vector2i(0, 2), Vector2i(0, 3), Vector2i(0, 4), Vector2i(0, 5),
-	Vector2i(0, 6), Vector2i(1, 1), Vector2i(2, 2), Vector2i(3, 3), Vector2i(4, 4), Vector2i(5, 5),
-	Vector2i(2, 1), Vector2i(1, 2),
-	Vector2i(4, 1), Vector2i(4, 2), Vector2i(2, 4), Vector2i(1, 4)]
+	Vector2i(0, 0), Vector2i(1, 1), Vector2i(2, 2), Vector2i(3, 3), Vector2i(4, 4), Vector2i(5, 5),
+	Vector2i(6, 6), Vector2i(7, 7),
+	Vector2i(3, 0), Vector2i(3, 1), Vector2i(2, 1), Vector2i(1, 2), Vector2i(1, 3), Vector2i(0, 3),
+	Vector2i(6, 0), Vector2i(6, 1), Vector2i(5, 2), Vector2i(5, 3), Vector2i(3, 5), Vector2i(2, 5),
+	Vector2i(1, 6), Vector2i(0, 6)]
 
 enum Tipo { FAZENDA, LAGO, TORRE }
 
@@ -74,6 +88,7 @@ func _scan_ground() -> void:
 			or n.is_in_group("plataforma_cai") or n.is_in_group("porta"))
 		if parado and n.has_method("get_rect"):
 			_solid_rects.append(n.get_rect())
+	var tetos: Array = []  # [canto de cima do bloco de ar embaixo do teto, hash]
 	for layer: TileMapLayer in get_tree().get_nodes_in_group("solid_tiles"):
 		for cell in layer.get_used_cells():
 			var centro := layer.to_global(layer.map_to_local(cell))
@@ -84,11 +99,21 @@ func _scan_ground() -> void:
 			if not above:
 				_add_top(cell, top_pos)
 			if not below and tipo == Tipo.TORRE:
-				var h := _hash(cell, 7)
-				if h < 60:
-					_details.append([top_pos + Vector2(0, 16), "teia", h])
-				elif h < 160:
-					_details.append([top_pos + Vector2(0, 16), "musgo_pendurado", h])
+				tetos.append([top_pos + Vector2(0, 16), _hash(cell, 7)])
+	# teto: teia so num canto de verdade (parede encostada no bloco de ar embaixo do teto);
+	# no meio do teto, so musgo pendurado. Depois de ler todos os solidos (paredes de outra camada).
+	for t: Array in tetos:
+		var p: Vector2 = t[0]
+		var h: int = t[1]
+		var meio := p + Vector2(8, 8)
+		var esq := _solido(meio + Vector2(-16, 0)) and not _solido(meio)
+		var dire := _solido(meio + Vector2(16, 0)) and not _solido(meio)
+		if (esq or dire) and h < 700:
+			# h par = canto esquerdo, impar = direito (quando so ha um, fica nele)
+			var direita := dire and (not esq or h % 2 == 1)
+			_details.append([p, "teia", 1 if direita else 0])
+		elif h < 100:
+			_details.append([p, "musgo_pendurado", h])
 
 
 func _add_top(cell: Vector2i, p: Vector2) -> void:
@@ -219,8 +244,8 @@ func _draw() -> void:
 				draw_rect(Rect2(p.x, p.y - 2, 2, 2), RUBBLE)
 				draw_rect(Rect2(p.x + 2, p.y - 1, 2, 1), RUBBLE_DARK)
 			"teia":
-				# canto esquerdo ou direito do bloco (espelhada em x)
-				var direita := h % 2 == 1
+				# canto esquerdo ou direito do bloco de ar (espelhada em x); h = 1: direito
+				var direita := h == 1
 				var x0 := floorf(p.x) + (15.0 if direita else 0.0)
 				for c: Vector2i in WEB_PIXELS:
 					var dx := -c.x if direita else c.x
@@ -245,17 +270,20 @@ func _draw_bugs() -> void:
 			continue
 		match tipo:
 			Tipo.FAZENDA:  # borboleta: asas abrindo e fechando
-				var open := int(_time * 12.0 + t) % 2 == 0
-				var c: Color = BUTTERFLY[int(t) % 2]
-				var w := 2.0 if open else 1.0
-				draw_rect(Rect2(p.x - w, p.y - 1, w, 2), c)
-				draw_rect(Rect2(p.x + 1, p.y - 1, w, 2), c)
-				draw_rect(Rect2(p.x, p.y - 1, 1, 3), BUTTERFLY_BODY)
-			Tipo.LAGO:  # libelula azul
+				var open := int(_time * 8.0 + t) % 2 == 0
+				var cores: Array = BUTTERFLY[int(t) % 2]
+				for a: Vector2i in (BUTTERFLY_OPEN if open else BUTTERFLY_SHUT):
+					draw_rect(Rect2(p.x + a.x, p.y + a.y, 1, 1), cores[0])
+				for a: Vector2i in (BUTTERFLY_TIP_OPEN if open else BUTTERFLY_TIP_SHUT):
+					draw_rect(Rect2(p.x + a.x, p.y + a.y, 1, 1), cores[1])
+				draw_rect(Rect2(p.x, p.y - (0 if open else 1), 1, 2 if open else 3), BUTTERFLY_BODY)
+			Tipo.LAGO:  # libelula azul, olhando para onde voa
 				var flick := int(_time * 20.0 + t) % 2 == 0
-				draw_rect(Rect2(p.x - 3, p.y, 6, 1), DRAGONFLY)
-				draw_rect(Rect2(p.x - 1, p.y - (2 if flick else 1), 1, 1), DRAGONFLY_WING)
-				draw_rect(Rect2(p.x + 1, p.y - (1 if flick else 2), 1, 1), DRAGONFLY_WING)
+				var s := 1.0 if (b[1] as Vector2).x >= 0.0 else -1.0
+				for a: Vector2i in (DRAGONFLY_WINGS_UP if flick else DRAGONFLY_WINGS_OPEN):
+					draw_rect(Rect2(p.x + a.x * s, p.y + a.y, 1, 1), DRAGONFLY_WING)
+				draw_rect(Rect2(p.x - 3.0 if s > 0.0 else p.x - 1.0, p.y, 5, 1), DRAGONFLY)
+				draw_rect(Rect2(p.x + 2.0 * s, p.y - 1.0, 1, 2), DRAGONFLY_HEAD)
 			Tipo.TORRE:  # poeira na luz
 				var a := 0.35 + 0.3 * sin(_time * 2.0 + t * 3.0)
 				draw_rect(Rect2(p.x, p.y, 1, 1), Color(DUST, a))

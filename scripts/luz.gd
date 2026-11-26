@@ -41,9 +41,13 @@ void fragment() {
 var _rect: ColorRect
 var _mat: ShaderMaterial
 var _parallax: Node
+## O que a pelicula usa agora (para luz_em()): luz ambiente e luzes enviadas ao shader.
+var _amb := Color.WHITE
+var _ativas: Array = []
 
 
 func _ready() -> void:
+	add_to_group("pelicula_luz")
 	layer = 5  # acima do mundo (0), abaixo do HUD (10)
 	_rect = ColorRect.new()
 	_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
@@ -89,6 +93,8 @@ func _update() -> void:
 	var amb := ambiente()
 	var claro := amb.r > 0.995 and amb.g > 0.995 and amb.b > 0.995
 	_rect.visible = not claro
+	_ativas = []
+	_amb = Color.WHITE if claro else amb
 	if claro:
 		return
 	var luzes := coletar() if _parallax.usa_luzes() else []
@@ -97,6 +103,7 @@ func _update() -> void:
 	for l: Array in luzes:
 		if pos.size() >= MAX_LUZES:
 			break
+		_ativas.append(l)
 		var p: Vector2 = l[0]
 		var c: Color = l[2]
 		pos.append(Vector3(p.x, p.y, l[1]))
@@ -110,3 +117,39 @@ func _update() -> void:
 	_mat.set_shader_parameter("n", n)
 	_mat.set_shader_parameter("luz_pos", pos)
 	_mat.set_shader_parameter("luz_cor", cor)
+
+
+## A mesma conta do shader para um ponto do mundo: por quanto a pelicula multiplica a cor ali
+## (branco = pelicula desligada). Com sem_fundo, ignora as luzes da parede (tochas e janelas,
+## marcadas com um 5o campo true): quem nao quer ser clareado por elas (as pedras que caem)
+## multiplica a propria cor por luz_em(p, true) / luz_em(p).
+## 'lista' (de perto()) limita a conta as luzes que alcancam o objeto.
+func luz_em(p: Vector2, sem_fundo := false, lista: Variant = null) -> Color:
+	var res := _amb
+	for l: Array in (_ativas if lista == null else lista):
+		if sem_fundo and _do_fundo(l):
+			continue
+		var d: float = p.distance_to(l[0]) / float(l[1])
+		var k := 1.0 if d < 0.45 else (0.62 if d < 0.75 else (0.3 if d < 1.0 else 0.0))
+		k *= float(l[3])
+		var tom := Color.WHITE.lerp(l[2] as Color, 0.3)
+		var m := _amb.lerp(tom, k)
+		res = Color(maxf(res.r, m.r), maxf(res.g, m.g), maxf(res.b, m.b))
+	return res
+
+
+## Luzes acesas que alcancam o retangulo (mundo).
+func perto(r: Rect2) -> Array:
+	return _ativas.filter(func(l: Array) -> bool: return r.grow(float(l[1])).has_point(l[0]))
+
+
+## Alguma luz da parede (tocha, janela) alcanca o retangulo (mundo)?
+func fundo_ilumina(r: Rect2) -> bool:
+	for l: Array in _ativas:
+		if _do_fundo(l) and r.grow(float(l[1])).has_point(l[0]):
+			return true
+	return false
+
+
+static func _do_fundo(l: Array) -> bool:
+	return l.size() > 4 and l[4] is bool and l[4]

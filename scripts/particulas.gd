@@ -6,19 +6,20 @@ extends Node2D
 const MAX := 400
 
 ## [cor, cor alternativa, gravidade, arrasto, vida (frames), tamanho]
+## Todas opacas e da Endesga 32 (tools/arte/pixelkit.py): nada de alfa nem cor fora da paleta.
+## No desenho a posicao e arredondada e o tamanho e inteiro (bloquinhos presos a grade).
 const KINDS := {
-	# poeira e pouso: bloquinhos opacos na grade, cores da Endesga 32 (areia #ead4aa, pedra #c0cbdc)
 	"poeira": [Color("#ead4aa"), Color("#c0cbdc"), -0.02, 0.90, 24, 3.0],
 	"pouso": [Color("#ead4aa"), Color("#c0cbdc"), -0.01, 0.88, 22, 2.5],
-	"anel": [Color8(255, 255, 255, 200), Color8(200, 240, 255, 200), 0.0, 0.86, 16, 2.0],
-	"respingo": [Color8(200, 235, 255, 230), Color8(110, 180, 240, 230), 0.22, 0.98, 40, 2.0],
-	"bolha": [Color8(220, 245, 255, 210), Color8(170, 220, 250, 210), -0.04, 0.97, 50, 2.0],
-	"pena": [Color8(150, 92, 46), Color8(236, 214, 170), 0.03, 0.95, 90, 3.0],
-	"pelo": [Color8(230, 120, 50), Color8(250, 230, 210), 0.05, 0.93, 40, 2.0],
-	"folha": [Color8(96, 170, 50), Color8(200, 150, 40), 0.015, 0.97, 220, 2.0],
-	"brilho": [Color8(255, 236, 120), Color8(255, 255, 255), -0.01, 0.93, 34, 2.0],
+	"anel": [Color("#ffffff"), Color("#c0cbdc"), 0.0, 0.86, 16, 2.0],
+	"respingo": [Color("#ffffff"), Color("#2ce8f5"), 0.22, 0.98, 40, 2.0],
+	"bolha": [Color("#ffffff"), Color("#2ce8f5"), -0.04, 0.97, 50, 2.0],
+	"pena": [Color("#b86f50"), Color("#ead4aa"), 0.03, 0.95, 90, 3.0],
+	"pelo": [Color("#f77622"), Color("#ffffff"), 0.05, 0.93, 40, 2.0],
+	"folha": [Color("#63c74d"), Color("#feae34"), 0.015, 0.97, 220, 2.0],
+	"brilho": [Color("#fee761"), Color("#ffffff"), -0.01, 0.93, 34, 2.0],
 	"pedrinha": [Color("#8b9bb4"), Color("#5a6988"), 0.25, 0.98, 50, 2.0],
-	"vento": [Color8(240, 250, 255, 170), Color8(200, 230, 245, 170), 0.0, 1.0, 60, 1.0],
+	"vento": [Color("#ffffff"), Color("#c0cbdc"), 0.0, 1.0, 60, 1.0],
 }
 
 var _parts: Array = []  # cada uma: [pos, vel, vida, vida_max, tipo, cor, tamanho, fase]
@@ -108,33 +109,43 @@ func _draw() -> void:
 	for p: Array in _parts:
 		var t: float = float(p[2]) / float(p[3])  # 1 -> 0
 		var c: Color = p[5]
-		var pos: Vector2 = p[0]
+		var o: Vector2 = (p[0] as Vector2).round()
 		var s: float = p[6]
 		match p[4]:
 			"poeira", "pouso":
-				# bloquinho preso a grade que encolhe em degraus (3 -> 2 -> 1 px), sem alfa
+				# bloquinho que encolhe em degraus (3 -> 2 -> 1 px)
 				var q := clampi(int(ceil(s * t * 1.2)), 1, 3)
-				var o := pos.round()
 				if q == 3:  # "+" de 3x3 (bolinha de poeira)
 					draw_rect(Rect2(o.x - 1, o.y, 3, 1), c)
 					draw_rect(Rect2(o.x, o.y - 1, 1, 3), c)
 				else:
 					draw_rect(Rect2(o.x, o.y, q, q), c)
 			"anel":
-				draw_rect(Rect2(pos.x - 1, pos.y - 1, 2, 2), Color(c, c.a * t))
+				var q := 2 if t > 0.5 else 1
+				draw_rect(Rect2(o.x - 1, o.y - 1, q, q), c)
 			"bolha":
-				draw_arc(pos + Vector2(sin(p[7] + p[2] * 0.15) * 1.0, 0), s, 0.0, TAU, 8, Color(c, c.a * minf(1.0, t * 2.0)), 1.0)
-			"pena":
-				var w := 3.0 * cos(p[7])
-				draw_rect(Rect2(pos.x - absf(w) * 0.5, pos.y - 1, maxf(1.0, absf(w)), 2), Color(c, minf(1.0, t * 3.0)))
-			"folha":
-				var w := 3.0 * cos(p[7] * 1.3)
-				draw_rect(Rect2(pos.x - absf(w) * 0.5, pos.y - 1, maxf(1.0, absf(w)), 2), Color(c, minf(1.0, t * 4.0)))
+				# anel de 3x3 sem o meio (bolinha oca); no fim, 1 px
+				var b := o + Vector2(roundf(sin(p[7] + p[2] * 0.15)), 0.0)
+				if s >= 1.5 and t > 0.25:
+					draw_rect(Rect2(b.x - 1, b.y, 1, 1), c)
+					draw_rect(Rect2(b.x + 1, b.y, 1, 1), c)
+					draw_rect(Rect2(b.x, b.y - 1, 1, 1), c)
+					draw_rect(Rect2(b.x, b.y + 1, 1, 1), c)
+				else:
+					draw_rect(Rect2(b.x, b.y, 1, 1), c)
+			"pena", "folha":
+				# gira no ar: a largura vai de 3 a 1 px (inteira), sempre 2 de altura
+				var giro: float = p[7] * (1.0 if p[4] == "pena" else 1.3)
+				var w := clampi(roundi(absf(3.0 * cos(giro))), 1, 3)
+				draw_rect(Rect2(o.x - floorf(w * 0.5), o.y - 1, w, 2), c)
 			"brilho":
-				var a := minf(1.0, t * 2.0)
-				draw_rect(Rect2(pos.x - 1, pos.y - 0.5, 3, 1), Color(c, a))
-				draw_rect(Rect2(pos.x - 0.5, pos.y - 1, 1, 3), Color(c, a))
+				if t > 0.35:
+					draw_rect(Rect2(o.x - 1, o.y, 3, 1), c)
+					draw_rect(Rect2(o.x, o.y - 1, 1, 3), c)
+				else:
+					draw_rect(Rect2(o.x, o.y, 1, 1), c)
 			"vento":
-				draw_rect(Rect2(pos.x - 3, pos.y, 6, 1), Color(c, c.a * t))
+				draw_rect(Rect2(o.x - 3, o.y, 6 if t > 0.3 else 3, 1), c)
 			_:
-				draw_rect(Rect2(pos.x - s * 0.5, pos.y - s * 0.5, s, s), Color(c, c.a * minf(1.0, t * 2.0)))
+				var q := clampi(roundi(s * (1.0 if t > 0.3 else 0.5)), 1, 3)
+				draw_rect(Rect2(o.x - floorf(q * 0.5), o.y - floorf(q * 0.5), q, q), c)

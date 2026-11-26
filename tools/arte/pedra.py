@@ -513,6 +513,7 @@ def corrige_pedra(linhas):
         for x in range(7, 15):
             buraco[y][x] = "a" if (y == 0 or x == 7) else "c"
     poe(23, buraco)
+    g[6 * 16][15] = "a"  # bloco 24: quina de contorno em (15,0), espelho da (0,0) do bloco 11
     # pixel claro solto (sobra do fio de luz que sumiu na reducao): vira a cor dos vizinhos
     H, W = len(g), len(g[0])
     for ty in range(H // 16):
@@ -535,10 +536,24 @@ def corrige_pedra(linhas):
                                 conta[v] = conta.get(v, 0) + 1
                         g[y][x] = max(conta, key=lambda v: (conta[v], v == "e")) if conta else "e"
     volume(g)
-    escuro = {"h": "f", "f": "e", "e": "c"}
-    for y in range(5 * 16, 5 * 16 + 5):  # bloco 21: o tijolo de cima a direita um tom abaixo
-        for x in range(16 + 7, 16 + 15):
-            g[y][x] = escuro.get(g[y][x], g[y][x])
+    # bloco 22: o musgo e so uma camada sobre o tijolo liso; fora dele vale o volume do bloco 13
+    # (contar musgo como pedra apagava luz/sombra em volta e deixava pixels de corpo soltos)
+    for y in range(16):
+        for x in range(16):
+            if g[5 * 16 + y][32 + x] not in ("d", "b"):
+                g[5 * 16 + y][32 + x] = g[3 * 16 + y][16 + x]
+    # bloco 21: o tijolo de cima a direita (x 7-14, y 0-4) um tom abaixo: luz #8b9bb4 em cima e
+    # a esquerda, corpo #5a6988 e sombra de 1 px so na coluna da direita (embaixo fica corpo,
+    # para o tijolo nao se fundir ao rejunte)
+    for y in range(5):
+        for x in range(7, 15):
+            if x == 14 and y > 0:
+                c = "c"
+            elif y == 0 or x == 7:
+                c = "f"
+            else:
+                c = "e"
+            g[5 * 16 + y][16 + x] = c
     return ["".join(r) for r in g]
 
 
@@ -558,7 +573,13 @@ def volume(g):
             def pedra(x, y):
                 if not (y0 <= y < y0 + 16):
                     return False
-                return src[y][x0 + (x - x0) % 16] in PEDRA_L
+                xx = x0 + (x - x0) % 16
+                ch = src[y][xx]
+                if xx != x and ch == "a":
+                    # a emenda caiu no contorno do lado aberto do PROPRIO bloco: o vizinho real
+                    # e o tijolo que continua, lido no bloco liso de miolo (13), mesma coluna
+                    ch = src[48 + y - y0][16 + xx - x0]
+                return ch in PEDRA_L
             for y in range(y0, y0 + 16):
                 for x in range(x0, x0 + 16):
                     if src[y][x] not in ("e", "f"):

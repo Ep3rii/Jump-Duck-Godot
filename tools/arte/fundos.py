@@ -155,8 +155,16 @@ def colinas(H, alt, cor, cor_luz, luz_h, matas, raio, mata, mata_s, mata_luz=Non
                 luz |= set((px % G, py) for px, py in cv.mask_ellipse(x - 1.5, cy - 2, r - 3, r - 3))
             else:  # sem luz: meia-lua de sombra embaixo/direita
                 dentro = set((px % G, py) for px, py in cv.mask_ellipse(x - 1, cy - 1, r, r))
+                # a copa seguinte fica na frente: tira dela a meia-lua das anteriores (a sombra
+                # de uma mata nao risca a vizinha)
+                sombra -= fora
                 sombra |= fora - dentro
             copas |= fora
+    if sombra:
+        # ponta de 1 px da meia-lua (sem vizinho de sombra nos 4 lados) vira mata
+        sombra = {(px, py) for px, py in sombra
+                  if any(((px + dx) % G, py + dy) in sombra
+                         for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))}
     for px, py in copas:
         if (px, py) in luz:
             c = mata_luz
@@ -171,6 +179,11 @@ def colinas(H, alt, cor, cor_luz, luz_h, matas, raio, mata, mata_s, mata_luz=Non
         silhueta = morro | copas
         contorno_g(cv, copas, contorno)               # cada copa com borda propria
         contorno_g(cv, silhueta, contorno)            # e a silhueta toda contra o ceu
+        # ponta de crista de 1 px presa entre duas copas (contorno dos dois lados) vira contorno
+        ponta = [(x, y) for x, y in morro - copas if cv.px[y][x] == cor_luz
+                 and cv.px[y][(x - 1) % G] == contorno and cv.px[y][(x + 1) % G] == contorno]
+        for x, y in ponta:
+            cv.px[y][x] = contorno
     return amplia(cv)
 
 
@@ -182,7 +195,9 @@ def colinas_longe():
     verde = E["3e8948"]
 
     def extras(cv, topo):
-        casinha(cv, topo, 125)
+        # x=140 (era 125): com a camera em 0 (comeco das fases) a casinha caia atras do canto
+        # da placa de dica em x=120 e lia como parte dela; em 140 fica no vao entre as dicas
+        casinha(cv, topo, 140)
         casinha(cv, topo, 371)
     return colinas(90, alt, verde, verde, 0,
                    [(20, 3), (85, 5), (165, 2), (235, 4), (320, 6), (400, 2), (465, 3)], 4,
@@ -206,21 +221,16 @@ def casinha(cv, topo, x):
 
 def colinas_perto():
     """Morro de perto: corpo verde-escuro #265c42, crista #3e8948 e contorno #193c3e (a grama
-    jogavel #63c74d fica sempre mais clara e mais viva)
-    e uma faixa escura na base, que aparece nos buracos e le
-    como profundidade."""
+    jogavel #63c74d fica sempre mais clara e mais viva).
+    Sem plantacoes: em amarelo pareciam feno jogavel, e em trigo/madeira pareciam caixa ou cerca
+    (revisao das capturas 16x16). O morro fica so verde, com as moitas.
+    Sem faixa escura na base: a ultima linha e o corpo #265c42, e o parallax.gd preenche abaixo
+    da tira com ela. Assim os vaos entre os blocos de chao mostram o morro continuando, sem o
+    degrau reto para um bloco #193c3e (revisao das capturas 15 e 16)."""
     alt = perfil(37, [(14, 2, 1.0), (6, 5, 0.3), (2, 9, 2.2)])
-
-    def extras(cv, topo):
-        # Sem plantacoes: em amarelo pareciam feno jogavel, e em trigo/madeira pareciam caixa ou
-        # cerca (revisao das capturas 16x16). O morro fica so verde, com as moitas.
-        for x in range(G):  # base escura (os vaos entre os blocos de chao mostram isso)
-            for y in range(cv.h - 6, cv.h):
-                cv.px[y][x] = E["193c3e"]
     return colinas(75, alt, E["265c42"], E["3e8948"], 2,
                    [(10, 2), (105, 4), (210, 3), (260, 2), (350, 5), (450, 3)], 6,
-                   E["265c42"], E["193c3e"], mata_luz=E["3e8948"], contorno=E["193c3e"],
-                   extras=extras)
+                   E["265c42"], E["193c3e"], mata_luz=E["3e8948"], contorno=E["193c3e"])
 
 
 # ------------------------------------------------------------------ nuvens, sol e lua
@@ -386,6 +396,8 @@ def torre(nome):
         if y0 + sa >= H - 1:
             continue
         x0 = cx - sl // 2 + (int(round(4 * W / 36.0)) if i % 2 else -int(round(4 * W / 36.0)))
+        # a seteira da direita para 1 px antes da faixa de sombra (nao come a divisa luz/sombra)
+        x0 = min(x0, cx + bw - sw - sl - 1)
         for y in range(y0, y0 + sa):
             for x in range(x0, x0 + sl):
                 cv.px[y][x] = E["3a4466"]

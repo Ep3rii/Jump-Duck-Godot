@@ -282,7 +282,12 @@ def jacare(quadro):
 # entao as bordas ficam retas e limpas. Cores ja na Endesga 32; contorno #3e2731 (nunca o
 # quase-preto), bico e pata amarelos com contorno laranja (nada de vermelho de ferida).
 ESC_AVE = hexc("3e2731")
-G_CORPO, G_ASA, G_ASA_LONGE, G_PEITO = E_COBRE, E_COBRE, E_MARROM, E_PELE
+# gaviaozinho em tons claros (pele/areia/creme): no fundo azul-marinho escuro da torre, com o
+# "ambiente" da fase escurecendo tudo, o cobre/marrom de antes virava uma mancha so com o
+# contorno; o escuro agora fica so na silhueta de 1 px e o miolo e uma mancha clara continua
+G_PELE = hexc("c28569")
+G_CORPO, G_ASA, G_ASA_LONGE, G_PEITO = G_PELE, G_PELE, E_COBRE, E_CREME
+G_LUZ, G_PONTA = E_PELE, E_CREME  # luz de cima (areia) e ponta clara da cauda
 A_CORPO, A_ASA, A_ASA_LONGE, A_BRANCO = E_MARROM, E_COBRE, E_MARROM, E_BRANCO
 BICO, BICO_ESC, PATA_ESC, CINZA = E_AMARELO, E_LARANJA, E_LARANJA, hexc("636363")
 
@@ -403,11 +408,25 @@ def em16(cv):
     return r
 
 
-def _retoque_ave(c, k, pose, gav):
+def _cauda16(cv):
+    """Pixels (no tamanho do jogo) que sao so cauda no desenho da grade de 32: o bloco 2x2 tem
+    cauda e nenhuma asa por cima (para a ponta clara nao cair na ponta da asa)."""
+    out = set()
+    for y in range(cv.h // 2):
+        for x in range(cv.w // 2):
+            bloco = [cv.part[2 * y + j][2 * x + i] for i in (0, 1) for j in (0, 1)]
+            if bloco.count("cauda") >= 2 and not any(b in ("asa", "asa_longe") for b in bloco):
+                out.add((x, y))
+    return out
+
+
+def _retoque_ave(c, k, pose, gav, cauda=None, grito=False):
     """Retoques no tamanho do jogo (o contorno refeito na reducao come pecas de 1-2 px): bico
     e patas desenhados a mao, olho de 1 px com a cor da cabeca em volta, luz de cima e (no
-    gaviaozinho) juntas internas em meio-tom, para o contorno escuro ficar so na silhueta."""
+    gaviaozinho) juntas internas em meio-tom, para o contorno escuro ficar so na silhueta.
+    grito = bico bem aberto (mandibula de cima e de baixo separadas pela boca vermelha)."""
     ataque = pose == 6
+    meio = G_CORPO if gav else E_COBRE  # cor do miolo que recebe a luz de cima
     X = _par(27 * k) // 2
     Y = (_par(7 * k) + (_par(2 * k) if ataque else 0)) // 2
     lado = 5 if gav else 7  # lado da cabeca em px do jogo
@@ -430,16 +449,18 @@ def _retoque_ave(c, k, pose, gav):
     for x, y in soltos:
         c.px[y][x] = E_MARROM
     # luz de cima: 1 px mais claro logo abaixo do contorno de cima
-    luz = hexc("c28569") if gav else E_PELE
+    luz = G_LUZ if gav else E_PELE
     for y in range(1, c.h):
         for x in range(c.w):
-            if c.px[y][x] == E_COBRE and c.px[y - 1][x] in (ESC_AVE, E_MARROM, None):
+            if c.px[y][x] == meio and c.px[y - 1][x] in (ESC_AVE, E_MARROM, None):
                 c.px[y][x] = luz
-    if gav:  # ponta clara na cauda
+    if gav:  # ponta clara na cauda (so nos pixels de cauda: a ponta da asa tambem chega ali)
         for y in range(c.h):
             for x in range(1, 5):
-                if c.px[y][x] in (E_COBRE, luz) and c.px[y][x - 1] == ESC_AVE:
-                    c.px[y][x] = E_PELE
+                if cauda is not None and (x, y) not in cauda:
+                    continue
+                if c.px[y][x] in (meio, luz) and c.px[y][x - 1] == ESC_AVE:
+                    c.px[y][x] = G_PONTA
     # olho: 1 px quase preto no miolo da cabeca, longe do contorno de cima
     cab = c.px[Y + lado // 2][X + lado // 2]
     for yy in range(Y + 1, Y + lado - 1):
@@ -449,7 +470,7 @@ def _retoque_ave(c, k, pose, gav):
     if gav:  # rosto 3x3: sobrancelha no canto de tras, olho no meio com face clara em volta
         for yy in range(Y + 1, Y + lado - 1):
             for xx in range(X + 1, X + lado - 1):
-                c.px[yy][xx] = luz if yy == Y + 1 else E_COBRE
+                c.px[yy][xx] = luz if yy == Y + 1 else meio
         c.px[Y + 1][X + 1] = E_MARROM
         c.px[Y + 2][X + 2] = E_PRETO
     else:
@@ -458,11 +479,17 @@ def _retoque_ave(c, k, pose, gav):
         c.px[Y + 3][X + 4] = E_PRETO
     # bico em gancho encostado na cabeca: contorno laranja, miolo amarelo, sem buraco
     bx = X + lado
-    if gav:
+    if gav and grito:  # aberto: mandibula de cima, boca vermelha, mandibula de baixo
+        bico = ["ooo.", "yyyo", "r...", "yyo.", "oo.."]
+    elif gav:
         bico = ["oo.", "yyo", ".o."]
+    elif grito:
+        bico = ["oo...", "yyyo.", "yyyyo", "rr.oo", "yyo..", "oo..."]
     else:
         bico = ["oo..", "yyyo", "yyyo", "ooyo", "...o"]
-    mapa(c, bico, {"o": BICO_ESC, "y": BICO}, bx, Y + 1)
+    mapa(c, bico, {"o": BICO_ESC, "y": BICO, "r": E_VERMELHO}, bx, Y + 1)
+    if gav:  # o amarelo entra 1 px no contorno da cara: o bico pequeno nao parece um pixel solto
+        c.px[Y + 2][bx - 1] = BICO
     for yy in range(Y + 1, Y + lado - 1):  # fecha a cabeca do lado do bico (sem buraco)
         if c.px[yy][bx - 1] is None:
             c.px[yy][bx - 1] = ESC_AVE
@@ -477,10 +504,15 @@ def _retoque_ave(c, k, pose, gav):
         for xx in range(x0, x0 + (2 if gav else 3)):
             if vazio(xx, base) and not vazio(xx, base - 1):
                 c.set(xx, base, BICO_ESC)
+    if not gav:  # fecha a barriga: a reducao as vezes perde o contorno de baixo junto da pata
+        for yy in range(1, c.h):
+            for xx in range(c.w):
+                if vazio(xx, yy) and c.px[yy - 1][xx] in (E_MARROM, E_COBRE, E_PELE, A_BRANCO):
+                    c.set(xx, yy, ESC_AVE)
     return c
 
 
-def gaviaozinho(pose):
+def gaviaozinho(pose, grito=False):
     velha = ASA_POSES.copy()  # poses proprias do gaviaozinho (o chefe e a aguia usam ASA_POSES)
     ASA_POSES.update(ASA_POSES_GAV)
     try:
@@ -488,14 +520,26 @@ def gaviaozinho(pose):
     finally:
         ASA_POSES.clear()
         ASA_POSES.update(velha)
-    return amplia2(_retoque_ave(em16(a), 1.0, pose, True))
+    return amplia2(_retoque_ave(em16(a), 1.0, pose, True, cauda=_cauda16(a), grito=grito))
 
 
-def aguia(pose):
+def aguia(pose, grito=False):
     if pose >= 7:  # 7..22 = os 16 quadros de bico preso
         return aguia_presa(pose - 7)
     return amplia2(_retoque_ave(em16(ave(pose, 1.4, A_CORPO, A_ASA, A_ASA_LONGE, A_BRANCO, A_BRANCO,
-                                         env=1.15)), 1.4, pose, False))
+                                         env=1.15)), 1.4, pose, False, grito=grito))
+
+
+# grito (aviso antes do rasante/mergulho): parada no ar, asas erguidas no alto batendo curto
+# (so entre "cima" e "meia"), corpo sem subir e descer e o bico bem aberto. Assim o aviso se le
+# no sprite, e nao so pelo som e pelo pisca.
+GRITO_ASA = [0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1]
+GRITO_DY = [0, 0, 0, 0, -2, -2, 0, 0, 0, 0, 0, 0, -2, -2, 0, 0]  # 1 px de "pulo" no grito
+
+
+def grito16(fn):
+    """16 quadros de grito da ave fn(pose, grito=True)."""
+    return [_desloca(fn(GRITO_ASA[i], grito=True), 0, 2 + GRITO_DY[i]) for i in range(16)]
 
 
 # aguia de bico preso, desenhada direto em pixels do jogo (31x26): o corpo inclinado com a
@@ -629,12 +673,24 @@ def presa16(fn):
     return [fn(7 + i) for i in range(16)]
 
 
+# Os quadros de grito so entram nas folhas com COM_GRITO = True. ATENCAO: ligar muda o numero
+# de quadros das folhas, entao tem de ser gravado JUNTO com os scripts: scripts/gaviaozinho.gd
+# QUADROS := 48 (grito 32..47) e scripts/aguia.gd QUADROS := 64 (grito 48..63), cada um usando
+# esses quadros no estado "aviso". Com os scripts antigos a folha maior sai espremida no jogo.
+COM_GRITO = False
+
+
 def pecas():
+    gav = voo16(gaviaozinho) + ataque16(gaviaozinho)                 # voo 0..15, rasante 16..31
+    agu = voo16(aguia) + mergulho16() + presa16(aguia)               # voo, mergulho, bico preso
+    if COM_GRITO:
+        gav += grito16(gaviaozinho)                                  # grito 32..47
+        agu += grito16(aguia)                                        # grito 48..63
     return {
         "raposa": [raposa(i) for i in range(16)],
         "jacare": [jacare(i) for i in range(32)],                       # nado 0..15, mordida 16..31
-        "gaviaozinho": voo16(gaviaozinho) + ataque16(gaviaozinho),     # voo 0..15, rasante 16..31
-        "aguia": voo16(aguia) + mergulho16() + presa16(aguia),          # voo, mergulho, bico preso
+        "gaviaozinho": gav,
+        "aguia": agu,
     }
 
 
@@ -671,6 +727,8 @@ def folha(p):
     save_gif(os.path.join(OUT, "gaviaozinho.gif"), p["gaviaozinho"][:16], delay_cs=5, scale=6, bg=bg)
     save_gif(os.path.join(OUT, "aguia.gif"), p["aguia"][:16], delay_cs=6, scale=6, bg=bg)
     save_gif(os.path.join(OUT, "jacare.gif"), p["jacare"], delay_cs=6, scale=6, bg=bg)
+    save_gif(os.path.join(OUT, "gaviaozinho_grito.gif"), grito16(gaviaozinho), delay_cs=5, scale=6, bg=bg)
+    save_gif(os.path.join(OUT, "aguia_grito.gif"), grito16(aguia), delay_cs=5, scale=6, bg=bg)
 
 
 def main():

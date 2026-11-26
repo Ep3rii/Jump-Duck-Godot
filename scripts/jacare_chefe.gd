@@ -22,14 +22,15 @@ const LEAP_GRAVITY := 0.25
 const SURFACE_DEPTH := 8.0  # na superficie a barriga fica 8 px abaixo da linha d'agua
 const PAIN_DEPTH := 2.0  # com dor de dente boia mais alto: bochecha e boca ficam fora d'agua
 const DEEP := 26.0  # submerso
-const BITE_DISTANCE := 32.0  # emerge a esta distancia do pato
-const HALF_W := 16.0  # 2 blocos de largura (quadro de 32 px)
+const BITE_DISTANCE := 36.0  # emerge a esta distancia do pato (8 px de folga com HALF_W + meio pato)
+const HALF_W := 20.0  # 40 px de colisao (a arte tem 48: a ponta fina da cauda e o focinho ficam de fora)
 const HEIGHT := 16.0  # corpo de ~16 px acima da barriga (cabeca e cristas mais altas)
 const BITE_REACH := 10.0
 const Z_SALTO := -470  # absoluto: na frente do Jogador (-500) e da Agua (-480), atras das Dicas
+const Z_BOLHAS := -479  # absoluto: logo na frente da Agua (-480), que cobriria as bolhas do aviso
 const Sprites := preload("res://scripts/sprites.gd")
 const QUADROS := 64  # chefe_jacare.png: nado, salto, mordida e dor, 16 quadros cada
-const PIVO := Vector2(16, 28)  # ponto da barriga no quadro de 32 px (JG_BARRIGA em tools/arte/chefes.py)
+const PIVO := Vector2(24, 28)  # ponto da barriga no quadro de 48x32 px (JG_W / 2 e JG_BARRIGA em tools/arte/chefes.py)
 
 
 var state := "espera"  # espera | nadando | aviso | salto | mordida_aviso | mordida | dor | ferido
@@ -42,6 +43,7 @@ var _vy := 0.0
 var _mouth := 0.0
 var _lunge := 0.0
 var _anim := 0.0
+var _bolhas: Node2D = null  # filho que desenha as bolhas do aviso na frente da agua
 
 
 func sombra_largura() -> float:
@@ -56,6 +58,12 @@ func _enemy_ready() -> void:
 	effect_offset = Vector2(0, -10)
 	particula_derrota = "respingo"
 	particulas_qtd = 30
+	_bolhas = Node2D.new()
+	_bolhas.z_as_relative = false
+	_bolhas.z_index = Z_BOLHAS
+	_bolhas.visible = false
+	_bolhas.draw.connect(_draw_bubbles)
+	add_child(_bolhas)
 	for w in get_tree().get_nodes_in_group("agua"):
 		if w.get_rect().has_point(position + Vector2(0, -2)):
 			water = w
@@ -199,6 +207,9 @@ func _physics_process(_delta: float) -> void:
 	# cobre o que esta submerso)
 	z_as_relative = state != "salto"
 	z_index = Z_SALTO if state == "salto" else 0
+	_bolhas.visible = state == "aviso"
+	if _bolhas.visible:
+		_bolhas.queue_redraw()
 	queue_redraw()
 
 
@@ -253,24 +264,69 @@ func _draw() -> void:
 		"ferido":
 			q = 48
 	var submerged := state in ["nadando", "aviso", "ferido", "espera"]
-	var a := 0.6 if submerged else 1.0
-	if state == "ferido" and int(_anim / 5.0) % 2 == 0:
-		a = 0.25
-	if state == "aviso":
-		_draw_bubbles()
-	Sprites.draw_bicho(self, "chefe_jacare", q, QUADROS, PIVO, dir < 0, Color(1, 1, 1, a),
-		Vector2(_lunge * float(dir), 0.0))
+	if submerged:
+		# o que passa da linha d'agua fica opaco; o que esta debaixo, translucido (a agua cobre)
+		var pisca := state == "ferido" and int(_anim / 5.0) % 2 == 0
+		_draw_cortado(q, Color(1, 1, 1, 0.25 if pisca else 1.0), Color(1, 1, 1, 0.25 if pisca else 0.6))
+	elif state == "salto":
+		# no salto o chefe fica NA FRENTE da agua (Z_SALTO): a parte ainda debaixo d'agua (no
+		# primeiro e no ultimo quadro) e tingida como se a agua a cobrisse, em vez de aparecer
+		# opaca e sumir de repente quando ele volta para tras da agua
+		_draw_cortado(q, Color.WHITE, COR_DEBAIXO_DAGUA)
+	else:
+		Sprites.draw_bicho(self, "chefe_jacare", q, QUADROS, PIVO, dir < 0, Color.WHITE,
+			Vector2(_lunge * float(dir), 0.0))
 
 
-## Bolhas do aviso em pixel art (cores da ENDESGA 32): aneis de 5x5 e 3x3 com 1 px de brilho,
-## presos a grade, que sobem pela agua e estouram na linha da agua (nunca passam dela). Na
-## superficie, marolinhas de 2 px no lugar de uma barra lisa.
+## Tinta da parte submersa quando o chefe esta na frente da agua: parecida com o sprite a 0.6
+## atras da agua translucida (Agua.COL_BODY).
+const COR_DEBAIXO_DAGUA := Color(0.55, 0.72, 0.95, 0.6)
+
+
+## Desenha o quadro q dividido na linha d'agua: acima com 'cima', abaixo com 'baixo'.
+func _draw_cortado(q: int, cima: Color, baixo: Color) -> void:
+	var t := Sprites.art("chefe_jacare")
+	var fw := t.get_width() / float(QUADROS)
+	var fh := float(t.get_height())
+	var esc := Sprites.ART_SCALE
+	# linha do quadro (em px da textura) que fica na linha d'agua
+	var corte := clampf(roundf((water.surface_y() - global_position.y + PIVO.y) / esc), 0.0, fh)
+	var sx := posmod(q, QUADROS) * fw
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2(-1, 1) if dir < 0 else Vector2.ONE)
+	if corte > 0.0:
+		draw_texture_rect_region(t, Rect2(-PIVO, Vector2(fw, corte) * esc), Rect2(sx, 0.0, fw, corte), cima)
+	if corte < fh:
+		draw_texture_rect_region(t, Rect2(Vector2(-PIVO.x, -PIVO.y + corte * esc), Vector2(fw, fh - corte) * esc),
+			Rect2(sx, corte, fw, fh - corte), baixo)
+	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+## Bolhas do aviso em pixel art (cores da ENDESGA 32): aneis brancos de 5x5 e 3x3 com contorno
+## escuro de 1 px (leem contra o ciano da superficie e o azul da agua), presos a grade, que sobem
+## na frente do jacare e estouram na linha da agua (nunca passam dela). Na superficie, meias-bolhas
+## que brotam e somem no ponto do salto. Quem desenha e o filho _bolhas (Z_BOLHAS): no proprio
+## chefe elas ficariam atras do corpo e debaixo da agua, que as apagava.
 const COR_BOLHA := Color("#2ce8f5")
 const COR_BRILHO := Color("#ffffff")
+const COR_CONTORNO_BOLHA := Color("#124e89")
 const BOLHA_GRANDE := [Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0), Vector2i(0, 1), Vector2i(4, 1),
 	Vector2i(0, 2), Vector2i(4, 2), Vector2i(0, 3), Vector2i(4, 3), Vector2i(1, 4), Vector2i(2, 4),
 	Vector2i(3, 4)]
+const BOLHA_GRANDE_CONTORNO := [Vector2i(1, -1), Vector2i(2, -1), Vector2i(3, -1), Vector2i(0, 0),
+	Vector2i(4, 0), Vector2i(-1, 1), Vector2i(5, 1), Vector2i(-1, 2), Vector2i(5, 2), Vector2i(-1, 3),
+	Vector2i(5, 3), Vector2i(0, 4), Vector2i(4, 4), Vector2i(1, 5), Vector2i(2, 5), Vector2i(3, 5)]
 const BOLHA_PEQUENA := [Vector2i(1, 0), Vector2i(0, 1), Vector2i(2, 1), Vector2i(1, 2)]
+const BOLHA_PEQUENA_CONTORNO := [Vector2i(1, -1), Vector2i(0, 0), Vector2i(2, 0), Vector2i(-1, 1),
+	Vector2i(3, 1), Vector2i(0, 2), Vector2i(2, 2), Vector2i(1, 3)]
+## meia-bolha na linha da agua (base em y = 0, que fica na linha da agua): miolo ciano
+const DOMO := [Vector2i(1, -2), Vector2i(0, -1), Vector2i(2, -1)]
+const DOMO_MIOLO := [Vector2i(1, -1)]
+const DOMO_CONTORNO := [Vector2i(1, -3), Vector2i(0, -2), Vector2i(2, -2), Vector2i(-1, -1), Vector2i(3, -1)]
+
+
+func _pixels(o: Vector2, forma: Array, cor: Color) -> void:
+	for c: Vector2i in forma:
+		_bolhas.draw_rect(Rect2(o.x + c.x, o.y + c.y, 1, 1), cor)
 
 
 func _draw_bubbles() -> void:
@@ -278,25 +334,26 @@ func _draw_bubbles() -> void:
 	var top := roundf(water.surface_y() - position.y)
 	for i in 4:
 		var k := fposmod(t * 0.6 + i * 9.0, 30.0)
-		var bx := roundf(-14.0 + i * 9.0 + sin((t + i * 7) * 0.3) * 1.0)
+		var bx := roundf(-10.0 + i * 6.0 + sin((t + i * 7) * 0.3) * 1.0)
 		var by := roundf(top + 22.0 - k)
-		if by >= top + 2.0:
+		if by >= top + 3.0:
 			var grande := i % 2 == 1
-			var forma: Array = BOLHA_GRANDE if grande else BOLHA_PEQUENA
 			var lado := 5.0 if grande else 3.0
 			var o := Vector2(bx - floorf(lado * 0.5), by - lado)
-			for c: Vector2i in forma:
-				draw_rect(Rect2(o.x + c.x, o.y + c.y, 1, 1), COR_BOLHA)
-			draw_rect(Rect2(o.x + 1, o.y + 1, 1, 1), COR_BRILHO)
+			_pixels(o, BOLHA_GRANDE_CONTORNO if grande else BOLHA_PEQUENA_CONTORNO, COR_CONTORNO_BOLHA)
+			_pixels(o, BOLHA_GRANDE if grande else BOLHA_PEQUENA, COR_BRILHO)
+			if grande:
+				_bolhas.draw_rect(Rect2(o.x + 1, o.y + 1, 1, 1), COR_BOLHA)
 		elif k < 26.0:
-			# estouro na linha da agua: 4 pingos em cruz que se afastam e somem
+			# estouro na linha da agua: 4 pingos simetricos que se afastam e somem
 			var d := 2.0 if k < 24.0 else 3.0
-			for v: Vector2 in [Vector2(-d, 0), Vector2(d, 0), Vector2(0, -d), Vector2(-1, -d + 1)]:
-				draw_rect(Rect2(bx + v.x, top - 2.0 + v.y, 1, 1), COR_BRILHO)
-	# marolinhas: tracos de 2 px na linha da agua, andando 2 px de tempos em tempos
-	var passo := 2.0 * (int(t / 8.0) % 2)
-	var x := -20.0
-	while x < 20.0:
-		draw_rect(Rect2(x + passo, top - 1.0, 2, 1), COR_BRILHO)
-		draw_rect(Rect2(x + passo + 2.0, top, 3, 1), COR_BOLHA)
-		x += 10.0
+			for v: Vector2 in [Vector2(-d, 0), Vector2(d, 0), Vector2(-1, -d + 1), Vector2(1, -d + 1)]:
+				_bolhas.draw_rect(Rect2(bx + v.x, top - 1.0 + v.y, 1, 1), COR_BRILHO)
+	# meias-bolhas na linha da agua, juntas no ponto do salto: cada uma brota e some por vez
+	for j in 3:
+		if int((t + j * 5) / 6.0) % 3 == 0:
+			continue
+		var o := Vector2(-9.0 + j * 7.0, top)
+		_pixels(o, DOMO_CONTORNO, COR_CONTORNO_BOLHA)
+		_pixels(o, DOMO, COR_BRILHO)
+		_pixels(o, DOMO_MIOLO, COR_BOLHA)

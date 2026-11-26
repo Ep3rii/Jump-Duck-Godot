@@ -35,13 +35,13 @@ LACO_X, LACO_DY = 2, 1  # canto de cima/esquerda, relativo ao topo da cabeca
 LACO_COR = {"L": LACO_CLARO, "A": LACO, "N": LACO_NO}
 
 # ninho 20x8: A = contorno/cavidade, C = graveto escuro, B = graveto, L = luz (cima/esquerda)
-NINHO = ["....A..........A....",   # dois gravetos soltos de 1 px, cada um num angulo
-         ".....C.......CC.....",
-         ".ALBLBCLBBLCBLBBLCA.",
+NINHO = ["...A........A.......",   # dois gravetos soltos, inclinados para o mesmo lado (\),
+         "....CC.......C......",   # um de 3 px e outro de 2 px, em posicoes nao simetricas
+         ".ALLBBCBLLBCBBLBBBA.",
          "ACAAAAAAAAAAAAAAAACA",
-         ".ABBCLBBBCCBLBBBCBA.",   # trama irregular (nada de xadrez)
-         ".ACBBCBBLBBCBCCBBCA.",
-         "..AACCBBCBBBCBBCAA..",
+         ".ABBBCLLBBBCBBBLBBA.",   # trama irregular (nenhum xadrez 2x2 nem LBLB)
+         ".ACBBBCBBLBBBCCBBCA.",
+         "..AACCCBBCBBCCBBAA..",
          "....AAAAAAAAAAAA...."]
 NINHO_COR = {"A": hexc("3e2731"), "C": hexc("733e39"), "B": hexc("b86f50"), "L": hexc("e4a672")}
 
@@ -50,10 +50,7 @@ def pata(q):
     """Quadro acabado do pato (16x16) -> a Pata: laco, cilio e bochecha, que acompanham a cabeca."""
     cv = Q.copia(q)
     t = Q.topo_cabeca(q)
-    dy = LACO_DY
-    abaixo = t + dy + len(LACO_DESENHO)  # a linha logo abaixo do laco
-    if dy > 0 and abaixo < 16 and any(q.px[abaixo][x] is not None for x in range(LACO_X, LACO_X + 5)):
-        dy -= 1  # a asa alta chega perto: o laco sobe 1 px e o vao dele continua aberto
+    dy = LACO_DY  # o laco fica fixo na cabeca (quem cede quando a asa sobe e a asa, em feliz())
     for j, linha in enumerate(LACO_DESENHO):
         for i, ch in enumerate(linha):
             if ch != "." and 0 <= t + dy + j < 16:
@@ -83,8 +80,28 @@ def feliz():
                     if f.px[y][x] is None and any(
                             0 <= x + dx < 16 and f.px[y + dy][x + dx] in (Q.BRANCO, Q.SOMBRA) for dx, dy in Q.VIZ4):
                         f.px[y][x] = Q.CONT
+        _encurta_asa(f)
         out.append(f)
     return out
+
+
+# asa alta da Pata feliz (linhas 4-6, colunas 0-7): a ponta subia ate a linha logo abaixo do
+# laco e fechava o vao dele (o laco precisava pular 1 px). Aqui a ponta fica 1 px mais curta e o
+# contorno entre asa e nuca deixa de formar um bloco escuro em L.
+ASA_ALTA = ["....C..C",
+            "...CECCE",
+            "CCCCEECE"]
+ASA_CURTA = [".......C",
+             "...CC.CE",
+             "CCCEECEE"]
+
+
+def _encurta_asa(f):
+    cor = {".": None, "C": Q.CONT, "E": Q.BRANCO}
+    if all(f.px[4 + j][i] == cor[ch] for j, linha in enumerate(ASA_ALTA) for i, ch in enumerate(linha)):
+        for j, linha in enumerate(ASA_CURTA):
+            for i, ch in enumerate(linha):
+                f.px[4 + j][i] = cor[ch]
 
 
 def ninho():

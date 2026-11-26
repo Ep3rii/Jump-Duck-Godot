@@ -118,6 +118,7 @@ z_index = -750
 position = Vector2(768, 304)
 script = ExtResource("9_mjrbb")
 tiles_h = 8
+encosto_x = -7
 
 [node name="Itens" type="Node2D" parent="." unique_id=697024786]
 z_index = -700

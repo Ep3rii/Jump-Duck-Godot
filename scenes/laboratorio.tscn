@@ -72,7 +72,7 @@ script = ExtResource("4_xcynu")
 tiles_w = 3
 
 [node name="MargemAgua" type="Node2D" parent="Blocos" unique_id=1587342210 instance=ExtResource("3_mcakb")]
-position = Vector2(504, 336)
+position = Vector2(496, 336)
 script = ExtResource("4_xcynu")
 tiles_h = 2
 
@@ -80,7 +80,7 @@ tiles_h = 2
 z_index = -750
 
 [node name="Agua" type="Node2D" parent="Mecanicas" unique_id=100778778 instance=ExtResource("5_3dk3w")]
-position = Vector2(520, 336)
+position = Vector2(512, 336)
 script = ExtResource("6_ab7c0")
 tiles_w = 16
 tiles_h = 2
@@ -100,6 +100,7 @@ alvos = Array[NodePath]([NodePath("../Porta1")])
 position = Vector2(440, 336)
 script = ExtResource("12_usth0")
 tiles_h = 3
+encosto_x = 6
 
 [node name="PlataformaMovel" type="Node2D" parent="Mecanicas" unique_id=1665247000 instance=ExtResource("13_sttja")]
 position = Vector2(528, 304)

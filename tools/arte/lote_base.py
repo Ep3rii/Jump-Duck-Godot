@@ -96,7 +96,7 @@ def bloco_piso():
               "CEEEEEEEEEWYWEDC",
               "CEEDEEEEEDEWEEDC",
               "CDDEDDEEDDDEDDDC",
-              "CDTDDTDDDTDDTDTC",
+              "CDTDDTDDDTDDTDDC",
               "CTTDTTTDTTTTTDTC",
               "CTTTTTTTTTTTTTTC",
               "CTTTTTTTTTTTTTTC",
@@ -116,6 +116,10 @@ def bloco_piso():
     for y in range(16):              # contorno que so encosta em terra vira #3e2731
         for x in range(16):
             if linhas[y][x] != "C":
+                continue
+            if x in (0, 15) and 0 < y < 15:  # laterais: decide pelo pixel de dentro (simetrico)
+                if linhas[y][1 if x == 0 else 14] not in grama:
+                    g[y][x] = "K"
                 continue
             viz = [linhas[yy][xx] for yy in (y - 1, y, y + 1) for xx in (x - 1, x, x + 1)
                    if 0 <= yy < 16 and 0 <= xx < 16 and (xx, yy) != (x, y)]
@@ -162,14 +166,18 @@ def _coracao32(q):
     for (x, y) in forma:
         if any((x + dx, y + dy) not in forma for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
             cv.px[y][x] = E_VERM_ESC
-    k = max(1, n // 8)
+    k = max(1, n // 10)
+    sombra = []
     for (x, y) in forma:
-        if cv.px[y][x] != E_VERM:
+        if cv.px[y][x] != E_VERM or x < 16:
             continue
-        # sombra: miolo perto da borda de baixo/direita
-        if any(cv.px[y + j][x + i] == E_VERM_ESC for i, j in ((1, 1), (0, k), (k, 0))
-               if 0 <= x + i < 32 and 0 <= y + j < 32) and (x >= 16 or y >= 16 + n // 4):
-            cv.px[y][x] = E_VERM_S
+        # sombra SOLIDA: faixa de k px colada no contorno da direita/de baixo (metade direita),
+        # sem miolo vermelho entre a sombra e o contorno (nada de contorno duplo)
+        viz = [(x + i, y) for i in range(1, k + 1)] + [(x, y + j) for j in range(1, k + 1)]
+        if any(0 <= vx < 32 and 0 <= vy < 32 and cv.px[vy][vx] == E_VERM_ESC for vx, vy in viz):
+            sombra.append((x, y))
+    for (x, y) in sombra:
+        cv.px[y][x] = E_VERM_S
     # brilho: um bloquinho no lobo esquerdo
     bx, by = 16 - n // 2 + max(2, n // 6), 16 - n // 4 + max(0, n // 16)
     t = max(1, n // 8)

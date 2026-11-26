@@ -15,8 +15,8 @@ const PixelFont := preload("res://scripts/pixel_font.gd")
 ## Distancia (px) em que o balao aparece.
 @export var alcance := 56.0
 
-const COL_BUBBLE := Color8(13, 80, 0, 230)
-const COL_BUBBLE_EDGE := Color8(133, 242, 56)
+const COL_BUBBLE := Color("#193c3e")  # Endesga 32, igual ao painel da UI
+const COL_BUBBLE_EDGE := Color("#63c74d")
 
 var _show := 0.0  # 0..1 (aparece/desaparece suave)
 ## A placa de madeira fica num filho interno com z relativo -100 (Dicas -450 -> -550): atras
@@ -114,16 +114,32 @@ func _desenha_balao(n: CanvasItem) -> void:
 			x0 = floorf(clampf(x0, left, right - bw))
 		if y0 < top:
 			y0 = ceilf(top)
+	# sempre na grade de pixels do jogo (inclusive durante o fade)
+	x0 = floorf(x0)
+	y0 = floorf(y0)
+	# a caixa fica opaca por mais tempo que o texto: no fade o texto some primeiro, sobre o
+	# fundo escuro, e nunca fica translucido por cima do cenario claro
+	var a_caixa := minf(1.0, _show * 2.0)
+	var a_texto := clampf(_show * 2.0 - 1.0, 0.0, 1.0)
 	var bubble := COL_BUBBLE
-	bubble.a *= _show
+	bubble.a *= a_caixa
 	var edge := COL_BUBBLE_EDGE
-	edge.a *= _show
-	n.draw_rect(Rect2(x0, y0, bw, h), bubble)
-	n.draw_rect(Rect2(x0, y0, bw, h), edge, false)
-	# ponta sobre a placa, mas sempre encostada no balao
+	edge.a *= a_caixa
+	# fundo so no miolo e borda em 4 tiras cheias de 1 px de jogo (como a moldura do HUD);
+	# draw_rect com filled=false sairia com 1 px de tela, fino demais e fora da grade
+	n.draw_rect(Rect2(x0 + 1.0, y0 + 1.0, bw - 2.0, h - 2.0), bubble)
+	n.draw_rect(Rect2(x0, y0, bw, 1), edge)
+	n.draw_rect(Rect2(x0, y0 + h - 1.0, bw, 1), edge)
+	n.draw_rect(Rect2(x0, y0 + 1.0, 1, h - 2.0), edge)
+	n.draw_rect(Rect2(x0 + bw - 1.0, y0 + 1.0, 1, h - 2.0), edge)
+	# ponta sobre a placa, mas sempre encostada no balao: degrau de 4 px e depois 2 px, saindo
+	# por inteiro abaixo da borda (le como bico do balao, e nao como um bloco cortado)
 	var px := clampf(-2.0, x0 + 1.0, x0 + bw - 5.0)
-	n.draw_rect(Rect2(px, y0 + h, 4, 2), edge)
-	var white := Color(1, 1, 1, _show)
+	n.draw_rect(Rect2(px, y0 + h, 4, 1), edge)
+	n.draw_rect(Rect2(px + 1.0, y0 + h + 1.0, 2, 1), edge)
+	if a_texto <= 0.0:
+		return
+	var white := Color(1, 1, 1, a_texto)
 	var cx := x0 + bw * 0.5
 	for i in lines.size():
 		PixelFont.draw_plain(n, cx, y0 + 9.0 + i * 11.0, lines[i], white, PixelFont.CENTER)

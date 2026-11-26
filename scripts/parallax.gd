@@ -38,7 +38,8 @@ const HORAS := [
 		"astro_tinta": Color(1.0, 0.92, 0.72), "ambiente": Color(1, 1, 1)},
 	{"ceu": [0x3a4466, 0x68386c, 0xb55088, 0xf77622, 0xfeae34], "tinta": Color(0.95, 0.7, 0.74),
 		"nuvem": Color(1.0, 0.74, 0.68), "astro": "sol", "pos": Vector2(0.2, 0.6),
-		"astro_tinta": Color(1.0, 0.66, 0.4), "ambiente": Color(1.0, 0.9, 0.82)},
+		"astro_tinta": Color(1.0, 0.66, 0.4), "ambiente": Color(1.0, 0.9, 0.82),
+		"sobre_morros": false},
 	{"ceu": [0x181425, 0x181425, 0x262b44, 0x262b44, 0x3a4466], "tinta": Color(0.42, 0.5, 0.8),
 		"nuvem": Color(0.5, 0.56, 0.86), "astro": "lua", "pos": Vector2(0.24, 0.2),
 		"astro_tinta": Color(1, 1, 1), "ambiente": Color(0.66, 0.72, 0.96)},
@@ -148,6 +149,14 @@ func _draw_stars(vx: float, vy: float, vw: float, vh: float) -> void:
 func _draw_astro(vx: float, vy: float, vw: float, vh: float, h: Dictionary) -> void:
 	var pos: Vector2 = h["pos"]
 	var c := Vector2(vx + floorf(vw * pos.x), vy + floorf(vh * pos.y))
+	# o disco fica sempre acima do pico mais alto das montanhas (elas sobem e descem com o
+	# parallax vertical): sem sol "se pondo" atras de um pico ao meio-dia. So o sol do
+	# entardecer fica baixo de proposito, atras dos morros.
+	if h.get("sobre_morros", true):
+		var tam := Sprites.art_size(MONTANHAS[0])
+		var topo := _layer_base(vy, vh, MONTANHAS[2], MONTANHAS[3]) - tam.y + _topo_arte(MONTANHAS[0])
+		# disco do sol: c.y - 11 a c.y + 10; da lua: c.y - 10 a c.y + 11
+		c.y = minf(c.y, _grade(topo) - (12.0 if h["astro"] == "lua" else 11.0))
 	if h["astro"] == "lua":
 		Sprites.draw_art(self, "fundo/lua", c.x - 16.0, c.y - 16.0)
 	else:
@@ -185,6 +194,14 @@ func _base_color(arte: String) -> Color:
 		var t := Sprites.art(arte)
 		_base_cor[arte] = t.get_image().get_pixel(0, t.get_height() - 1)
 	return _base_cor[arte]
+
+
+## Primeira linha com pixel da arte (o pico mais alto de uma tira de morros), lida uma vez so.
+func _topo_arte(arte: String) -> float:
+	var chave := arte + "#topo"
+	if not _base_cor.has(chave):
+		_base_cor[chave] = float(Sprites.art(arte).get_image().get_used_rect().position.y)
+	return _base_cor[chave]
 
 
 ## Y da base de uma camada: 'acima' px acima da base da tela quando a camera esta no fundo da
@@ -234,6 +251,9 @@ const RET_JANELA := Rect2(-18.0, -30.0, 36.0, 60.0)
 const LIVRE_JANELA := 16.0
 const RET_TOCHA := Rect2(-8.0, -10.0, 16.0, 36.0)
 const LIVRE_TOCHA := 24.0
+## Passos para o lado que a tocha pode dar para nao ficar atras de um item (sem encostar no
+## estandarte, que fica 44 px a esquerda dela, nem na janela da celula seguinte).
+const TOCHA_DESVIO := [0.0, -24.0, 32.0]
 const RET_BANDEIRA := Rect2(-10.0, 0.0, 20.0, 56.0)
 const LIVRE_BANDEIRA := 16.0
 
@@ -288,6 +308,35 @@ func _lugar_livre(p: Vector2, ret: Rect2, livre_embaixo: float) -> Variant:
 	return null
 
 
+## Tocha: o lugar de sempre (_lugar_livre); se ali ela ficar bem atras de um item (flor,
+## coracao, chave), o cabo e a chama se misturam com ele, entao tenta subir mais um pouco ou
+## ir um passo para o lado. Se nada servir, fica onde estava.
+func _lugar_tocha(p: Vector2) -> Variant:
+	var q: Variant = _lugar_livre(p, RET_TOCHA, LIVRE_TOCHA)
+	if q == null or not _atras_de_item(q):
+		return q
+	for dx: float in TOCHA_DESVIO:
+		for i in 4:
+			var t := p + Vector2(dx, -16.0 * i)
+			var r := Rect2(t + RET_TOCHA.position, RET_TOCHA.size)
+			r.size.y += LIVRE_TOCHA
+			if not _bate(r) and not _atras_de_item(t):
+				return t
+	return q
+
+
+func _atras_de_item(t: Vector2) -> bool:
+	if not is_inside_tree():
+		return false
+	var r := Rect2(t + RET_TOCHA.position, RET_TOCHA.size).grow(2.0)
+	for n in get_tree().get_nodes_in_group("item"):
+		if n is Node2D and not n.is_queued_for_deletion():
+			var pos: Vector2 = (n as Node2D).global_position
+			if r.intersects(Rect2(pos.x - 8.0, pos.y - 16.0, 16.0, 18.0)):
+				return true
+	return false
+
+
 func _enfeites_da_celula(c: int, r: int) -> Array:
 	var chave := Vector2i(c, r)
 	if _enfeites.has(chave):
@@ -295,7 +344,7 @@ func _enfeites_da_celula(c: int, r: int) -> Array:
 	var bx := c * CELULA.x
 	var by := r * CELULA.y
 	var out := [_lugar_livre(Vector2(bx + 60.0, by + 62.0), RET_JANELA, LIVRE_JANELA),
-		_lugar_livre(Vector2(bx + 140.0, by + 74.0), RET_TOCHA, LIVRE_TOCHA), null]
+		_lugar_tocha(Vector2(bx + 140.0, by + 74.0)), null]
 	if posmod(c + r, 2) == 0:
 		out[2] = _lugar_livre(Vector2(bx + 96.0, by + 30.0), RET_BANDEIRA, LIVRE_BANDEIRA)
 	# so guarda depois que o terreno da fase existe (o teste e feito uma vez por celula)
@@ -365,7 +414,8 @@ func _draw_tower_inside(vx: float, vy: float, vw: float, vh: float) -> void:
 		cx += COLUNA_PASSO
 
 
-## Luzes da parede da torre para luz.gd: [posicao, raio, cor, forca].
+## Luzes da parede da torre para luz.gd: [posicao, raio, cor, forca, true]. O ultimo campo
+## marca "luz do fundo" (tocha/janela): as pedras que caem nao se deixam clarear por ela.
 func luzes() -> Array:
 	if cenario != 1:
 		return []
@@ -374,7 +424,7 @@ func luzes() -> Array:
 		Game.view_size.y)
 	for t: Vector2 in pts[1]:
 		var pisca := 3.0 if int(_time_ms / 170.0 + t.x) % 3 == 0 else 0.0
-		out.append([t, 60.0 + pisca, LUZ_TOCHA, 1.0])
+		out.append([t, 60.0 + pisca, LUZ_TOCHA, 1.0, true])
 	for j: Vector2 in pts[0]:
-		out.append([j + Vector2(6.0, 14.0), 44.0, LUZ_JANELA[hora], 0.75])
+		out.append([j + Vector2(6.0, 14.0), 44.0, LUZ_JANELA[hora], 0.75, true])
 	return out

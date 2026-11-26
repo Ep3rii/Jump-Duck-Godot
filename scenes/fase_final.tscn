@@ -97,7 +97,7 @@ position = Vector2(120, 160)
 script = ExtResource("13_svyyr")
 
 [node name="Saida" type="Node2D" parent="Itens" unique_id=1559333961 instance=ExtResource("14_ak0y1")]
-position = Vector2(536, 160)
+position = Vector2(548, 160)
 script = ExtResource("15_m8fp2")
 
 [node name="Entidades" type="Node2D" parent="." unique_id=796058307]
