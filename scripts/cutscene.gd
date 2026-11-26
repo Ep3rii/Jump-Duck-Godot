@@ -14,23 +14,12 @@ const FLOOR_Y := 140.0
 const DUCK_STOP_X := 150.0
 const PATA_START_X := 262.0
 const PATA_STOP_X := 168.0
-const PATA_SCALE := 0.7  # a Pata do tamanho do pato
+const PATA_PIVO := Vector2(8, 15.5)  # pes da Pata no quadro de 32 px (como o pato)
 
 const SKY_TOP_DAY := Color8(250, 150, 96)
 const SKY_TOP_NIGHT := Color8(54, 36, 88)
 const SKY_LOW_DAY := Color8(255, 206, 120)
 const SKY_LOW_NIGHT := Color8(196, 88, 96)
-const SUN := Color8(255, 224, 120)
-const STONE := Color8(150, 140, 160)
-const STONE_DARK := Color8(100, 92, 116)
-const TWIG := Color8(120, 78, 40)
-const TWIG_DARK := Color8(80, 50, 24)
-const PATA_BODY := Color8(250, 250, 244)
-const PATA_SHADE := Color8(214, 214, 206)
-const PATA_OUT := Color8(60, 50, 50)
-const BEAK := Color8(250, 160, 40)
-const BOW := Color8(240, 90, 140)
-const HEART := Color8(240, 60, 80)
 
 var t := 0.0
 var _done := false
@@ -125,10 +114,11 @@ func _draw() -> void:
 
 
 func _draw_sky(k: float) -> void:
+	# 6 faixas chapadas (como o ceu das fases), do alto para o horizonte
 	var top := SKY_TOP_DAY.lerp(SKY_TOP_NIGHT, k)
 	var low := SKY_LOW_DAY.lerp(SKY_LOW_NIGHT, k)
-	for i in 18:
-		draw_rect(Rect2(0, i * 10, 320, 10), top.lerp(low, i / 17.0))
+	for i in 6:
+		draw_rect(Rect2(0, i * 30, 320, 30), top.lerp(low, i / 5.0))
 
 
 func _draw_stars(k: float) -> void:
@@ -142,99 +132,56 @@ func _draw_stars(k: float) -> void:
 		draw_rect(Rect2(floorf(x), floorf(y), 1, 1), Color(1, 1, 0.9, a * tw))
 
 
+## Sol da arte dos fundos (2 quadros), descendo e ficando laranja.
 func _draw_sun(k: float) -> void:
-	var c := Vector2(252, lerpf(62.0, 132.0, k))
-	draw_circle(c, 30.0, Color(SUN, 0.18))
-	draw_circle(c, 23.0, Color(SUN, 0.3))
-	draw_circle(c, 18.0, SUN.lerp(Color8(255, 140, 80), k))
+	var c := Vector2(252, floorf(lerpf(62.0, 132.0, k)))
+	var cor := Color.WHITE.lerp(Color(1.0, 0.62, 0.4), k)
+	Sprites.draw_art(self, "fundo/sol", c.x - 24.0, c.y - 24.0, int(t * 1.2) % 2, 2, cor)
 
 
+## Topo da torre com o tileset de pedra das fases: muro baixo com ameias ao fundo (mais
+## escuro) e o piso em lajes.
 func _draw_tower_top(k: float) -> void:
 	var shade := lerpf(1.0, 0.55, k)
-	var stone := Color(STONE.r * shade, STONE.g * shade, STONE.b * shade)
-	var dark := Color(STONE_DARK.r * shade, STONE_DARK.g * shade, STONE_DARK.b * shade)
-	# muro baixo do fundo (com ameias) e o piso do topo da torre
-	draw_rect(Rect2(0, FLOOR_Y - 10, 320, 10), dark)
-	for i in 14:
-		draw_rect(Rect2(i * 24 + 4, FLOOR_Y - 18, 12, 8), dark)
-	draw_rect(Rect2(0, FLOOR_Y, 320, 40), stone)
-	draw_rect(Rect2(0, FLOOR_Y, 320, 2), Color(1, 1, 1, 0.25 * shade))
-	for row in 5:
-		var off := 8.0 if row % 2 == 1 else 0.0
-		for c in 21:
-			draw_rect(Rect2(c * 16 - off, FLOOR_Y + 2 + row * 8, 1, 8), dark)
-		draw_rect(Rect2(0, FLOOR_Y + 9 + row * 8, 320, 1), dark)
+	var claro := Color(shade, shade, shade)
+	var fundo := Color(shade * 0.62, shade * 0.62, shade * 0.7)
+	var tiles := Sprites.art("tileset_pedra")
+	for i in 20:
+		var x := i * 16.0
+		_bloco_pedra(tiles, 13, x, FLOOR_Y - 16.0, fundo)  # muro
+		if i % 2 == 0:
+			_bloco_pedra(tiles, 7, x, FLOOR_Y - 32.0, fundo)  # ameia
+		_bloco_pedra(tiles, 5, x, FLOOR_Y, claro)  # laje do piso
+		_bloco_pedra(tiles, 13, x, FLOOR_Y + 16.0, claro)
+		_bloco_pedra(tiles, 13, x, FLOOR_Y + 32.0, claro)
+
+
+func _bloco_pedra(tiles: Texture2D, idx: int, x: float, y: float, cor: Color) -> void:
+	draw_texture_rect_region(tiles, Rect2(x, y, 16, 16), Rect2((idx % 4) * 32.0, (idx / 4) * 32.0, 32, 32), cor)
 
 
 func _draw_nest() -> void:
-	var cx := 270.0
-	for i in 9:
-		var y := FLOOR_Y - 2.0 - (i % 3) * 2.0
-		var x := cx - 18.0 + i * 4.0
-		draw_rect(Rect2(x, y, 7, 2), TWIG if i % 2 == 0 else TWIG_DARK)
-	draw_rect(Rect2(cx - 16, FLOOR_Y - 1, 32, 1), TWIG_DARK)
+	# ninho de 20x8, apoiado no piso
+	Sprites.draw_art(self, "ninho", 260.0, FLOOR_Y - 8.0)
 
 
-## A Pata: pata branca com laco rosa e cilios; pula quando ve o pato e vem andando.
+## A Pata (assets/sprites/arte/pata.png: o pato aprovado com laco, cilios e bochecha):
+## parada, andando (8 quadros) e feliz batendo a asa (2). Pula quando ve o pato.
 func _draw_pata() -> void:
 	var x := floorf(pata_x())
 	var walking := t > 5.0 and t < 7.0
+	var happy := t > 7.0 and t < 9.5
 	var hop := 0.0
 	if t > 4.2 and t < 4.8:
 		hop = -floorf(sin(_phase(4.2, 4.8) * PI) * 8.0)
-	elif walking:
-		hop = -floorf(absf(sin(t * 10.0)) * 2.0)
+	var q := 0
+	if walking:
+		q = 1 + int(t * 10.0) % 8
+	elif happy:
+		q = 9 + int(t * 12.0) % 2
 	var face := -1.0 if t < 9.0 else 1.0  # olha para o pato; depois para o sol
-	var y := FLOOR_Y + hop
-	# do tamanho do pato: desenha reduzida a partir dos pes
-	var k := PATA_SCALE
-	draw_set_transform(Vector2(x * (1.0 - k), FLOOR_Y * (1.0 - k)), 0.0, Vector2(k, k))
-	# pes: ciclo de 4 quadros andando (passo, junto, outro passo, junto)
-	var frame := int(t * 10.0) % 4 if walking else 1
-	var step: float = [2.0, 0.0, -2.0, 0.0][frame]
-	draw_rect(Rect2(x - 4 + step, y - 2, 3, 2), BEAK)
-	draw_rect(Rect2(x + 1 - step, y - 2, 3, 2), BEAK)
-	if walking and frame % 2 == 0:
-		y -= 1.0  # sobe um pouco a cada passo
-	# corpo
-	draw_rect(Rect2(x - 8, y - 12, 15, 11), PATA_OUT)
-	draw_rect(Rect2(x - 7, y - 11, 13, 9), PATA_BODY)
-	draw_rect(Rect2(x - 7, y - 5, 13, 3), PATA_SHADE)
-	# asa (bate de alegria quando encontra o pato)
-	var happy := t > 7.0 and t < 9.5
-	var flap := -2.0 if happy and int(t * 12.0) % 2 == 0 else 0.0
-	draw_rect(Rect2(x - 3 * face - 2, y - 9 + flap, 6, 4), PATA_SHADE)
-	if flap < 0.0:
-		draw_rect(Rect2(x - 3 * face - 3, y - 11, 3, 2), PATA_BODY)
-	# cauda
-	var tail := x - 9.0 if face > 0 else x + 6.0
-	draw_rect(Rect2(tail, y - 12, 3, 3), PATA_OUT)
-	# cabeca
-	var hx := x + (2.0 if face > 0 else -9.0)
-	draw_rect(Rect2(hx, y - 20, 8, 9), PATA_OUT)
-	draw_rect(Rect2(hx + 1, y - 19, 6, 7), PATA_BODY)
-	# bico, olho e cilios
-	var bx := hx + 7.0 if face > 0 else hx - 3.0
-	draw_rect(Rect2(bx, y - 15, 4, 2), BEAK)
-	var ex := hx + (4.0 if face > 0 else 2.0)
-	var blink := fposmod(t, 2.6) < 0.12
-	if blink:
-		draw_rect(Rect2(ex, y - 16, 2, 1), PATA_OUT)
-	elif happy:  # olhinho feliz (arco)
-		draw_rect(Rect2(ex, y - 16, 2, 1), PATA_OUT)
-		draw_rect(Rect2(ex, y - 17, 1, 1), PATA_OUT)
-	else:
-		draw_rect(Rect2(ex, y - 17, 2, 2), PATA_OUT)
-	# bochecha rosada
-	draw_rect(Rect2(ex + (1.0 if face < 0 else -1.0), y - 14, 2, 1), Color8(255, 170, 190))
-	draw_rect(Rect2(ex - 1 if face > 0 else ex + 1, y - 19, 1, 1), PATA_OUT)
-	draw_rect(Rect2(ex + 1 if face > 0 else ex, y - 19, 1, 1), PATA_OUT)
-	# laco rosa
-	var lx := hx + (1.0 if face > 0 else 3.0)
-	draw_rect(Rect2(lx - 2, y - 23, 3, 3), BOW)
-	draw_rect(Rect2(lx + 2, y - 23, 3, 3), BOW)
-	draw_rect(Rect2(lx + 1, y - 22, 1, 1), Color8(170, 40, 90))
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+	# draw_bicho poe o pivo (os pes) no ponto do deslocamento
+	Sprites.draw_bicho(self, "pata", q, 11, PATA_PIVO, face < 0.0, Color.WHITE, Vector2(x, FLOOR_Y + hop))
 
 
 # --------------------------------------------------------- textos e coracoes
@@ -266,18 +213,9 @@ func _fading_text(at: Vector2, text: String, col: Color, alpha: float, scale: fl
 	PixelFont.draw_plain(_overlay, at.x, at.y, text, Color(col, alpha), PixelFont.CENTER, scale)
 
 
-## Coracao de pixels (9x8 vezes a escala) centrado em c.
+## Coracao (a mesma arte do HUD, 16 px vezes a escala) centrado em c.
 static func _heart(ci: CanvasItem, c: Vector2, scale: float, alpha: float) -> void:
-	var rows := ["011000110", "111101111", "111111111", "111111111", "011111110", "001111100",
-		"000111000", "000010000"]
-	var s := floorf(scale)
-	if s < 1.0:
-		s = 1.0
-	var col := Color(HEART, alpha)
-	var x0 := floorf(c.x - 4.5 * s)
-	var y0 := floorf(c.y - 4.0 * s)
-	for y in rows.size():
-		var row: String = rows[y]
-		for x in row.length():
-			if row[x] == "1":
-				ci.draw_rect(Rect2(x0 + x * s, y0 + y * s, s, s), col)
+	var s := maxf(1.0, floorf(scale))
+	var lado := 16.0 * s
+	Sprites.draw_frame(ci, "coracao", Rect2(floorf(c.x - lado * 0.5), floorf(c.y - lado * 0.5), lado, lado), 0,
+		Color(1, 1, 1, alpha))
