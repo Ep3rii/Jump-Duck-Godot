@@ -1,8 +1,8 @@
 extends Enemy
 ## obj_raposa: inimigo que patrulha ate 64 px para cada lado da posicao inicial.
 ## Vira antes de bater numa parede ou de cair de uma beirada. Morre com um pisao.
-## Do tamanho do pato (1 bloco); o sprite antigo de 64x64 e desenhado reduzido ate chegar a
-## arte nova (128x128 -> 16 px).
+## Arte: assets/sprites/arte/raposa.png (6 quadros de trote, tools/arte/inimigos.py), um pouco
+## maior que o pato; a mascara de colisao continua do tamanho da do pato.
 
 const Solids := preload("res://scripts/solids.gd")
 
@@ -12,7 +12,11 @@ var walk_speed := 0.5
 var dir := -1
 var xscale := 1  # image_xscale: 1 = olhando p/ esquerda (como o sprite original)
 
-@onready var sprite: AnimatedSprite2D = $Sprite
+const Sprites := preload("res://scripts/sprites.gd")
+const QUADROS := 6
+const PIVO := Vector2(12, 17)  # pes da raposa, no quadro (px do jogo)
+
+var _t := 0.0
 
 
 func _enemy_ready() -> void:
@@ -21,7 +25,6 @@ func _enemy_ready() -> void:
 	particula_derrota = "pelo"
 	start_x = position.x
 	dir = 1 if xscale < 0 else -1
-	sprite.play("default")
 
 
 ## Mascara de colisao: do tamanho da do pato (16x14), em pe no chao.
@@ -56,4 +59,10 @@ func _physics_process(_delta: float) -> void:
 	elif position.x >= start_x + patrol_range:
 		dir = -1
 	xscale = 1 if dir < 0 else -1
-	sprite.flip_h = xscale < 0
+	_t += 1.0
+	queue_redraw()
+
+
+func _draw() -> void:
+	# xscale 1 = olhando para a esquerda (como no original)
+	Sprites.draw_bicho(self, "raposa", int(_t / 7.0), QUADROS, PIVO, xscale > 0)

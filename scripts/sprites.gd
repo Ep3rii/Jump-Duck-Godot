@@ -91,6 +91,23 @@ static func draw_frame(ci: CanvasItem, art_name: String, rect: Rect2, frame := 0
 	ci.draw_texture_rect_region(art(art_name), rect, Rect2(frame * 128.0, 0.0, 128.0, 128.0), color)
 
 
+## Desenha um quadro de uma tira de inimigo/bicho da arte nova (gravada 4x a grade, ou seja
+## 8 px do arquivo = 1 px do jogo). 'pivo' = ponto do quadro (em px do jogo) que fica na origem
+## do no. A arte olha para a DIREITA; com olha_esquerda = true ela e espelhada no pivo.
+static func draw_bicho(ci: CanvasItem, art_name: String, frame: int, frames_n: int, pivo: Vector2,
+		olha_esquerda := false, color: Color = Color.WHITE, desloc := Vector2.ZERO) -> void:
+	var t := art(art_name)
+	var fw := t.get_width() / float(frames_n)
+	var fh := float(t.get_height())
+	var tam := Vector2(fw, fh) * ART_SCALE
+	if olha_esquerda:
+		ci.draw_set_transform(desloc, 0.0, Vector2(-1, 1))
+	else:
+		ci.draw_set_transform(desloc, 0.0, Vector2.ONE)
+	ci.draw_texture_rect_region(t, Rect2(-pivo, tam), Rect2(posmod(frame, frames_n) * fw, 0.0, fw, fh), color)
+	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
 ## Sprite animado para a arte nova: frames desenhados em 128/256 px, reduzidos para o tamanho
 ## do jogo. origin_art = ponto do quadro (em pixels do desenho) que fica na origem do no.
 static func make_art_sprite(sprite_frames: SpriteFrames, origin_art: Vector2) -> AnimatedSprite2D:

@@ -3,8 +3,8 @@ extends Enemy
 ## - Na superficie, com a cabeca e as costas para fora: pode ser pisado (1 pisao derrota).
 ## - De tempos em tempos mergulha: ai nao pode ser pisado e so pega quem esta mergulhado.
 ## - Encostar nele machuca (mordida); ele abre a boca quando o pato chega perto.
-## Origem = meio da barriga, embaixo. Do tamanho do pato (1 bloco); desenho provisorio em
-## codigo, reduzido (DRAW_SCALE) ate chegar a arte nova (128x128 -> 16 px).
+## Origem = meio da barriga, embaixo. Arte: assets/sprites/arte/jacare.png (4 quadros nadando
+## e 2 de mordida); a mascara continua do tamanho da do pato.
 
 const Solids := preload("res://scripts/solids.gd")
 
@@ -13,15 +13,11 @@ const DIVE_TIME := 120  # frames mergulhado
 const DIVE_DEPTH := 14.0  # quanto afunda (px)
 const FLOAT_DEPTH := 9.0  # na superficie fica meio afundado: costas e olhos para fora
 const HALF_W := 8.0  # meia largura (16 px, como o pato)
-const DRAW_SCALE := Vector2(0.32, 0.7)  # desenho provisorio (feito em 56x13) reduzido
+const Sprites := preload("res://scripts/sprites.gd")
+const QUADROS := 6
+const PIVO := Vector2(16, 11)  # meio da barriga, no quadro (px do jogo)
 const BODY_H := 9.0
 
-const COL_OUT := Color8(20, 50, 20)
-const COL_BODY := Color8(70, 130, 50)
-const COL_BELLY := Color8(170, 190, 110)
-const COL_SCUTE := Color8(46, 96, 36)
-const COL_TOOTH := Color8(250, 250, 240)
-const COL_MOUTH := Color8(150, 40, 40)
 
 @export var velocidade := 0.4
 ## Comeca a ciclo ja mergulhado (para varios jacares nao mergulharem juntos).
@@ -101,36 +97,11 @@ func _physics_process(_delta: float) -> void:
 
 
 func _draw() -> void:
-	draw_set_transform(Vector2.ZERO, 0.0, DRAW_SCALE)
+	# nadando: quadros 0..3; boca abrindo (mordida): 4 e 5. Mergulhado fica meio apagado.
+	var q := int(_anim / 9.0) % 4
+	if _mouth > 0.6:
+		q = 5
+	elif _mouth > 0.2:
+		q = 4
 	var a := 1.0 if state == "surface" else 0.55
-	var f := float(dir)  # desenha virado para onde nada
-	var out := Color(COL_OUT, a)
-	# corpo
-	draw_rect(Rect2(-22, -10, 36, 10), out)
-	draw_rect(Rect2(-21, -9, 34, 8), Color(COL_BODY, a))
-	draw_rect(Rect2(-21, -3, 34, 2), Color(COL_BELLY, a))
-	for i in 5:
-		draw_rect(Rect2(-18 + i * 6, -11, 3, 2), Color(COL_SCUTE, a))
-	# cauda (para tras)
-	var tail_x := -22.0 if f > 0 else 14.0
-	var swish := floorf(sin(_anim * 0.15) * 2.0)  # cauda balancando ao nadar
-	draw_rect(Rect2(tail_x - (6 if f > 0 else 0), -7 + swish, 8, 5), out)
-	draw_rect(Rect2(tail_x - (5 if f > 0 else -1), -6 + swish, 6, 3), Color(COL_BODY, a))
-	# cabeca e focinho (para frente), boca abrindo
-	var head_x := 12.0 if f > 0 else -22.0
-	var open := floorf(_mouth * 5.0)
-	draw_rect(Rect2(head_x, -10 - open, 10, 5), out)  # maxila de cima
-	draw_rect(Rect2(head_x + 1, -9 - open, 8, 3), Color(COL_BODY, a))
-	draw_rect(Rect2(head_x, -5, 10, 5), out)  # mandibula
-	draw_rect(Rect2(head_x + 1, -4, 8, 3), Color(COL_BELLY, a))
-	if open > 0:
-		draw_rect(Rect2(head_x + 1, -6 - open + 1, 8, open), Color(COL_MOUTH, a))
-		for t in 3:
-			draw_rect(Rect2(head_x + 2 + t * 3, -6 - open + 1, 1, 2), Color(COL_TOOTH, a))
-			draw_rect(Rect2(head_x + 2 + t * 3, -6, 1, 1), Color(COL_TOOTH, a))
-	# olho (em cima da cabeca, sempre visivel)
-	var eye_x := head_x + (1.0 if f > 0 else 6.0)
-	draw_rect(Rect2(eye_x, -13 - open, 4, 3), out)
-	var blink := int(_anim) % 180 < 6  # pisca de vez em quando
-	if not blink:
-		draw_rect(Rect2(eye_x + 1, -12 - open, 2, 1), Color(1, 0.9, 0.2, a))
+	Sprites.draw_bicho(self, "jacare", q, QUADROS, PIVO, dir < 0, Color(1, 1, 1, a))

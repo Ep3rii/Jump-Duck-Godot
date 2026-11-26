@@ -4,9 +4,12 @@ extends Enemy
 ## e MERGULHA EM DIAGONAL em linha reta. Se bate no chao ou numa parede, fica com o bico
 ## preso um tempo (a melhor hora para pisar nela); depois sobe de volta para o alto.
 ## Precisa de 2 golpes (pisao ou caixa arremessada). Origem = meio do corpo.
-## Desenho provisorio em codigo.
+## Arte: assets/sprites/arte/aguia.png (6 quadros de voo e 1 de mergulho).
 
 const Solids := preload("res://scripts/solids.gd")
+const Sprites := preload("res://scripts/sprites.gd")
+const QUADROS := 7
+const PIVO := Vector2(14, 13)  # meio do corpo, no quadro (px do jogo)
 
 const WARN_TIME := 32
 const DIVE_SPEED := 3.4
@@ -16,11 +19,6 @@ const COOLDOWN := 110
 const SEE_RANGE := 150.0
 const CIRCLE := Vector2(28, 8)  # raio do voo em circulo (x, y)
 
-const COL_OUT := Color8(30, 18, 10)
-const COL_BODY := Color8(92, 56, 30)
-const COL_WING := Color8(70, 40, 20)
-const COL_HEAD := Color8(245, 240, 225)
-const COL_BEAK := Color8(250, 196, 40)
 const COL_STAR := Color8(255, 220, 80)
 
 var state := "circulo"  # circulo | aviso | mergulho | presa | subindo
@@ -146,62 +144,21 @@ func _dive_step() -> void:
 
 # ---------------------------------------------------------------- desenho
 func _draw() -> void:
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(0.7, 0.7))  # do tamanho do pato
-	var f := float(dir)
-	var shake := 0.0
+	# circulando/subindo: quadros 0..5; aviso: bate mais rapido e treme; mergulho: 6;
+	# bico preso: asa caida (quadro 3) com estrelinhas girando
+	var q := int(_anim / 6.0) % 6
+	var tremor := Vector2.ZERO
 	if state == "aviso":
-		shake = 1.0 if int(_anim / 2.0) % 2 == 0 else -1.0
-	var o := Vector2(shake, 0)
-	if state == "mergulho":
-		_draw_diving(f)
-		return
-	# asas grandes, 4 poses (cima, meio, baixo, meio); presa = caidas no chao
-	var pose := 2 if state == "presa" else int(_anim / 6.0) % 4
-	var wy: float = [-12.0, -7.0, -2.0, -7.0][pose]
-	var reach: float = [12.0, 15.0, 12.0, 15.0][pose]
-	draw_rect(Rect2(o.x - 3 - reach, wy, reach, 5), COL_OUT)
-	draw_rect(Rect2(o.x - 2 - reach, wy + 1, reach - 2, 3), COL_WING)
-	draw_rect(Rect2(o.x - 2 - reach, wy + 1, 3, 3), COL_HEAD.darkened(0.3))
-	draw_rect(Rect2(o.x + 3, wy, reach, 5), COL_OUT)
-	draw_rect(Rect2(o.x + 4, wy + 1, reach - 2, 3), COL_WING)
-	draw_rect(Rect2(o.x + reach - 1, wy + 1, 3, 3), COL_HEAD.darkened(0.3))
-	# corpo e cauda branca
-	draw_rect(Rect2(o.x - 8, -5, 16, 9), COL_OUT)
-	draw_rect(Rect2(o.x - 7, -4, 14, 7), COL_BODY)
-	var tail_x := -13.0 if f > 0 else 8.0
-	draw_rect(Rect2(o.x + tail_x, -3, 5, 4), COL_OUT)
-	draw_rect(Rect2(o.x + tail_x + 1, -2, 3, 2), COL_HEAD)
-	# cabeca branca, olho bravo, bico amarelo curvo
-	var hx := 5.0 if f > 0 else -12.0
-	draw_rect(Rect2(o.x + hx, -9, 7, 7), COL_OUT)
-	draw_rect(Rect2(o.x + hx + 1, -8, 5, 5), COL_HEAD)
-	var ex := hx + (3.0 if f > 0 else 2.0)
-	draw_rect(Rect2(o.x + ex, -7, 2, 1), COL_OUT)
-	var bx := hx + 7.0 if f > 0 else hx - 3.0
-	draw_rect(Rect2(o.x + bx, -6, 3, 2), COL_BEAK)
-	draw_rect(Rect2(o.x + bx + (2.0 if f > 0 else 0.0), -4, 1, 1), COL_BEAK)
-	# garras
-	draw_rect(Rect2(o.x - 3, 4, 2, 2), COL_BEAK)
-	draw_rect(Rect2(o.x + 1, 4, 2, 2), COL_BEAK)
+		q = int(_anim / 3.0) % 6
+		tremor.x = 1.0 if int(_anim / 2.0) % 2 == 0 else -1.0
+	elif state == "mergulho":
+		q = 6
+	elif state == "presa":
+		q = 3
+	Sprites.draw_bicho(self, "aguia", q, QUADROS, PIVO, dir < 0, Color.WHITE, tremor)
 	if state == "presa":
 		for i in 3:
 			var ang := _anim * 0.15 + i * TAU / 3.0
-			var c := Vector2(cos(ang) * 10.0, -14 + sin(ang) * 3.0)
+			var c := Vector2(cos(ang) * 10.0, -16 + sin(ang) * 3.0)
 			draw_rect(Rect2(c.x - 1, c.y - 2, 2, 4), COL_STAR)
 			draw_rect(Rect2(c.x - 2, c.y - 1, 4, 2), COL_STAR)
-
-
-## Mergulhando: asas coladas, corpo apontado na direcao do mergulho.
-func _draw_diving(f: float) -> void:
-	var d := _vel.normalized()
-	for i in 4:
-		var c := -d * (i * 4.0)
-		var s := 8.0 - i * 1.5
-		draw_rect(Rect2(c.x - s * 0.5 - 1, c.y - s * 0.5 - 1, s + 2, s + 2), COL_OUT)
-		draw_rect(Rect2(c.x - s * 0.5, c.y - s * 0.5, s, s), COL_WING if i > 0 else COL_BODY)
-	var h := d * 7.0
-	draw_rect(Rect2(h.x - 4, h.y - 4, 8, 8), COL_OUT)
-	draw_rect(Rect2(h.x - 3, h.y - 3, 6, 6), COL_HEAD)
-	var b := d * 12.0
-	draw_rect(Rect2(b.x - 1.5, b.y - 1.5, 3, 3), COL_BEAK)
-	draw_rect(Rect2(h.x + (1.0 if f > 0 else -2.0), h.y - 2, 1, 1), COL_OUT)

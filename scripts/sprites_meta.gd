@@ -9,7 +9,6 @@ const META := {
 	"spr_brilho": [16, 16, 5, 8, 8, 12.0],
 	"spr_objBAgua01": [64, 64, 1, 0, 64, 3.0],
 	"spr_objBPiso01": [16, 16, 1, 0, 16, 1.0],
-	"spr_raposaAnda": [64, 64, 4, 32, 48, 6.0],
 	"spr_tileSetGrama01": [64, 64, 1, 0, 0, 30.0],
 	"spr_vidaCheia": [32, 32, 1, 16, 16, 30.0],
 	"spr_vidaVazia": [32, 32, 1, 16, 16, 30.0],

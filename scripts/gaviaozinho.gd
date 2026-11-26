@@ -3,9 +3,13 @@ extends Enemy
 ## fixo (alcance para cada lado da posicao inicial). Quando ve o pato mais abaixo e um pouco
 ## a frente, grita, para no ar um instante e da um RASANTE: desce em arco, com o ponto mais
 ## baixo onde o pato estava, e sobe do outro lado (da para fugir correndo durante o grito). Pisao ou caixa arremessada derrota (1 golpe). Nao atravessa paredes no rasante (so
-## mergulha com o caminho livre). Origem = meio do corpo. Desenho provisorio em codigo.
+## mergulha com o caminho livre). Origem = meio do corpo. Arte: assets/sprites/arte/
+## gaviaozinho.png (6 quadros de voo e 1 de rasante).
 
 const Solids := preload("res://scripts/solids.gd")
+const Sprites := preload("res://scripts/sprites.gd")
+const QUADROS := 7
+const PIVO := Vector2(10, 10)  # meio do corpo, no quadro (px do jogo)
 
 const WARN_TIME := 22
 const COOLDOWN := 90
@@ -14,11 +18,6 @@ const SEE_DX_MIN := 32.0  # o pato precisa estar entre 32 e 112 px para o lado
 const SEE_DX := 112.0
 const SEE_DY := 150.0  # ... e ate esta distancia para baixo
 
-const COL_OUT := Color8(40, 22, 10)
-const COL_BODY := Color8(150, 90, 44)
-const COL_WING := Color8(112, 64, 30)
-const COL_BELLY := Color8(232, 210, 170)
-const COL_BEAK := Color8(250, 200, 50)
 
 ## Quanto voa para cada lado da posicao inicial (px).
 @export var alcance := 64.0:
@@ -127,48 +126,11 @@ func _start_swoop(p: Node2D) -> void:
 
 # ---------------------------------------------------------------- desenho
 func _draw() -> void:
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(0.85, 0.85))  # do tamanho do pato
-	var f := float(dir)
-	var flash := state == "aviso" and int(_anim / 3.0) % 2 == 0
-	var body := COL_BELLY if flash else COL_BODY
-	if state == "rasante":
-		# asas fechadas para tras, corpo inclinado
-		_wing_back(f)
-	else:
-		var pose := int(_anim / (3.0 if state == "aviso" else 5.0)) % 4
-		_wings(pose)
-	# corpo
-	draw_rect(Rect2(-6, -4, 12, 7), COL_OUT)
-	draw_rect(Rect2(-5, -3, 10, 5), body)
-	draw_rect(Rect2(-4, 0, 8, 2), COL_BELLY)
-	# cauda
-	var tail_x := -10.0 if f > 0 else 6.0
-	draw_rect(Rect2(tail_x, -2, 4, 3), COL_OUT)
-	# cabeca, olho e bico (para onde voa)
-	var hx := 4.0 if f > 0 else -9.0
-	draw_rect(Rect2(hx, -6, 5, 5), COL_OUT)
-	draw_rect(Rect2(hx + 1, -5, 3, 3), body)
-	draw_rect(Rect2(hx + (2.0 if f > 0 else 1.0), -5, 1, 1), Color.WHITE)
-	var bx := hx + 5.0 if f > 0 else hx - 2.0
-	draw_rect(Rect2(bx, -4, 2, 2), COL_BEAK)
-	# garras
-	draw_rect(Rect2(-2, 3, 1, 2), COL_BEAK)
-	draw_rect(Rect2(1, 3, 1, 2), COL_BEAK)
-
-
-## pose 0 = asas em cima, 1 e 3 = no meio (abertas), 2 = embaixo.
-func _wings(pose: int) -> void:
-	var y: float = [-9.0, -5.0, -1.0, -5.0][pose]
-	var reach: float = [9.0, 11.0, 9.0, 11.0][pose]  # abertas no meio ficam mais compridas
-	draw_rect(Rect2(-2 - reach, y, reach, 4), COL_OUT)
-	draw_rect(Rect2(-1 - reach, y + 1, reach - 2, 2), COL_WING)
-	draw_rect(Rect2(-1 - reach, y + 1, 2, 2), COL_OUT.lightened(0.15))
-	draw_rect(Rect2(2, y, reach, 4), COL_OUT)
-	draw_rect(Rect2(3, y + 1, reach - 2, 2), COL_WING)
-	draw_rect(Rect2(reach - 1, y + 1, 2, 2), COL_OUT.lightened(0.15))
-
-
-func _wing_back(f: float) -> void:
-	var x := -12.0 if f > 0 else 2.0
-	draw_rect(Rect2(x, -6, 10, 4), COL_OUT)
-	draw_rect(Rect2(x + 1, -5, 8, 2), COL_WING)
+	# voo: quadros 0..5 batendo as asas (mais rapido no aviso, piscando claro); rasante: 6
+	var q := 6
+	var cor := Color.WHITE
+	if state != "rasante":
+		q = int(_anim / (3.0 if state == "aviso" else 5.0)) % 6
+		if state == "aviso" and int(_anim / 3.0) % 2 == 0:
+			cor = Color(1.6, 1.4, 1.2)
+	Sprites.draw_bicho(self, "gaviaozinho", q, QUADROS, PIVO, dir < 0, cor)
