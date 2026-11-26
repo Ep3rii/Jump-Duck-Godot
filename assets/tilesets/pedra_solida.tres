@@ -1,9 +1,10 @@
 [gd_resource type="TileSet" format=3]
 
-[ext_resource type="Texture2D" path="res://assets/sprites/spr_tileSetPedra01.png" id="1_pedra"]
+[ext_resource type="Texture2D" path="res://assets/sprites/arte/tileset_pedra.png" id="1_pedra"]
 
 [sub_resource type="TileSetAtlasSource" id="TileSetAtlasSource_pedra"]
 texture = ExtResource("1_pedra")
+texture_region_size = Vector2i(128, 128)
 0:0/0 = 0
 0:0/0/custom_data_0 = true
 1:0/0 = 0
@@ -36,8 +37,49 @@ texture = ExtResource("1_pedra")
 2:3/0/custom_data_0 = true
 3:3/0 = 0
 3:3/0/custom_data_0 = true
+0:4/0 = 0
+0:4/0/custom_data_0 = true
+1:4/0 = 0
+1:4/0/custom_data_0 = true
+2:4/0 = 0
+2:4/0/custom_data_0 = true
+3:4/0 = 0
+3:4/0/custom_data_0 = true
+0:5/0 = 0
+0:5/0/custom_data_0 = true
+1:5/0 = 0
+1:5/0/custom_data_0 = true
+2:5/0 = 0
+2:5/0/custom_data_0 = true
+3:5/0 = 0
+3:5/0/custom_data_0 = true
+0:6/0 = 0
+0:6/0/custom_data_0 = true
+1:6/0 = 0
+1:6/0/custom_data_0 = true
+2:6/0 = 0
+2:6/0/custom_data_0 = true
+3:6/0 = 0
+3:6/0/custom_data_0 = true
+0:7/0 = 0
+0:7/0/custom_data_0 = true
+1:7/0 = 0
+1:7/0/custom_data_0 = true
+2:7/0 = 0
+2:7/0/custom_data_0 = true
+3:7/0 = 0
+3:7/0/custom_data_0 = true
+0:8/0 = 0
+0:8/0/custom_data_0 = true
+1:8/0 = 0
+1:8/0/custom_data_0 = true
+2:8/0 = 0
+2:8/0/custom_data_0 = true
+3:8/0 = 0
+3:8/0/custom_data_0 = true
 
 [resource]
+tile_size = Vector2i(128, 128)
 custom_data_layer_0/name = "solid"
 custom_data_layer_0/type = 1
 sources/0 = SubResource("TileSetAtlasSource_pedra")

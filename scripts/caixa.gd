@@ -14,13 +14,8 @@ const MAX_FALL := 6.0
 const THROW_SPEED := Vector2(3.5, -2.5)
 const CARRY_OFFSET := Vector2(0, -15)  # acima da cabeca do pato
 
-const COL_DARK := Color8(74, 40, 16)
-const COL_WOOD := Color8(168, 104, 48)
+const Sprites := preload("res://scripts/sprites.gd")
 const COL_LIGHT := Color8(214, 150, 80)
-const COL_HAY_DARK := Color8(140, 104, 30)
-const COL_HAY := Color8(222, 184, 74)
-const COL_HAY_LIGHT := Color8(250, 226, 130)
-const COL_STRING := Color8(150, 60, 40)
 
 ## So muda o desenho: caixa de madeira ou fardo de feno (fazenda).
 @export_enum("Caixa", "Feno") var aparencia := 0:
@@ -257,28 +252,4 @@ func _fly() -> void:
 
 # ---------------------------------------------------------------- desenho
 func _draw() -> void:
-	if aparencia == 1:
-		_draw_feno()
-		return
-	var r := Rect2(-8, -16, 16, 16)
-	draw_rect(r, COL_DARK)
-	draw_rect(Rect2(-7, -15, 14, 14), COL_WOOD)
-	# tabuas e travessa em X
-	draw_rect(Rect2(-7, -11, 14, 1), COL_DARK)
-	draw_rect(Rect2(-7, -6, 14, 1), COL_DARK)
-	for i in 12:
-		draw_rect(Rect2(-6 + i, -14 + i, 1, 1), COL_LIGHT)
-		draw_rect(Rect2(5 - i, -14 + i, 1, 1), COL_LIGHT)
-	draw_rect(Rect2(-7, -15, 14, 1), COL_LIGHT)
-
-
-func _draw_feno() -> void:
-	draw_rect(Rect2(-8, -16, 16, 16), COL_HAY_DARK)
-	draw_rect(Rect2(-7, -15, 14, 14), COL_HAY)
-	# palha (riscos horizontais) e as duas cordas
-	for y in [-13, -10, -7, -4]:
-		draw_rect(Rect2(-6, y, 5, 1), COL_HAY_LIGHT)
-		draw_rect(Rect2(1, y + 1, 5, 1), COL_HAY_LIGHT)
-	draw_rect(Rect2(-4, -15, 1, 14), COL_STRING)
-	draw_rect(Rect2(3, -15, 1, 14), COL_STRING)
-	draw_rect(Rect2(-7, -15, 14, 1), COL_HAY_LIGHT)
+	Sprites.draw_frame(self, "feno" if aparencia == 1 else "caixa", Rect2(-8, -16, 16, 16))

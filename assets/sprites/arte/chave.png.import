@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://t3nxnrgyuluc"
-path="res://.godot/imported/spr_flor01.png-becb3c481efe0cd1776316802c109557.ctex"
+uid="uid://dk5d1ehumdv26"
+path="res://.godot/imported/chave.png-486be61b4b25834597dec81f83fabd4b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/spr_flor01.png"
-dest_files=["res://.godot/imported/spr_flor01.png-becb3c481efe0cd1776316802c109557.ctex"]
+source_file="res://assets/sprites/arte/chave.png"
+dest_files=["res://.godot/imported/chave.png-486be61b4b25834597dec81f83fabd4b.ctex"]
 
 [params]
 

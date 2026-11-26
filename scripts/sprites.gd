@@ -85,6 +85,12 @@ static func draw_art(ci: CanvasItem, art_name: String, x: float, y: float, frame
 		Rect2(frame * fw, 0.0, fw, h), color)
 
 
+## Desenha um quadro de uma tira da arte nova (quadros de 128 px lado a lado) dentro de 'rect'.
+static func draw_frame(ci: CanvasItem, art_name: String, rect: Rect2, frame := 0,
+		color: Color = Color.WHITE) -> void:
+	ci.draw_texture_rect_region(art(art_name), rect, Rect2(frame * 128.0, 0.0, 128.0, 128.0), color)
+
+
 ## Sprite animado para a arte nova: frames desenhados em 128/256 px, reduzidos para o tamanho
 ## do jogo. origin_art = ponto do quadro (em pixels do desenho) que fica na origem do no.
 static func make_art_sprite(sprite_frames: SpriteFrames, origin_art: Vector2) -> AnimatedSprite2D:

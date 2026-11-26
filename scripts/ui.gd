@@ -84,8 +84,8 @@ func _button(r: Dictionary, selected: bool, now: int) -> void:
 	if selected:
 		var hop := floorf(absf(sin(now / 180.0)) * 3.0)
 		var fs := 0.75 if small else 1.0
-		Sprites.draw(self, "spr_flor01", (now / 200) % Sprites.frame_count("spr_flor01"),
-			x1 - 10.0, (y1 + y2) / 2.0 + 7.0 * fs - hop, fs, fs)
+		Sprites.draw_frame(self, "flor", Rect2(x1 - 10.0 - 8.0 * fs,
+			(y1 + y2) / 2.0 + 7.0 * fs - hop - 14.0 * fs, 16.0 * fs, 16.0 * fs), (now / 200) % 4)
 
 
 ## Botao com o texto centralizado (texto em dobro nos botoes marcados com "big").
@@ -202,8 +202,8 @@ func _draw() -> void:
 				if not rec.is_empty():
 					_text_plain(r["x2"] - 52, ty + 1, str(rec["score"]), fg, RIGHT)
 					for s in 3:
-						Sprites.draw(self, "spr_estrela", 0 if s < int(rec["stars"]) else 1,
-							r["x2"] - 40 + s * 12, ty, 0.7, 0.7)
+						Sprites.draw_frame(self, "estrela", Rect2(r["x2"] - 40 + s * 12 - 5.5, ty - 5.5,
+							11.0, 11.0), 0 if s < int(rec["stars"]) else 1)
 			generic_from = layout.size() - 1
 
 		"credits":
@@ -370,8 +370,8 @@ func _draw_result(now: int) -> void:
 		var bounce := 0.0
 		if s < stars:
 			bounce = floorf(sin(now / 220.0 + s) * 1.5)
-		Sprites.draw(self, "spr_estrela", 0 if s < stars else 1,
-			cx - 40 + s * 40, 70 + bounce, 2.0, 2.0)
+		Sprites.draw_frame(self, "estrela", Rect2(cx - 40 + s * 40 - 16.0, 70 + bounce - 16.0,
+			32.0, 32.0), 0 if s < stars else 1)
 	_text(cx, 90, "TEMPO: %.1f S   +%d" % [result["time_seconds"], result["time_points"]],
 		Color.WHITE, CENTER)
 	_text(cx, 101, "FLORES: %d DE %d   +%d" % [result["collectibles"],

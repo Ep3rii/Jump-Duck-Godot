@@ -3,13 +3,21 @@ extends Node2D
 
 const EfeitoScene := preload("res://scenes/efeito.tscn")
 
-@onready var sprite: AnimatedSprite2D = $Sprite
+const Sprites := preload("res://scripts/sprites.gd")
+## A rosa original com o dobro de detalhe (assets/sprites/arte/flor.png, 4 quadros).
+const ART_ANIMS := {"default": ["res://assets/sprites/arte/flor.png", 4, 5.0]}
+const ART_ORIGIN := Vector2(64, 112)  # o mesmo ponto do original (8, 14), em px do desenho
+
+var sprite: AnimatedSprite2D
 
 
 func _ready() -> void:
 	add_to_group("flor")
 	add_to_group("item")
 	add_to_group("sombra")
+	sprite = Sprites.make_art_sprite(Sprites.art_frames(ART_ANIMS), ART_ORIGIN)
+	sprite.name = "Sprite"
+	add_child(sprite)
 	sprite.play("default")
 
 

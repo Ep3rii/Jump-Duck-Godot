@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cl45es5p3tko0"
-path="res://.godot/imported/spr_tileSetPedra01.png-1d327e54da3d6d61cec7a2d37d73ce66.ctex"
+uid="uid://bacy3ltcgw1y8"
+path="res://.godot/imported/caixa.png-c7932849dbc931dc18b901ad77664a0e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/spr_tileSetPedra01.png"
-dest_files=["res://.godot/imported/spr_tileSetPedra01.png-1d327e54da3d6d61cec7a2d37d73ce66.ctex"]
+source_file="res://assets/sprites/arte/caixa.png"
+dest_files=["res://.godot/imported/caixa.png-c7932849dbc931dc18b901ad77664a0e.ctex"]
 
 [params]
 

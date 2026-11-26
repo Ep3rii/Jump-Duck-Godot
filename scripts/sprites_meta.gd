@@ -7,8 +7,6 @@ const META := {
 	"spr_bgMontanhas": [320, 72, 1, 0, 72, 1.0],
 	"spr_bgNuvens": [192, 40, 1, 0, 0, 1.0],
 	"spr_brilho": [16, 16, 5, 8, 8, 12.0],
-	"spr_estrela": [16, 16, 2, 8, 8, 1.0],
-	"spr_flor01": [16, 16, 4, 8, 14, 5.0],
 	"spr_objBAgua01": [64, 64, 1, 0, 64, 3.0],
 	"spr_objBPiso01": [16, 16, 1, 0, 16, 1.0],
 	"spr_raposaAnda": [64, 64, 4, 32, 48, 6.0],

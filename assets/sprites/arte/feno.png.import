@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dnnhxslecih5o"
-path="res://.godot/imported/spr_estrela.png-99a30c0a482293883645a74ecb632177.ctex"
+uid="uid://ct7glx5sesrif"
+path="res://.godot/imported/feno.png-07274ab9e1f4a0775eaa3ae4d3366254.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/spr_estrela.png"
-dest_files=["res://.godot/imported/spr_estrela.png-99a30c0a482293883645a74ecb632177.ctex"]
+source_file="res://assets/sprites/arte/feno.png"
+dest_files=["res://.godot/imported/feno.png-07274ab9e1f4a0775eaa3ae4d3366254.ctex"]
 
 [params]
 
