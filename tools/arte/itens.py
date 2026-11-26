@@ -21,7 +21,7 @@ FENO, FENO_LUZ, FENO_S, FENO_ESC = hexc("f4d35e"), hexc("fbe58c"), hexc("d9ae3a"
 VAZIO, VAZIO_S, VAZIO_ESC = hexc("4a5072"), hexc("3d4160"), hexc("2c3049")
 
 
-SPR = os.path.join(ROOT, "assets", "sprites")
+SPR = os.path.join(HERE, "originais")  # sprites originais do GameMaker (referencia)
 
 
 def refazer(src, x0, w, h, contorno, escala=2, sem_branco=False):
@@ -199,6 +199,8 @@ def main():
     folha(p)
     if "--salvar" in sys.argv:
         for nome, cv in p.items():
+            if nome == "coracao":
+                continue  # o jogo usa o coracao original (spr_vidaCheia), que ja esta na grade
             big = Canvas(cv.w * 4, cv.h * 4)
             big.blit(cv, 0, 0, 4)
             big.save(os.path.join(ARTE, nome + ".png"))

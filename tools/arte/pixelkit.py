@@ -1,8 +1,65 @@
 """Mini biblioteca de pixel art em Python puro (sem PIL): tela RGBA, formas, sombreado com
 rampas da paleta e pontilhado Bayer, contorno seletivo e PNG."""
+import hashlib
+import json
 import math
+import os
 import struct
+import sys
 import zlib
+
+# ---------------------------------------------------------------- arte do jogo (1:1 e protegida)
+# A arte em assets/sprites/arte/ e gravada em 1:1 (1 pixel do arquivo = 1 pixel do desenho;
+# o jogo amplia sozinho), para dar para editar a mao pixel por pixel.
+# Os geradores antigos trabalham ampliados 4x por dentro; para eles nao precisarem mudar,
+# load_png() amplia 4x ao ler estes arquivos e Canvas.save() reduz 4x ao gravar.
+# PROTECAO: tools/arte/gerados.json guarda a impressao (sha1) de cada PNG como o gerador o
+# gravou. Se o arquivo foi editado a mao depois, o gerador NAO sobrescreve (avisa e pula),
+# a nao ser que se rode com --forcar.
+_AQUI = os.path.dirname(os.path.abspath(__file__))
+_RAIZ = os.path.dirname(os.path.dirname(_AQUI))
+ARTE_DIR = os.path.normcase(os.path.join(_RAIZ, "assets", "sprites", "arte"))
+MANIFESTO = os.path.join(_AQUI, "gerados.json")
+AMPLIADOS_4X = {"pato_parado", "pato_correndo", "pato_pulando", "pato_apice", "pato_caindo", "pato_dano",
+                "pato_morte", "tileset_grama", "tileset_pedra", "flor", "estrela", "chave", "caixa", "feno",
+                "raposa", "jacare", "gaviaozinho", "aguia"}
+FORCAR = "--forcar" in sys.argv
+
+
+def _rel_arte(path):
+    p = os.path.normcase(os.path.abspath(path))
+    if p.startswith(ARTE_DIR + os.sep):
+        return os.path.relpath(p, ARTE_DIR).replace(os.sep, "/")
+    return None
+
+
+def _nome(rel):
+    return os.path.splitext(os.path.basename(rel))[0]
+
+
+def _sha1(path):
+    return hashlib.sha1(open(path, "rb").read()).hexdigest()
+
+
+def _manifesto():
+    try:
+        return json.load(open(MANIFESTO, encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+
+
+def _grava_manifesto(m):
+    with open(MANIFESTO, "w", encoding="utf-8", newline="\n") as f:
+        json.dump(m, f, indent=1, sort_keys=True, ensure_ascii=False)
+        f.write("\n")
+
+
+def editado_a_mao(path):
+    """True se o PNG da arte existe e nao e mais o que o gerador gravou."""
+    rel = _rel_arte(path)
+    if rel is None or not os.path.exists(path):
+        return False
+    return _manifesto().get(rel) != _sha1(path)
 
 BAYER4 = [[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]
 
@@ -192,6 +249,35 @@ class Canvas:
         return out
 
     def save(self, path):
+        rel = _rel_arte(path)
+        if rel is None:
+            return self._write(path)
+        img = self._reduz(4) if _nome(rel) in AMPLIADOS_4X else self
+        if editado_a_mao(path) and not FORCAR:
+            print("PROTEGIDO: assets/sprites/arte/%s foi editado a mao; nao sobrescrevi "
+                  "(rode com --forcar para trocar pela versao do gerador)" % rel)
+            return False
+        img._write(path)
+        m = _manifesto()
+        m[rel] = _sha1(path)
+        _grava_manifesto(m)
+        return True
+
+    def _reduz(self, f):
+        """Desfaz a ampliacao f x f (cada bloco f x f precisa ser de uma cor so)."""
+        assert self.w % f == 0 and self.h % f == 0, "tamanho nao divide por %d" % f
+        out = Canvas(self.w // f, self.h // f)
+        for y in range(out.h):
+            for x in range(out.w):
+                c = self.px[y * f][x * f]
+                for yy in range(f):
+                    for xx in range(f):
+                        assert self.px[y * f + yy][x * f + xx] == c, \
+                            "bloco %dx%d com mais de uma cor em (%d, %d)" % (f, f, x * f, y * f)
+                out.px[y][x] = c
+        return out
+
+    def _write(self, path):
         raw = bytearray()
         for row in self.px:
             raw.append(0)
@@ -208,7 +294,7 @@ class Canvas:
             f.write(png)
 
 
-def load_png(path):
+def load_png(path, ampliar=True):
     """Le um PNG de 8 bits (RGB ou RGBA, sem entrelacamento) e devolve uma Canvas."""
     data = open(path, "rb").read()
     assert data[:8] == b"\x89PNG\r\n\x1a\n", "nao e PNG"
@@ -279,6 +365,11 @@ def load_png(path):
                 al = 255
             if al > 127:
                 cv.px[y][x] = (r, g, b, 255)
+    rel = _rel_arte(path)
+    if rel is not None and _nome(rel) in AMPLIADOS_4X and ampliar:
+        big = Canvas(w * 4, h * 4)
+        big.blit(cv, 0, 0, 4)
+        return big
     return cv
 
 

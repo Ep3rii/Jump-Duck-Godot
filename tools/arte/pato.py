@@ -15,9 +15,9 @@ sys.path.insert(0, HERE)
 from pixelkit import Canvas, load_png, save_gif  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(HERE))
-SPR = os.path.join(ROOT, "assets", "sprites")
+SPR = os.path.join(HERE, "originais")  # sprites originais do GameMaker (referencia)
 OUT = os.path.join(HERE, "saida")
-ARTE = os.path.join(SPR, "arte")
+ARTE = os.path.join(ROOT, "assets", "sprites", "arte")
 os.makedirs(OUT, exist_ok=True)
 
 OUTLINE = (99, 99, 99, 255)

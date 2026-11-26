@@ -4,7 +4,8 @@ este arquivo, para sair igual aos outros.
 
 Regras (ver "Categoria de arte" no ROTEIRO_FASES.md):
   - GRADE: 2 pixels do desenho = 1 pixel do jogo (o pato tem 32 de altura na grade, 16 no jogo).
-    Blocos e bichos sao gravados ampliados 4x (128x128; chefes 256x256). Cenario grande e fundos
+    Tudo e gravado em 1:1 em assets/sprites/arte (blocos e bichos tambem: os geradores antigos
+    ampliam 4x por dentro e pixelkit reduz ao gravar). Cenario grande e fundos
     sao gravados direto na grade (sem ampliar), para nao pesar: a densidade de pixel e a mesma.
   - CONTORNO: 1 pixel, continuo, so na borda da silhueta, na cor escura do proprio material
     (nunca preto). Aqui o contorno e o anel de fora da propria forma (Desenho.contorno).

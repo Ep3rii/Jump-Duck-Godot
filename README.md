@@ -78,11 +78,11 @@ existir a arte definitiva.
 
 ## Arte
 
-Toda a arte atual é provisória (sprites convertidos do GameMaker e desenhos em código). A arte
-definitiva segue a regra **8 pixels do desenho = 1 pixel do jogo**: blocos e entidades pequenas
-em **128x128**, chefes em **256x256**. A lista completa, com tamanhos e quadros, está em
-[ROTEIRO_FASES.md](ROTEIRO_FASES.md#arte). No código, `Sprites.make_art_sprite()` cria o sprite
-já reduzido (`Sprites.ART_SCALE`). A janela desenha em alta resolução (`stretch mode` =
+A arte nova fica em `assets/sprites/arte/`, em PNG **1:1** (dá para editar à mão em qualquer
+editor de pixel art; veja "Editar a arte à mão" no [ROTEIRO_FASES.md](ROTEIRO_FASES.md#arte)).
+A regra é **2 pixels do desenho = 1 pixel do jogo**: blocos e entidades pequenas em **32x32**,
+chefes em **64x64**. No código, `Sprites.make_art_sprite()` e `Sprites.draw_bicho()` ampliam a
+arte (`Sprites.ART_SCALE`). A janela desenha em alta resolução (`stretch mode` =
 `canvas_items`), então o detalhe aparece na tela mesmo com o jogo em 320x180.
 
 ## Laboratório de mecânicas

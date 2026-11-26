@@ -108,16 +108,20 @@ ele no jogo e apago o provisório.
 ### Tamanhos (definidos em 25/11/2026)
 
 O jogo continua do mesmo tamanho na tela; os desenhos novos só têm mais detalhe. A regra é uma só:
-**8 pixels do desenho = 1 pixel do jogo** (`Sprites.ART_SCALE` em `scripts/sprites.gd`).
+**2 pixels do desenho = 1 pixel do jogo** (`Sprites.ART_SCALE` em `scripts/sprites.gd`), e os
+arquivos são gravados em **1:1** (1 pixel do arquivo = 1 pixel do desenho; o jogo amplia sozinho).
+Até 25/11/2026 parte da arte era gravada ampliada 4x (quadros de 128); foi convertida para 1:1 para
+dar para editar à mão pixel por pixel, sem mudar nada na tela.
 
-| Tipo | Tamanho do desenho | Tamanho no jogo |
+| Tipo | Tamanho do arquivo | Tamanho no jogo |
 |---|---|---|
-| **Blocos e texturas** (chão, parede, caixa, pedra que cai, cipó, água) | **128x128** por bloco | 1 bloco (16 px) |
-| **Entidades pequenas** (pato, Pata, raposa, jacaré comum, gaviãozinho, águia, flor, chave, coração) | **128x128** por quadro | 1 bloco: o tamanho do pato |
-| **Mini-chefes e chefes** (jacaré gigante, gavião) | **256x256** por quadro | 2 blocos (32 px) |
-| Objetos mais altos que um bloco (bandeiras, porta) | 128 de largura x altura em blocos (ex.: porta de 3 blocos = 128x384) | conforme o objeto |
-| **Cenário grande** (moinho, celeiro, árvore, cerca, arbusto) | direto na grade: **2 px do desenho = 1 px do jogo**, sem ampliar 4x (mesma densidade de pixel do pato, arquivo menor) | ver "Escala" abaixo |
-| **Fundos** (montanhas, colinas, nuvens, torre ao longe, parede da torre) | direto na grade; tiras de 1024 px que emendam nas pontas | repetem a cada 512 px |
+| **Blocos e texturas** (chão, parede, caixa, pedra que cai, cipó, água) | **32x32** por bloco | 1 bloco (16 px) |
+| **Entidades pequenas** (pato, Pata, flor, chave, coração) | **32x32** por quadro | 1 bloco: o tamanho do pato |
+| **Inimigos comuns** (raposa, jacaré, gaviãozinho, águia) | quadro do tamanho do bicho (ex.: raposa 46x34) | um pouco maiores que o pato |
+| **Mini-chefes e chefes** (jacaré gigante, gavião) | **64x64** por quadro | 2 blocos (32 px) |
+| Objetos mais altos que um bloco (bandeiras, porta) | 32 de largura x altura em blocos (ex.: porta de 3 blocos = 32x96) | conforme o objeto |
+| **Cenário grande** (moinho, celeiro, árvore, cerca, arbusto) | conforme o desenho | ver "Escala" abaixo |
+| **Fundos** (montanhas, colinas, nuvens, torre ao longe, parede da torre) | tiras de 1024 px que emendam nas pontas | repetem a cada 512 px |
 
 Os inimigos comuns foram reduzidos para o tamanho do pato e os chefes para 2 blocos (colisões e
 testes já ajustados), então os desenhos novos encaixam sem mexer nas fases.
@@ -128,7 +132,7 @@ Definida a partir do pato e do tileset originais (25/11/2026). Vale para todos o
 
 | Regra | Como é |
 |---|---|
-| **Grade** | 32 px de desenho por bloco (o dobro do original, que tem 16), ampliados 4x para o quadro de 128: cada pixel vira um quadrado 4x4. Chefes: grade de 64 no quadro de 256. Nada de meio pixel, rotação ou escala quebrada. |
+| **Grade** | 32 px de desenho por bloco (o dobro do original, que tem 16), gravados em 1:1. Chefes: grade de 64. Nada de meio pixel, rotação ou escala quebrada. |
 | **Contorno** | 1 pixel, contínuo, seguindo só as bordas (sem pixel sobrando nos cantos de dentro), numa cor escura do próprio material, nunca preto puro: cinza `#636363` no pato, verde-escuro suave `#1d6b22` na borda do terreno. |
 | **Preenchimento** | Cor chapada, mais no máximo 1 ou 2 tons de sombra onde o volume dobra (barriga do pato `#e2e2e2`, base da terra `#d89d40` / `#99692c`). Sem degradê, sem pontilhado, sem suavização e sem textura de ruído. |
 | **Paleta** | Viva e limpa, como a original: branco `#ffffff`, amarelo `#ffff00` / `#fff200`, verdes `#31dc31` `#2ecf2e` `#28b228` `#2ba024`, terra `#e59f43` `#d89d40`, flores brancas com miolo laranja `#f28b57`. Poucas cores por sprite (o pato usa 5). |
@@ -176,8 +180,8 @@ chefes) é desenhado com ela, para sair igual ao pato e ao tileset.
 | Pato correndo | `assets/sprites/arte/pato_correndo.png` | 8 quadros a 16 por segundo: corpo do parado subindo e descendo a cada passo, pés gordinhos (o de trás um pouco mais escuro), só o olho da frente e uma linha só de contorno entre os pés |
 | Pato pulando, no ápice e caindo | `pato_pulando.png` (4 quadros, 8/s), `pato_apice.png` (2, 6/s), `pato_caindo.png` (6, 8/s) | subindo: pés encolhendo, sem asa; ápice: transição em que a asa pequena bate e os pés começam a descer; caindo: pernas penduradas e asa batendo. A asa se separa do corpo por cores leves (sombra `#e2e2e2` embaixo, tom `#f0f0f0` na parte de baixo dela), com contorno escuro só na borda de fora. |
 | Pato levando dano e morrendo | `pato_dano.png` (4 quadros, 12/s), `pato_morte.png` (4, 8/s) | dano: olhos fechados de dor, piscando vermelho e rosa; morte: de barriga para cima, cinza, olhos em X, pés mexendo (o pulinho é da física do jogo). Com isso, todas as animações do pato usam a arte nova |
-| Tileset de grama | `assets/sprites/arte/tileset_grama.png` (4x9 blocos de 128) | os 16 blocos originais ampliados com todas as bordas finas (1 px) e suaves (`#1d6b22`), mais 20 novos: 4 variações do topo (sem flores, flores amarelas, pedrinha, cogumelo), 4 da terra (pedrinhas, raiz, camada, pontinhos), canto interno dos dois lados, coluna de 1 bloco (topo, meio, base), teto de terra (esq., meio, dir.), bloquinho sozinho, tronco (esq., meio, dir.) e ponte. O jogo escolhe sozinho o bloco de cada célula (`Level._retile_grass`), com as variações pela posição; tronco e ponte são colocados à mão (linha 8 do tileset) |
-| Tileset de pedra da torre | `assets/sprites/arte/tileset_pedra.png` (4x9 blocos de 128, `tools/arte/pedra.py`) | alvenaria medieval escura e suja: pedras de tamanhos diferentes, capa de pedras no topo, manchas de umidade, musgo, rachaduras e tijolo faltando. Mesmos 36 blocos e índices do tileset de grama, então o auto-tile do jogo serve para os dois; a linha 8 tem uma laje solta de meio bloco |
+| Tileset de grama | `assets/sprites/arte/tileset_grama.png` (4x9 blocos de 32) | os 16 blocos originais ampliados com todas as bordas finas (1 px) e suaves (`#1d6b22`), mais 20 novos: 4 variações do topo (sem flores, flores amarelas, pedrinha, cogumelo), 4 da terra (pedrinhas, raiz, camada, pontinhos), canto interno dos dois lados, coluna de 1 bloco (topo, meio, base), teto de terra (esq., meio, dir.), bloquinho sozinho, tronco (esq., meio, dir.) e ponte. O jogo escolhe sozinho o bloco de cada célula (`Level._retile_grass`), com as variações pela posição; tronco e ponte são colocados à mão (linha 8 do tileset) |
+| Tileset de pedra da torre | `assets/sprites/arte/tileset_pedra.png` (4x9 blocos de 32, `tools/arte/pedra.py`) | alvenaria medieval escura e suja: pedras de tamanhos diferentes, capa de pedras no topo, manchas de umidade, musgo, rachaduras e tijolo faltando. Mesmos 36 blocos e índices do tileset de grama, então o auto-tile do jogo serve para os dois; a linha 8 tem uma laje solta de meio bloco |
 | Flor, estrela, chave, caixa e feno | `flor.png` (4 quadros), `estrela.png` (cheia, vazia), `chave.png`, `caixa.png`, `feno.png` em `assets/sprites/arte/` (`tools/arte/itens.py`) | flor e estrela são as originais com o dobro de detalhe e contorno de 1 px (a flor perdeu o brilhinho solto); chave, caixa e feno são os desenhos que o jogo fazia em código, no dobro. O coração continua sendo o original, que já estava na grade |
 | Inimigos comuns | `raposa.png` (6 quadros de trote), `jacare.png` (4 nadando + 2 de mordida), `gaviaozinho.png` (6 de voo + 1 de rasante), `aguia.png` (6 de voo + 1 de mergulho) em `assets/sprites/arte/` (`tools/arte/inimigos.py`) | simples como o pato e um pouco maiores que ele (águia bem maior); aves quadradas com asas em degraus que seguem a batida, pernas recolhidas no voo; raposa com as quatro pernas de coxa e meia escura; jacaré verde-água com quatro pernas, cauda ondulando e dentes presos às mandíbulas. Revisados depois de uma avaliação com 20 agentes. A máscara de colisão continua do tamanho da do pato |
 | Fonte | `assets/sprites/arte/fonte.png` + `scripts/fonte_meta.gd` (gerados por `tools/arte/fonte.py`) | maiúsculas de 7 px, traço grosso e arredondado, largura proporcional; acentos em cima da letra inteira (a letra acentuada tem o mesmo tamanho das outras). Usada em todos os textos (`scripts/pixel_font.gd`) |
@@ -202,47 +206,68 @@ do pato é desenhado por cima da borda do terreno).
 - **Textos reescritos:** mais curtos e diretos, em tom amigável (dicas das placas, controles,
   opções, resultado da fase, fim de jogo e créditos).
 
+### Editar a arte à mão (ajuste fino)
+
+Toda a arte nova fica em `assets/sprites/arte/` como **PNG em 1:1** e pode ser aberta em qualquer
+editor de pixel art (Aseprite, LibreSprite, Piskel; no Photoshop/GIMP use interpolação "vizinho mais
+próximo"). Salvou, o Godot reimporta sozinho e o jogo já mostra a mudança.
+
+1. **Não mude o tamanho do arquivo nem a ordem dos quadros.** As tiras são quadros lado a lado do
+   mesmo tamanho (pato: 32x32; raposa: 46x34, 6 quadros; jacaré: 64x28, 6; gaviãozinho: 46x38, 7;
+   águia: 62x52, 7; flor: 32x32, 4). Os tilesets têm 4x9 blocos de 32 em posições fixas (o jogo
+   escolhe cada bloco pela posição no arquivo). Pintar dentro de cada quadro pode à vontade.
+2. **Fundo transparente e cores cheias:** nada de pixel meio transparente, suavização ou pincel
+   macio (vira borda borrada no jogo).
+3. **Os geradores não apagam o que você editou.** Os scripts de `tools/arte/` (com `--salvar`)
+   gravam a arte, mas guardam a impressão de cada arquivo que gravaram em `tools/arte/gerados.json`.
+   Se o PNG foi mexido depois, o gerador avisa `PROTEGIDO: ... foi editado à mão` e não sobrescreve.
+   Para trocar de propósito pela versão do gerador (perdendo a edição), rode com `--forcar`.
+   Sem `--salvar`, os geradores só fazem prévias em `tools/arte/saida/`.
+4. Se mudar a pose a ponto de mexer onde os pés ou o centro ficam, me avise: a origem de cada
+   sprite (o ponto que encosta no chão) está no código (`ART_ORIGIN` / `PIVO`).
+
+Os sprites originais do GameMaker que os geradores usam como referência ficam em
+`tools/arte/originais/`.
+
 ### Padrão para exportar
-- PNG em **tira horizontal** (todos os quadros lado a lado), fundo transparente, em `assets/sprites/`.
-- O personagem deve **ocupar o quadro**, com uma folga pequena (uns 4 a 8 px do desenho) nas bordas:
-  o quadro de 128 corresponde à área de colisão.
+- PNG em **tira horizontal** (todos os quadros lado a lado), fundo transparente, em 1:1, em
+  `assets/sprites/arte/`.
+- O personagem deve **ocupar o quadro**, com uma folga pequena (1 ou 2 px) nas bordas.
 - **Origem:** para quem anda no chão, o meio da base (os pés); para quem voa ou nada, o centro.
-- **Tileset:** 512x512 (4x4 blocos de 128), na mesma grade do `spr_tileSetGrama01` atual: linha 2 =
-  topo do chão grosso (esquerda, meio, direita) + plataforma de 1 bloco; linha 3 = plataforma fina
-  (esquerda, meio, direita); linha 4 = interior (esquerda, meio, direita).
-- Para cada sprite, anote **quantos quadros** e o **FPS**; o resto eu configuro (origem, animações, mipmaps).
-- O jogo reduz a arte 8x com filtro suave para não picotar os pixels. Ela aparece perfeitamente
-  nítida com a janela em 2560x1440; em 1920x1080 fica levemente suavizada.
+- **Tileset:** 128x288 (4x9 blocos de 32), na mesma ordem do `tileset_grama.png`.
+- Para cada sprite, anote **quantos quadros** e o **FPS**; o resto eu configuro (origem, animações).
+- O jogo amplia a arte com filtro "vizinho mais próximo": os pixels ficam nítidos em qualquer
+  resolução.
 
 ### O que desenhar, na ordem em que as fases vão precisar
 
 | Para | Sprite | Tamanho | Quadros |
 |---|---|---|---|
-| Geral | pato (parado, correndo, pulando, caindo, dano, morte) | 128x128 | 4 + 6 + 1 + 1 + 2 + 4 |
-| Geral | pato escalando o cipó | 128x128 | 2 |
-| Geral | flor, coração (vida extra) | 128x128 | 4 / 1 |
-| Geral | bandeira de checkpoint (apagada, acesa) e bandeira de saída | 128x256 / 128x384 | 1–2 / 2–4 |
+| Geral | pato (parado, correndo, pulando, caindo, dano, morte) | 32x32 | 4 + 6 + 1 + 1 + 2 + 4 |
+| Geral | pato escalando o cipó | 32x32 | 2 |
+| Geral | flor, coração (vida extra) | 32x32 | 4 / 1 |
+| Geral | bandeira de checkpoint (apagada, acesa) e bandeira de saída | 32x64 / 32x96 | 1–2 / 2–4 |
 | Tutorial | tileset da fazenda (terra, grama) | 512x512 | — |
 | Tutorial | moinho (pás girando) | ~512x768 | 4 |
-| Tutorial | celeiro, cerca, árvore, arbusto, junco (decoração) | múltiplos de 128 | 1 |
-| Tutorial | fardo de feno | 128x128 | 1 |
-| Tutorial e Fase 1 | raposa (andando) | 128x128 | 4–6 |
-| Fase 1 | caixa de madeira | 128x128 | 1 |
-| Fase 1 | placa de pressão (solta, apertada) e porta (fechada, com fechadura) | 128x128 / 128x384 | 2 / 2 |
-| Fases 2–3 | pato nadando (boiando / mergulhando) | 128x128 | 2–4 cada |
-| Fases 2–3 | água (superfície e fundo, animada) | 128x128 | 4 |
-| Fases 2–3 | jacaré comum (nadando, mordendo) | 128x128 | 4 + 3 |
+| Tutorial | celeiro, cerca, árvore, arbusto, junco (decoração) | conforme o desenho | 1 |
+| Tutorial | fardo de feno | 32x32 | 1 |
+| Tutorial e Fase 1 | raposa (andando) | 32x32 | 4–6 |
+| Fase 1 | caixa de madeira | 32x32 | 1 |
+| Fase 1 | placa de pressão (solta, apertada) e porta (fechada, com fechadura) | 32x32 / 32x96 | 2 / 2 |
+| Fases 2–3 | pato nadando (boiando / mergulhando) | 32x32 | 2–4 cada |
+| Fases 2–3 | água (superfície e fundo, animada) | 32x32 | 4 |
+| Fases 2–3 | jacaré comum (nadando, mordendo) | 32x32 | 4 + 3 |
 | Fase 3 | jacaré gigante (nadando, saltando, mordendo, dor de dente) | 256x256 | 4 + 2 + 3 + 2 |
 | Fases 4–8 | tileset de pedra da torre | 512x512 | — |
 | Fases 4–8 | fundo: parede de tijolos com janelas e tochas | 2560x1440 | 1 (+ tochas 2–4) |
-| Fases 4–8 | chave (brilhando) | 128x128 | 2–4 |
-| Fases 4–8 | gaviãozinho (voo, grito, rasante) | 128x128 | 4 + 1 + 2 |
-| Fases 4–8 | águia (voo, grito, mergulho, bico preso) | 128x128 | 4 + 1 + 2 + 2 |
-| Fases 6–8 | pedra que cai (inteira, rachada) | 128x128 | 2 |
-| Fases 6–8 | vento (listras) | 128x128 | 3–4 |
+| Fases 4–8 | chave (brilhando) | 32x32 | 2–4 |
+| Fases 4–8 | gaviãozinho (voo, grito, rasante) | 32x32 | 4 + 1 + 2 |
+| Fases 4–8 | águia (voo, grito, mergulho, bico preso) | 32x32 | 4 + 1 + 2 + 2 |
+| Fases 6–8 | pedra que cai (inteira, rachada) | 32x32 | 2 |
+| Fases 6–8 | vento (listras) | 32x32 | 3–4 |
 | Final | gavião chefe (voo, grito, mergulho, investida, atordoado, dano) | 256x256 | 4 + 2 + 2 + 2 + 3 + 2 |
-| Cutscene | Pata (parada, andando, pulinho) | 128x128 | 3 + 4 + 2 |
-| Cutscene | céu de pôr do sol com sol e montanhas, topo da torre, ninho | 2560x1440 / 128x128 | 1 |
+| Cutscene | Pata (parada, andando, pulinho) | 32x32 | 3 + 4 + 2 |
+| Cutscene | céu de pôr do sol com sol e montanhas, topo da torre, ninho | 1024 de largura / 32x32 | 1 |
 
 **Alternativa:** pacotes de pixel art prontos (itch.io etc.) aceleram, mas como o jogo tem licença
 proprietária, só servem pacotes com licença que permita uso comercial. Confira a licença de cada um.

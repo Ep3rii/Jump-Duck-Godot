@@ -62,7 +62,7 @@ func _build_ground() -> void:
 	var layer := TileMapLayer.new()
 	layer.name = "Chao"
 	layer.tile_set = GrassTiles
-	layer.scale = Vector2(0.125, 0.125)
+	layer.scale = Vector2(0.5, 0.5)
 	layer.position = Vector2(0, GROUND_Y - 160.0)
 	layer.z_index = -800
 	layer.add_to_group("solid_tiles")  # o ambiente poe tufos de grama e florzinhas em cima

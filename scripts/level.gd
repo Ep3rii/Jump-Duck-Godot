@@ -96,8 +96,8 @@ func _retile_grass() -> void:
 	for layer: TileMapLayer in get_tree().get_nodes_in_group("solid_tiles"):
 		if not is_ancestor_of(layer) or layer.tile_set == null:
 			continue
-		if layer.tile_set.tile_size != Vector2i(128, 128):
-			continue  # so o tileset de grama novo (blocos de 128)
+		if layer.tile_set.tile_size != Vector2i(32, 32):
+			continue  # so os tilesets novos (grama e pedra, blocos de 32 em 1:1)
 		var cells := {}
 		for c in layer.get_used_cells():
 			if layer.get_cell_atlas_coords(c).y != GRASS_PLATFORM_ROW:

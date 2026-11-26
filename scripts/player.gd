@@ -12,7 +12,7 @@ const Vento := preload("res://scripts/vento.gd")
 const Particulas := preload("res://scripts/particulas.gd")
 const Sprites := preload("res://scripts/sprites.gd")
 
-## Animacoes que ja tem arte nova aprovada (128x128 por quadro, categoria "plana crocante").
+## Animacoes com a arte nova aprovada (32x32 por quadro, categoria "plana crocante").
 ## As outras continuam com os quadros antigos ate serem redesenhadas e aprovadas.
 const ART_ANIMS := {
 	"idle": ["res://assets/sprites/arte/pato_parado.png", 1, 1.0],
@@ -25,8 +25,8 @@ const ART_ANIMS := {
 }
 ## Velocidade vertical abaixo da qual, no ar, o pato esta no "apice" (transicao entre subir e cair).
 const APEX_SPEED := 0.8
-## Ponto do quadro de 128 que fica nos pes: a ultima linha de contorno cai sobre a borda do chao.
-const ART_ORIGIN := Vector2(64, 124)
+## Ponto do quadro de 32 que fica nos pes: a ultima linha de contorno cai sobre a borda do chao.
+const ART_ORIGIN := Vector2(16, 31)
 
 const HURT_TIME := 30  # frames parado no estado "hurt"
 const DEATH_TIME := 60  # frames da animacao de morte ate a tela de fim de jogo

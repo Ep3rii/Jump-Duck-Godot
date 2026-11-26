@@ -4,9 +4,11 @@ extends RefCounted
 
 const Meta := preload("res://scripts/sprites_meta.gd")
 
-## Arte nova (ver "Arte" no ROTEIRO_FASES.md): 8 pixels do desenho = 1 pixel do jogo.
-## Bloco e entidade pequena: 128x128 -> 16 px no jogo. Chefe: 256x256 -> 32 px.
-const ART_SCALE := 1.0 / 8.0
+## Arte nova (ver "Arte" no ROTEIRO_FASES.md): gravada em 1:1, para editar a mao pixel por
+## pixel; 2 pixels do desenho = 1 pixel do jogo. Bloco e entidade pequena: 32x32 -> 16 px no
+## jogo. Chefe: 64x64 -> 32 px.
+const ART_SCALE := 0.5
+const QUADRO := 32  # quadro padrao (bloco, pato, item) em px do desenho
 ## Filtro da arte nova: vizinho mais proximo, para os pixels ficarem nitidos ("crocantes",
 ## como o original). Em 4K cada pixel da grade de 32 vira exatamente 5x5 pixels da tela.
 const ART_FILTER := CanvasItem.TEXTURE_FILTER_NEAREST
@@ -85,14 +87,13 @@ static func draw_art(ci: CanvasItem, art_name: String, x: float, y: float, frame
 		Rect2(frame * fw, 0.0, fw, h), color)
 
 
-## Desenha um quadro de uma tira da arte nova (quadros de 128 px lado a lado) dentro de 'rect'.
+## Desenha um quadro de uma tira da arte nova (quadros de 32 px lado a lado) dentro de 'rect'.
 static func draw_frame(ci: CanvasItem, art_name: String, rect: Rect2, frame := 0,
 		color: Color = Color.WHITE) -> void:
-	ci.draw_texture_rect_region(art(art_name), rect, Rect2(frame * 128.0, 0.0, 128.0, 128.0), color)
+	ci.draw_texture_rect_region(art(art_name), rect, Rect2(frame * QUADRO, 0.0, QUADRO, QUADRO), color)
 
 
-## Desenha um quadro de uma tira de inimigo/bicho da arte nova (gravada 4x a grade, ou seja
-## 8 px do arquivo = 1 px do jogo). 'pivo' = ponto do quadro (em px do jogo) que fica na origem
+## Desenha um quadro de uma tira de inimigo/bicho da arte nova (2 px do arquivo = 1 px do jogo). 'pivo' = ponto do quadro (em px do jogo) que fica na origem
 ## do no. A arte olha para a DIREITA; com olha_esquerda = true ela e espelhada no pivo.
 static func draw_bicho(ci: CanvasItem, art_name: String, frame: int, frames_n: int, pivo: Vector2,
 		olha_esquerda := false, color: Color = Color.WHITE, desloc := Vector2.ZERO) -> void:
@@ -108,7 +109,7 @@ static func draw_bicho(ci: CanvasItem, art_name: String, frame: int, frames_n: i
 	ci.draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 
-## Sprite animado para a arte nova: frames desenhados em 128/256 px, reduzidos para o tamanho
+## Sprite animado para a arte nova: frames desenhados em 32/64 px, ampliados para o tamanho
 ## do jogo. origin_art = ponto do quadro (em pixels do desenho) que fica na origem do no.
 static func make_art_sprite(sprite_frames: SpriteFrames, origin_art: Vector2) -> AnimatedSprite2D:
 	var s := AnimatedSprite2D.new()
@@ -122,7 +123,7 @@ static func make_art_sprite(sprite_frames: SpriteFrames, origin_art: Vector2) ->
 
 ## SpriteFrames da arte nova a partir de tiras horizontais de quadros de 'frame_size' px.
 ## anims = {"nome": [caminho_png, quadros, fps, repete]}
-static func art_frames(anims: Dictionary, frame_size := 128) -> SpriteFrames:
+static func art_frames(anims: Dictionary, frame_size := QUADRO) -> SpriteFrames:
 	var sf := SpriteFrames.new()
 	sf.remove_animation("default")
 	for anim_name: String in anims:
