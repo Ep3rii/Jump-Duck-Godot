@@ -10,5 +10,7 @@ const LevelTiles := preload("res://scripts/tile_data.gd")
 
 
 func _build_level() -> void:
-	fill_layer(tiles_agua, "spr_objBAgua01", LevelTiles.AGUA)
-	fill_layer(tiles_grama, "spr_tileSetGrama01", LevelTiles.GRAMA)
+	# agua: o original so usa um bloco (o corpo da agua); grama: os blocos originais ficam
+	# nas mesmas posicoes do tileset de grama novo
+	fill_layer_art(tiles_agua, "agua", LevelTiles.AGUA, 0)
+	fill_layer_art(tiles_grama, "tileset_grama", LevelTiles.GRAMA)

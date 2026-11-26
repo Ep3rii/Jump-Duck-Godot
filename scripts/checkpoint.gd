@@ -6,11 +6,6 @@ extends Node2D
 
 const Sprites := preload("res://scripts/sprites.gd")
 
-const COL_POLE := Color8(13, 80, 0)
-const COL_OFF := Color8(150, 160, 150)
-const COL_OFF_DARK := Color8(90, 100, 90)
-const COL_ON := Color8(133, 242, 56)
-const COL_ON_DARK := Color8(71, 144, 20)
 
 var active := false
 var _time := 0.0

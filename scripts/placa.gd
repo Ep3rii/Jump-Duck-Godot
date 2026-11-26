@@ -16,10 +16,6 @@ signal changed(pressed: bool)
 ## Nos que recebem set_active(pressionada).
 @export var alvos: Array[NodePath] = []
 
-const COL_BASE := Color8(90, 90, 100)
-const COL_BASE_DARK := Color8(50, 50, 60)
-const COL_TOP := Color8(220, 60, 50)
-const COL_TOP_DARK := Color8(140, 30, 30)
 
 var pressed := false
 

@@ -60,24 +60,27 @@ func _build_level() -> void:
 	pass
 
 
-## Cria um TileSet (tiles de 16x16, 4 colunas) a partir do sprite e preenche a camada.
-## Cada celula de 'cells' e [coluna, linha, indice]; indice -> atlas (indice % 4, indice / 4).
-func fill_layer(layer: TileMapLayer, sprite_name: String, cells: Array) -> void:
+## Preenche a camada com blocos da arte nova (blocos de 32 px em 1:1, mostrados em 16 px).
+## Cada celula de 'cells' e [coluna, linha, indice]; indice -> atlas (indice % colunas,
+## indice / colunas). Com 'fixo' >= 0, toda celula usa esse bloco.
+func fill_layer_art(layer: TileMapLayer, art_name: String, cells: Array, fixo := -1) -> void:
+	var tex := Sprites.art(art_name)
+	var cols := int(tex.get_width() / 32)
+	var rows := int(tex.get_height() / 32)
 	var source := TileSetAtlasSource.new()
-	source.texture = Sprites.strip(sprite_name)
-	source.texture_region_size = Vector2i(16, 16)
-	for ty in 4:
-		for tx in 4:
+	source.texture = tex
+	source.texture_region_size = Vector2i(32, 32)
+	for ty in rows:
+		for tx in cols:
 			source.create_tile(Vector2i(tx, ty))
-
 	var tile_set := TileSet.new()
-	tile_set.tile_size = Vector2i(16, 16)
+	tile_set.tile_size = Vector2i(32, 32)
 	tile_set.add_source(source, 0)
 	layer.tile_set = tile_set
-
+	layer.scale = Vector2(0.5, 0.5)
 	for cell: Array in cells:
-		var index: int = cell[2]
-		layer.set_cell(Vector2i(cell[0], cell[1]), 0, Vector2i(index % 4, index / 4))
+		var index: int = fixo if fixo >= 0 else cell[2]
+		layer.set_cell(Vector2i(cell[0], cell[1]), 0, Vector2i(index % cols, index / cols))
 
 
 

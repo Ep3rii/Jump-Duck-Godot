@@ -15,9 +15,6 @@ const PixelFont := preload("res://scripts/pixel_font.gd")
 ## Distancia (px) em que o balao aparece.
 @export var alcance := 56.0
 
-const COL_POST := Color8(90, 52, 24)
-const COL_BOARD := Color8(176, 116, 58)
-const COL_BOARD_DARK := Color8(120, 74, 34)
 const COL_BUBBLE := Color8(13, 80, 0, 230)
 const COL_BUBBLE_EDGE := Color8(133, 242, 56)
 

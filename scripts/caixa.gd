@@ -15,7 +15,6 @@ const THROW_SPEED := Vector2(3.5, -2.5)
 const CARRY_OFFSET := Vector2(0, -15)  # acima da cabeca do pato
 
 const Sprites := preload("res://scripts/sprites.gd")
-const COL_LIGHT := Color8(214, 150, 80)
 
 ## So muda o desenho: caixa de madeira ou fardo de feno (fazenda).
 @export_enum("Caixa", "Feno") var aparencia := 0:

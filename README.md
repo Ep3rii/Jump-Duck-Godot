@@ -161,7 +161,7 @@ godot --path . res://tests/screenshots.tscn
 | `obj_parallax` | `scripts/parallax.gd` |
 | rooms `menu`, `tutorial_fase1` | `scenes/menu.tscn`, `scenes/testes/fase_teste.tscn` (o tutorial original; hoje só serve aos testes) |
 | `place_meeting` contra sólidos | `scripts/solids.gd` (blocos + tiles com custom data `solid`) |
-| sprites | `assets/sprites/*.png` (tiras horizontais) + `assets/frames/*.tres` (SpriteFrames) |
+| sprites | `assets/sprites/arte/*.png` (arte nova em 1:1, tiras horizontais; geradores em `tools/arte/`) |
 | tilemaps `Tiles_1` / `Tiles_2` | `scripts/tile_data.gd` → `TileMapLayer` montado em `levels/fase_teste.gd` |
 | `ini_*` (jump_duck_settings.ini) | `ConfigFile` em `user://jump_duck_settings.cfg` |
 
@@ -178,8 +178,9 @@ godot --path . res://tests/screenshots.tscn
 - **Pausa real:** fora do estado "playing" a árvore é pausada (`get_tree().paused`); `Game` e a UI rodam com `PROCESS_MODE_ALWAYS`.
 - `obj_blocoAgua01`, `obj_lago01`, `obj_piso01` e `obj_florVazia01` existem no GameMaker, mas não são
   usados em nenhuma sala, então não foram convertidos. A água da fase é só decoração (tiles).
-- Sprites do GameMaker que o jogo não usa (pato antigo, fonte antiga, banners, `spr_voltar`,
-  `spr_fechar`...) foram removidos de `assets/`; continuam no histórico do git e no projeto original.
+- Nenhum sprite do GameMaker é usado mais: toda a arte foi refeita em `assets/sprites/arte/`. Os
+  originais que os geradores usam como referência ficam em `tools/arte/originais/`; os outros
+  continuam no histórico do git e no projeto original.
 
 ## Direitos autorais
 

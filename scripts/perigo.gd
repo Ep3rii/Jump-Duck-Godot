@@ -20,7 +20,6 @@ extends Node2D
 		queue_redraw()
 
 const Sprites := preload("res://scripts/sprites.gd")
-const COL_WATER := Color8(30, 100, 190)
 const COL_WATER_DEEP := Color8(20, 70, 150)
 
 var _time := 0.0

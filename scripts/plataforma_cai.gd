@@ -19,11 +19,7 @@ const Sprites := preload("res://scripts/sprites.gd")
 const Particulas := preload("res://scripts/particulas.gd")
 const FALL_SHOW_PX := 120.0  # depois de cair isso, some (ate voltar)
 
-const COL_OUT := Color8(34, 30, 46)
-const COL_STONE := Color8(168, 150, 120)
 const COL_LIGHT := Color8(214, 198, 160)
-const COL_DARK := Color8(118, 100, 76)
-const COL_CRACK := Color8(60, 44, 30)
 
 var state := "parada"  # parada | tremendo | caindo | voltando
 var _timer := 0

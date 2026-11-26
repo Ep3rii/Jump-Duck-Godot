@@ -67,7 +67,7 @@ Inimigos voadores da família do gavião, em dois tipos:
   chave, toca o som de "negado". Porta trancada ignora placas.
 
 ### Interior da torre (Fases 4 a 8)
-- TileSet de pedra provisório (`assets/tilesets/pedra_solida.tres`, gerado em código) e fundo
+- TileSet de pedra (`assets/tilesets/pedra_solida.tres`, arte `tileset_pedra.png`) e fundo
   `cenario` = "Torre por dentro" na paralaxe (tijolos, janelas com céu e tochas).
 - Fases verticais: andares ligados por cipós, o pato sobe de baixo para cima.
 
@@ -100,10 +100,11 @@ Inimigos voadores da família do gavião, em dois tipos:
 
 ## Arte
 
-**Como fazer:** pixel art na categoria "plana crocante" descrita abaixo; cada sprite novo só entra
-no jogo depois de aprovado. Enquanto a arte não chega,
-o jogo usa desenhos provisórios em código. Quando um sprite ficar pronto, é só me avisar: eu ligo
-ele no jogo e apago o provisório.
+**Estado (26/11/2026):** toda a arte do jogo é nova, em pixel art quadradinha ("plana crocante":
+geometria simples, contorno de 1 px na cor escura do material, cor só para detalhe). Nenhum sprite
+do GameMaker é usado mais. O que continua desenhado em código, de propósito, são efeitos e
+interface: partículas, bolhas, estrelinhas de tontura, sombras, luz, o céu em faixas, o balão de
+texto das dicas, os painéis do menu e as guias que só aparecem no editor.
 
 ### Tamanhos (definidos em 25/11/2026)
 
@@ -184,12 +185,18 @@ chefes) é desenhado com ela, para sair igual ao pato e ao tileset.
 | Tileset de pedra da torre | `assets/sprites/arte/tileset_pedra.png` (4x9 blocos de 32, `tools/arte/pedra.py`) | alvenaria medieval escura e suja: pedras de tamanhos diferentes, capa de pedras no topo, manchas de umidade, musgo, rachaduras e tijolo faltando. Mesmos 36 blocos e índices do tileset de grama, então o auto-tile do jogo serve para os dois; a linha 8 tem uma laje solta de meio bloco |
 | Flor, estrela, chave, caixa e feno | `flor.png` (4 quadros), `estrela.png` (cheia, vazia), `chave.png`, `caixa.png`, `feno.png` em `assets/sprites/arte/` (`tools/arte/itens.py`) | flor e estrela são as originais com o dobro de detalhe e contorno de 1 px (a flor perdeu o brilhinho solto); chave, caixa e feno são os desenhos que o jogo fazia em código, no dobro. O coração continua sendo o original, que já estava na grade |
 | Inimigos comuns | `raposa.png` (6 quadros de trote), `jacare.png` (4 nadando + 2 de mordida), `gaviaozinho.png` (6 de voo + 1 de rasante), `aguia.png` (6 de voo + 1 de mergulho) em `assets/sprites/arte/` (`tools/arte/inimigos.py`) | simples como o pato e um pouco maiores que ele (águia bem maior); aves quadradas com asas em degraus que seguem a batida, pernas recolhidas no voo; raposa com as quatro pernas de coxa e meia escura; jacaré verde-água com quatro pernas, cauda ondulando e dentes presos às mandíbulas. Revisados depois de uma avaliação com 20 agentes. A máscara de colisão continua do tamanho da do pato |
+| Coração, água e bloco | `coracao.png` (cheio, vazio), `agua.png` (4 quadros), `bloco.png` (`tools/arte/lote_base.py`) | coração em degraus de 2 px (HUD e vida extra); água com espuma que anda; bloco de terra com grama para paredes e chão escondido |
+| Chefes | `chefe_jacare.png` (11 quadros de 64x64: nadando, saltando, mordida em 3 aberturas, dor de dente), `chefe_gaviao.png` (13 quadros: voo, grito, mergulho, investida, atordoado) (`tools/arte/chefes.py`) | 2 blocos no jogo (32 px); o gavião usa a mesma construção das aves comuns; a cor de raiva da etapa 2 e o piscar do aviso vêm do código (tinta por cima da arte) |
+| Cutscene | `pata.png` (11 quadros: parada, andando, feliz), `ninho.png` (`tools/arte/cutscene_arte.py`) | a Pata é o pato aprovado com laço rosa, cílios e bochecha; topo da torre montado com o tileset de pedra; sol, montanhas e nuvens dos fundos; corações com a arte do HUD |
+| Objetos | `porta.png`, `placa.png`, `saida.png`, `checkpoint.png`, `cipo.png`, `pedra_cai.png`, `vento.png`, `dica.png`, `seta.png`, `junco.png`, `brilho.png` (`tools/arte/objetos.py`) | porta em peças (topo, meio, base) com fechadura por cima; placa de pressão solta/apertada; bandeiras tremulando; cipó em trechos; pedra inteira/rachada; lufadas de vento; placas de madeira; juncos; brilho de coletar. O pilar dos lagos usa o tileset de pedra |
 | Fonte | `assets/sprites/arte/fonte.png` + `scripts/fonte_meta.gd` (gerados por `tools/arte/fonte.py`) | maiúsculas de 7 px, traço grosso e arredondado, largura proporcional; acentos em cima da letra inteira (a letra acentuada tem o mesmo tamanho das outras). Usada em todos os textos (`scripts/pixel_font.gd`) |
 
 Os geradores estão em `tools/arte/` (Python, sem dependências): `estilo.py` (a base de estilo),
 `pato.py` (animações do pato), `tileset.py` e `tileset_novos.py` (tileset de grama),
 `tileset_cena.py` (cena de prévia), `cenario.py` (cenário na escala do pato), `fundos.py` (camadas
-do parallax) e `gif_jogo.py` (GIFs a partir de quadros gravados por `tests/gif_fundo.tscn`). Cada sprite novo só entra
+do parallax), `pedra.py` (tileset de pedra), `itens.py`, `inimigos.py`, `lote_base.py`, `chefes.py`,
+`cutscene_arte.py`, `objetos.py` e `gif_jogo.py` (GIFs a partir de quadros gravados por
+`tests/gif_fundo.tscn`). Cada sprite novo só entra
 no jogo depois de aprovado; o pé do pato fica apoiado sobre a borda do chão (o contorno de baixo
 do pato é desenhado por cima da borda do terreno).
 
@@ -241,14 +248,18 @@ Os sprites originais do GameMaker que os geradores usam como referência ficam e
 
 ### O que desenhar, na ordem em que as fases vão precisar
 
+Tudo desta lista já tem arte nova (26/11/2026), menos o **pato escalando o cipó** e o **pato
+nadando**, que ainda reaproveitam quadros do pulo e da queda. A tabela fica como referência de
+tamanhos e quadros.
+
 | Para | Sprite | Tamanho | Quadros |
 |---|---|---|---|
 | Geral | pato (parado, correndo, pulando, caindo, dano, morte) | 32x32 | 4 + 6 + 1 + 1 + 2 + 4 |
 | Geral | pato escalando o cipó | 32x32 | 2 |
 | Geral | flor, coração (vida extra) | 32x32 | 4 / 1 |
 | Geral | bandeira de checkpoint (apagada, acesa) e bandeira de saída | 32x64 / 32x96 | 1–2 / 2–4 |
-| Tutorial | tileset da fazenda (terra, grama) | 512x512 | — |
-| Tutorial | moinho (pás girando) | ~512x768 | 4 |
+| Tutorial | tileset da fazenda (terra, grama) | 128x288 | — |
+| Tutorial | moinho (pás girando) | conforme o desenho | 8 |
 | Tutorial | celeiro, cerca, árvore, arbusto, junco (decoração) | conforme o desenho | 1 |
 | Tutorial | fardo de feno | 32x32 | 1 |
 | Tutorial e Fase 1 | raposa (andando) | 32x32 | 4–6 |
@@ -257,15 +268,15 @@ Os sprites originais do GameMaker que os geradores usam como referência ficam e
 | Fases 2–3 | pato nadando (boiando / mergulhando) | 32x32 | 2–4 cada |
 | Fases 2–3 | água (superfície e fundo, animada) | 32x32 | 4 |
 | Fases 2–3 | jacaré comum (nadando, mordendo) | 32x32 | 4 + 3 |
-| Fase 3 | jacaré gigante (nadando, saltando, mordendo, dor de dente) | 256x256 | 4 + 2 + 3 + 2 |
-| Fases 4–8 | tileset de pedra da torre | 512x512 | — |
-| Fases 4–8 | fundo: parede de tijolos com janelas e tochas | 2560x1440 | 1 (+ tochas 2–4) |
+| Fase 3 | jacaré gigante (nadando, saltando, mordendo, dor de dente) | 64x64 | 4 + 2 + 3 + 2 |
+| Fases 4–8 | tileset de pedra da torre | 128x288 | — |
+| Fases 4–8 | fundo: parede de tijolos com janelas e tochas | 128x128 | 1 (+ tochas 3) |
 | Fases 4–8 | chave (brilhando) | 32x32 | 2–4 |
 | Fases 4–8 | gaviãozinho (voo, grito, rasante) | 32x32 | 4 + 1 + 2 |
 | Fases 4–8 | águia (voo, grito, mergulho, bico preso) | 32x32 | 4 + 1 + 2 + 2 |
 | Fases 6–8 | pedra que cai (inteira, rachada) | 32x32 | 2 |
 | Fases 6–8 | vento (listras) | 32x32 | 3–4 |
-| Final | gavião chefe (voo, grito, mergulho, investida, atordoado, dano) | 256x256 | 4 + 2 + 2 + 2 + 3 + 2 |
+| Final | gavião chefe (voo, grito, mergulho, investida, atordoado, dano) | 64x64 | 4 + 2 + 2 + 2 + 3 |
 | Cutscene | Pata (parada, andando, pulinho) | 32x32 | 3 + 4 + 2 |
 | Cutscene | céu de pôr do sol com sol e montanhas, topo da torre, ninho | 1024 de largura / 32x32 | 1 |
 
@@ -292,7 +303,8 @@ proprietária, só servem pacotes com licença que permita uso comercial. Confir
   foram afastados; a moldura fora da sala não aparece mais com a câmera afastada.
 
 ### Assets que faltam
-- **Arte:** toda a lista de "O que desenhar" acima (os desenhos atuais são provisórios).
+- **Arte:** pato escalando o cipó e pato nadando (hoje reaproveitam o pulo e a queda); se
+  quiser, quadros de piscar e de olhinho feliz para a Pata.
 - **Música:** só existe uma (Grasslands), tocando no jogo inteiro. Faltam: menu, fazenda, lago,
   torre, luta contra chefe (jacaré e gavião) e a música do final/créditos.
 - **Efeitos sonoros:** os atuais são sintetizados em código (provisórios). O ideal é ter sons
@@ -319,7 +331,7 @@ Cada fase vira uma entrega jogável, com a mecânica dela feita logo antes:
 3. ✅ **Chave + aves de rapina → Fases 4 e 5**.
 4. ✅ **Vento + plataformas que caem → Fases 6, 7 e 8**.
 5. ✅ **Chefe gavião → Fase Final**, e depois **cutscene com a Pata**.
-6. Trocar a arte provisória pela definitiva conforme ela for ficando pronta; ajuste geral de dificuldade e de pontuação.
+6. ✅ Arte provisória trocada pela definitiva (26/11/2026). Falta o ajuste geral de dificuldade e de pontuação.
 
 ## Ainda para confirmar
 

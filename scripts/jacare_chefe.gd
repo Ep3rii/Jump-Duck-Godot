@@ -29,14 +29,6 @@ const Sprites := preload("res://scripts/sprites.gd")
 const QUADROS := 11  # tira assets/sprites/arte/chefe_jacare.png (tools/arte/chefes.py)
 const PIVO := Vector2(16, 23)  # ponto da barriga no quadro de 64 px (16 px no jogo)
 
-const COL_OUT := Color8(16, 40, 16)
-const COL_BODY := Color8(60, 112, 44)
-const COL_BELLY := Color8(176, 190, 112)
-const COL_SCUTE := Color8(38, 82, 30)
-const COL_TOOTH := Color8(250, 250, 240)
-const COL_MOUTH := Color8(150, 40, 40)
-const COL_SWELL := Color8(220, 110, 100)
-const COL_STAR := Color8(255, 220, 80)
 
 var state := "espera"  # espera | nadando | aviso | salto | mordida_aviso | mordida | dor | ferido
 var water: Node2D = null

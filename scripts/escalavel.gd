@@ -12,9 +12,6 @@ const Sprites := preload("res://scripts/sprites.gd")
 		tiles_h = v
 		queue_redraw()
 
-const COL_STEM := Color8(40, 110, 30)
-const COL_STEM_HI := Color8(95, 192, 26)
-const COL_LEAF := Color8(71, 160, 40)
 
 
 var _time := 0.0

@@ -26,16 +26,6 @@ const Sprites := preload("res://scripts/sprites.gd")
 		queue_redraw()
 
 const Particulas := preload("res://scripts/particulas.gd")
-const COL_DARK := Color8(46, 46, 58)
-const COL_STONE := Color8(118, 118, 132)
-const COL_LIGHT := Color8(170, 170, 184)
-const COL_WOOD_DARK := Color8(60, 30, 12)
-const COL_WOOD := Color8(140, 82, 36)
-const COL_WOOD_LIGHT := Color8(180, 116, 60)
-const COL_IRON := Color8(70, 70, 84)
-const COL_IRON_LIGHT := Color8(130, 130, 146)
-const COL_LOCK_OUT := Color8(90, 60, 0)
-const COL_LOCK := Color8(255, 206, 60)
 
 var is_open := false
 var _want_open := false

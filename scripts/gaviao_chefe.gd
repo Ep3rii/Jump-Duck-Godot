@@ -24,17 +24,6 @@ const QUADROS := 13  # tira assets/sprites/arte/chefe_gaviao.png (tools/arte/che
 const PIVO := Vector2(16, 15)  # centro do corpo no quadro de 64 px (16 px no jogo)
 const Solids := preload("res://scripts/solids.gd")
 
-const COL_OUT := Color8(36, 20, 10)
-const COL_BODY := Color8(124, 72, 36)
-const COL_WING := Color8(96, 54, 26)
-const COL_WING_TIP := Color8(60, 34, 16)
-const COL_BELLY := Color8(236, 214, 170)
-const COL_STREAK := Color8(150, 96, 50)
-const COL_TAIL := Color8(196, 80, 44)
-const COL_BEAK := Color8(250, 196, 40)
-const COL_EYE := Color8(255, 220, 60)
-const COL_STAR := Color8(255, 220, 80)
-const COL_RAGE := Color8(255, 70, 50)
 
 ## Paredes e chao da arena (px). A investida termina batendo numa das paredes.
 @export var limite_esq := 208.0
