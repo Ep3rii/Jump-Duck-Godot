@@ -310,8 +310,8 @@ func _draw_hud(w: int, h: int) -> void:
 				draw_arc(c, 3.0, 0.0, TAU, 12, Color8(70, 110, 140), 1.0)
 
 	for heart in Game.max_lives:
-		var heart_sprite := "spr_vidaCheia" if heart < Game.player_lives else "spr_vidaVazia"
-		Sprites.draw_tl(self, heart_sprite, 0, 5 + heart * 18, 5, 0.5)
+		var cheio := heart < Game.player_lives
+		Sprites.draw_frame(self, "coracao", Rect2(5 + heart * 18, 5, 16, 16), 0 if cheio else 1)
 
 	var sec := floori(Game.level_elapsed_seconds)
 	var sec_text := str(sec % 60)

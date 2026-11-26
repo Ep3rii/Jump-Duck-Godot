@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bwmhn5r0kyvco"
-path="res://.godot/imported/spr_bgNuvens.png-acda92f3067a385ee49e10a79676ce59.ctex"
+uid="uid://bl68gvqo2iha8"
+path="res://.godot/imported/agua.png-5245382f16463bb8b9b6032ebb45ae49.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/spr_bgNuvens.png"
-dest_files=["res://.godot/imported/spr_bgNuvens.png-acda92f3067a385ee49e10a79676ce59.ctex"]
+source_file="res://assets/sprites/arte/agua.png"
+dest_files=["res://.godot/imported/agua.png-5245382f16463bb8b9b6032ebb45ae49.ctex"]
 
 [params]
 

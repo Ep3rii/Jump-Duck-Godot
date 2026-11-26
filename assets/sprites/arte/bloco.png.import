@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://018ydt5l4ya5"
-path="res://.godot/imported/spr_objBPiso01.png-d4b2f1af0e3d12aca6c48e3e7af4ec38.ctex"
+uid="uid://cttxhsiuqats6"
+path="res://.godot/imported/bloco.png-fd2105fd0b655dff8176268c28ee48d0.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/spr_objBPiso01.png"
-dest_files=["res://.godot/imported/spr_objBPiso01.png-d4b2f1af0e3d12aca6c48e3e7af4ec38.ctex"]
+source_file="res://assets/sprites/arte/bloco.png"
+dest_files=["res://.godot/imported/bloco.png-fd2105fd0b655dff8176268c28ee48d0.ctex"]
 
 [params]
 

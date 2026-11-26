@@ -13,7 +13,7 @@ extends Node2D
 		tiles_h = v
 		queue_redraw()
 
-const TEX := preload("res://assets/sprites/spr_objBPiso01.png")
+const TEX := preload("res://assets/sprites/arte/bloco.png")
 
 
 func _ready() -> void:
@@ -26,4 +26,7 @@ func get_rect() -> Rect2:
 
 
 func _draw() -> void:
-	draw_texture_rect(TEX, Rect2(0.0, -16.0 * tiles_h, 16.0 * tiles_w, 16.0 * tiles_h), true)
+	# bloco de 16 px repetido na area (a arte e 32 px, reduzida pela metade)
+	for j in tiles_h:
+		for i in tiles_w:
+			draw_texture_rect(TEX, Rect2(i * 16.0, -16.0 * (j + 1), 16.0, 16.0), false)

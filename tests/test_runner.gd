@@ -218,7 +218,7 @@ func _run() -> void:
 	ts.set_custom_data_layer_name(0, "solid")
 	ts.set_custom_data_layer_type(0, TYPE_BOOL)
 	var src := TileSetAtlasSource.new()
-	src.texture = load("res://assets/sprites/spr_objBPiso01.png")
+	src.texture = load("res://assets/sprites/arte/bloco.png")
 	src.texture_region_size = Vector2i(16, 16)
 	src.create_tile(Vector2i.ZERO)
 	ts.add_source(src, 0)

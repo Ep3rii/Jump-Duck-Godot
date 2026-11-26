@@ -59,9 +59,9 @@ func _draw() -> void:
 	var h := 16.0 * tiles_h
 	draw_rect(Rect2(0, -h + 4, w, h - 4), COL_BODY)
 	draw_rect(Rect2(0, -h * 0.5, w, h * 0.5), COL_DEEP)
-	var frame := int(_time * Sprites.meta("spr_agua01Anima")[5])
+	var frame := int(_time * 4.0)  # 4 quadros por segundo
 	for i in tiles_w:
-		Sprites.draw(self, "spr_agua01Anima", frame + i, i * 16.0, -h, 1.0, 1.0, Color(1, 1, 1, 0.85))
+		Sprites.draw_frame(self, "agua", Rect2(i * 16.0, -h, 16.0, 16.0), posmod(frame + i, 4), Color(1, 1, 1, 0.85))
 	# brilhinhos na superficie e raios de luz no fundo
 	for i in tiles_w * 2:
 		var ph := _time * 1.7 + i * 2.39

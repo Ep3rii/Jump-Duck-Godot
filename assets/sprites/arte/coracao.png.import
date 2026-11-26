@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ddd3hay7sgufh"
-path="res://.godot/imported/spr_agua01Anima.png-83d9247044ce09e67a23959f3e7e500e.ctex"
+uid="uid://dio3dmw1i84ap"
+path="res://.godot/imported/coracao.png-0955e98546afb987a5e3a46329a1b13d.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/spr_agua01Anima.png"
-dest_files=["res://.godot/imported/spr_agua01Anima.png-83d9247044ce09e67a23959f3e7e500e.ctex"]
+source_file="res://assets/sprites/arte/coracao.png"
+dest_files=["res://.godot/imported/coracao.png-0955e98546afb987a5e3a46329a1b13d.ctex"]
 
 [params]
 
