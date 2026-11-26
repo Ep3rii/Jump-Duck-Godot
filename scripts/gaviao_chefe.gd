@@ -19,6 +19,9 @@ const HURT_TIME := 40
 const TRANSITION_TIME := 100
 
 const VidaScene := preload("res://scenes/vida.tscn")
+const Sprites := preload("res://scripts/sprites.gd")
+const QUADROS := 13  # tira assets/sprites/arte/chefe_gaviao.png (tools/arte/chefes.py)
+const PIVO := Vector2(16, 15)  # centro do corpo no quadro de 64 px (16 px no jogo)
 const Solids := preload("res://scripts/solids.gd")
 
 const COL_OUT := Color8(36, 20, 10)
@@ -298,117 +301,29 @@ func _boxes() -> Array:
 # ------------------------------------------------------------------- desenho
 func _draw() -> void:
 	var f := float(dir)
-	var rage := stage == 2 and int(_anim / 6.0) % 4 == 0
-	if state == "transicao":
-		rage = int(_anim / 3.0) % 2 == 0
-	var body := COL_RAGE if rage else COL_BODY
-	var flash := state in ["aviso", "carga_aviso"] and int(_anim / 3.0) % 2 == 0
-	if flash:
-		body = COL_BELLY
+	var q := 0
+	var cor := Color.WHITE
 	match state:
 		"mergulho":
-			_draw_diving(body)
+			q = 6 + int(_anim / 6.0) % 2
 		"investida":
-			_draw_charging(f, body)
+			q = 8 + int(_anim / 6.0) % 2
 		"atordoado":
-			_draw_stunned(f, body)
+			q = 10 + int(_anim / 8.0) % 3
+		"aviso":
+			q = 4 + int(_anim / 3.0) % 2
+			if int(_anim / 3.0) % 2 == 0:
+				cor = Color(1.5, 1.4, 1.2)  # pisca claro ao gritar
+		"carga_aviso":
+			q = int(_anim / 3.0) % 4
+			cor = Color(1.5, 1.4, 1.2) if int(_anim / 2.0) % 2 == 0 else Color.WHITE
 		_:
-			_draw_flying(f, body)
-
-
-func _draw_flying(f: float, body: Color) -> void:
-	var shake := 0.0
+			q = int(_anim / 6.0) % 4
+	if stage == 2 and state != "atordoado":
+		cor = Color(1.0, 0.55, 0.45) if int(_anim / 6.0) % 4 == 0 else cor
+	if state == "transicao":
+		cor = Color(1.0, 0.55, 0.45) if int(_anim / 3.0) % 2 == 0 else Color.WHITE
+	var tremor := Vector2.ZERO
 	if state == "carga_aviso":
-		shake = 1.0 if int(_anim / 2.0) % 2 == 0 else -1.0
-	var pose := int(_anim / (3.0 if state == "aviso" else 6.0)) % 4
-	var o := shake
-	# asas grandes, 4 poses (cima, meio, baixo, meio), com penas na ponta
-	var wy: float = [-16.0, -9.0, -2.0, -9.0][pose]
-	var reach: float = [20.0, 24.0, 20.0, 24.0][pose]
-	for side in [-1.0, 1.0]:
-		var x0: float = o - 6.0 - reach if side < 0.0 else o + 6.0
-		draw_rect(Rect2(x0, wy, reach, 7), COL_OUT)
-		draw_rect(Rect2(x0 + 1, wy + 1, reach - 2, 5), COL_WING)
-		var tip_x: float = x0 + 1.0 if side < 0.0 else x0 + reach - 6.0
-		draw_rect(Rect2(tip_x, wy + 1, 5, 5), COL_WING_TIP)
-		for k in 3:  # penas separadas na ponta
-			var fx: float = (x0 - 2.0 - k * 2.0) if side < 0.0 else (x0 + reach + k * 2.0)
-			draw_rect(Rect2(fx, wy + 2 + k, 2, 2), COL_WING_TIP)
-		draw_rect(Rect2(x0 + 4, wy + 4, reach - 8, 1), COL_BODY)
-	_draw_body(f, body, o)
-
-
-func _draw_body(f: float, body: Color, o: float) -> void:
-	# corpo, peito listrado e cauda ruiva
-	draw_rect(Rect2(o - 11, -8, 22, 16), COL_OUT)
-	draw_rect(Rect2(o - 10, -7, 20, 14), body)
-	draw_rect(Rect2(o - 6, -4, 12, 10), COL_BELLY)
-	for i in 3:
-		draw_rect(Rect2(o - 4 + i * 4, -2 + (i % 2) * 3, 2, 2), COL_STREAK)
-	var tail_x := -18.0 if f > 0 else 11.0
-	draw_rect(Rect2(o + tail_x, -5, 8, 8), COL_OUT)
-	draw_rect(Rect2(o + tail_x + 1, -4, 6, 6), COL_TAIL)
-	# cabeca, sobrancelha brava, olho e bico curvo
-	var hx := 7.0 if f > 0 else -17.0
-	draw_rect(Rect2(o + hx, -14, 10, 10), COL_OUT)
-	draw_rect(Rect2(o + hx + 1, -13, 8, 8), body)
-	var ex := hx + (5.0 if f > 0 else 2.0)
-	draw_rect(Rect2(o + ex, -11, 3, 2), COL_EYE)
-	draw_rect(Rect2(o + ex + (1.0 if f > 0 else 0.0), -11, 1, 1), COL_OUT)
-	draw_rect(Rect2(o + ex - 1, -13, 5, 1), COL_OUT)
-	var bx := hx + 10.0 if f > 0 else hx - 4.0
-	draw_rect(Rect2(o + bx, -11, 4, 3), COL_BEAK)
-	draw_rect(Rect2(o + bx + (3.0 if f > 0 else 0.0), -8, 1, 2), COL_BEAK)
-	# garras
-	draw_rect(Rect2(o - 5, 7, 3, 3), COL_BEAK)
-	draw_rect(Rect2(o + 2, 7, 3, 3), COL_BEAK)
-
-
-func _draw_diving(body: Color) -> void:
-	var d := _vel.normalized()
-	for i in 5:
-		var c := -d * (i * 5.0)
-		var s := 12.0 - i * 2.0
-		draw_rect(Rect2(c.x - s * 0.5 - 1, c.y - s * 0.5 - 1, s + 2, s + 2), COL_OUT)
-		draw_rect(Rect2(c.x - s * 0.5, c.y - s * 0.5, s, s), body if i < 2 else COL_WING)
-	var t := -d * 26.0
-	draw_rect(Rect2(t.x - 3, t.y - 3, 6, 6), COL_TAIL)
-	var h := d * 8.0
-	draw_rect(Rect2(h.x - 5, h.y - 5, 10, 10), COL_OUT)
-	draw_rect(Rect2(h.x - 4, h.y - 4, 8, 8), body)
-	var b := d * 14.0
-	draw_rect(Rect2(b.x - 2, b.y - 2, 4, 4), COL_BEAK)
-
-
-func _draw_charging(f: float, body: Color) -> void:
-	# asas para tras, corpo esticado, rastro de vento
-	var back := -f
-	draw_rect(Rect2(back * 10.0 - 12, -12, 24, 6), COL_OUT)
-	draw_rect(Rect2(back * 10.0 - 11, -11, 22, 4), COL_WING)
-	for i in 3:
-		var lx := back * (24.0 + i * 8.0)
-		draw_rect(Rect2(lx - 4, -6 + i * 5, 8, 1), Color(1, 1, 1, 0.6))
-	_draw_body(f, body, 0.0)
-
-
-func _draw_stunned(f: float, body: Color) -> void:
-	# caido de lado, asa aberta no chao, penas soltas e estrelinhas
-	draw_rect(Rect2(-26, 3, 20, 5), COL_OUT)
-	draw_rect(Rect2(-25, 4, 18, 3), COL_WING)
-	draw_rect(Rect2(6, 3, 20, 5), COL_OUT)
-	draw_rect(Rect2(7, 4, 18, 3), COL_WING)
-	_draw_body(f, body, 0.0)
-	# olho em X
-	var hx := 7.0 if f > 0 else -17.0
-	var ex := hx + (5.0 if f > 0 else 2.0)
-	draw_rect(Rect2(ex - 1, -12, 5, 4), body)
-	draw_rect(Rect2(ex, -12, 1, 1), COL_OUT)
-	draw_rect(Rect2(ex + 2, -12, 1, 1), COL_OUT)
-	draw_rect(Rect2(ex + 1, -11, 1, 1), COL_OUT)
-	draw_rect(Rect2(ex, -10, 1, 1), COL_OUT)
-	draw_rect(Rect2(ex + 2, -10, 1, 1), COL_OUT)
-	for i in 3:
-		var ang := _anim * 0.15 + i * TAU / 3.0
-		var c := Vector2(cos(ang) * 14.0, -22 + sin(ang) * 4.0)
-		draw_rect(Rect2(c.x - 1, c.y - 3, 2, 6), COL_STAR)
-		draw_rect(Rect2(c.x - 3, c.y - 1, 6, 2), COL_STAR)
+		tremor.x = 1.0 if int(_anim / 2.0) % 2 == 0 else -1.0
+	Sprites.draw_bicho(self, "chefe_gaviao", q, QUADROS, PIVO, f < 0.0, cor, tremor)

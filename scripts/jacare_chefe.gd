@@ -25,7 +25,9 @@ const BITE_DISTANCE := 32.0  # emerge a esta distancia do pato
 const HALF_W := 16.0  # 2 blocos de largura (arte de chefe: 256x256 -> 32 px)
 const HEIGHT := 10.0
 const BITE_REACH := 10.0
-const DRAW_SCALE := Vector2(0.5, 0.55)  # desenho provisorio (feito em ~84x20) reduzido
+const Sprites := preload("res://scripts/sprites.gd")
+const QUADROS := 11  # tira assets/sprites/arte/chefe_jacare.png (tools/arte/chefes.py)
+const PIVO := Vector2(16, 23)  # ponto da barriga no quadro de 64 px (16 px no jogo)
 
 const COL_OUT := Color8(16, 40, 16)
 const COL_BODY := Color8(60, 112, 44)
@@ -177,7 +179,7 @@ func _physics_process(_delta: float) -> void:
 				_timer = BITE_TIME
 				Game.play_sfx("bite")
 		"mordida":
-			_lunge = move_toward(_lunge, BITE_REACH / DRAW_SCALE.x, 4.0)
+			_lunge = move_toward(_lunge, BITE_REACH, 4.0)
 			_mouth = 0.0 if _timer < BITE_TIME - 4 else 1.0
 			if _timer <= 0:
 				state = "dor"
@@ -232,46 +234,27 @@ func _start_leap(p: Node2D) -> void:
 
 # ---------------------------------------------------------------- desenho
 func _draw() -> void:
+	# nadando: quadros 0..3; saltando: 4..5; mordida: 6..8 (boca abrindo); dor: 9..10
+	var q := int(_anim / 9.0) % 4
+	match state:
+		"salto":
+			q = 4 if _vy < 0.0 else 5
+		"mordida_aviso":
+			q = 6
+		"mordida":
+			q = 6 + clampi(int(_mouth * 3.0), 0, 2)
+		"dor":
+			q = 9 + int(_anim / 8.0) % 2
+		"ferido":
+			q = 9
 	var submerged := state in ["nadando", "aviso", "ferido", "espera"]
 	var a := 0.5 if submerged else 1.0
 	if state == "ferido" and int(_anim / 5.0) % 2 == 0:
 		a = 0.25
-	var f := float(dir)
-	var out := Color(COL_OUT, a)
-	var lx := _lunge * f
-
 	if state == "aviso":
 		_draw_bubbles()
-	draw_set_transform(Vector2.ZERO, 0.0, DRAW_SCALE)
-
-	# corpo
-	draw_rect(Rect2(-34 + lx, -16, 56, 16), out)
-	draw_rect(Rect2(-33 + lx, -15, 54, 14), Color(COL_BODY, a))
-	draw_rect(Rect2(-33 + lx, -5, 54, 4), Color(COL_BELLY, a))
-	for i in 8:
-		draw_rect(Rect2(-30 + lx + i * 6, -18, 4, 3), Color(COL_SCUTE, a))
-	# cauda
-	var tail_x := (-34.0 - 12.0 if f > 0 else 22.0) + lx
-	draw_rect(Rect2(tail_x, -11, 12, 8), out)
-	draw_rect(Rect2(tail_x + 1, -10, 10, 6), Color(COL_BODY, a))
-	# cabeca
-	var head_x := (22.0 if f > 0 else -50.0) + lx
-	var open := floorf(_mouth * 8.0)
-	draw_rect(Rect2(head_x, -17 - open, 28, 8), out)
-	draw_rect(Rect2(head_x + 1, -16 - open, 26, 6), Color(COL_BODY, a))
-	draw_rect(Rect2(head_x, -8, 28, 8), out)
-	draw_rect(Rect2(head_x + 1, -7, 26, 6), Color(COL_BELLY, a))
-	if open > 0:
-		draw_rect(Rect2(head_x + 1, -9 - open + 1, 26, open), Color(COL_MOUTH, a))
-		for t in 6:
-			draw_rect(Rect2(head_x + 2 + t * 4, -9 - open + 1, 2, 3), Color(COL_TOOTH, a))
-			draw_rect(Rect2(head_x + 2 + t * 4, -10, 2, 2), Color(COL_TOOTH, a))
-	# olho
-	var eye_x := head_x + (2.0 if f > 0 else 20.0)
-	draw_rect(Rect2(eye_x, -21 - open, 6, 5), out)
-	draw_rect(Rect2(eye_x + 1, -20 - open, 4, 2), Color(1, 0.85, 0.2, a))
-	if state == "dor":
-		_draw_toothache(head_x)
+	Sprites.draw_bicho(self, "chefe_jacare", q, QUADROS, PIVO, dir < 0, Color(1, 1, 1, a),
+		Vector2(_lunge * float(dir), 0.0))
 
 
 func _draw_bubbles() -> void:
@@ -283,17 +266,3 @@ func _draw_bubbles() -> void:
 		var by := top + 10.0 - k
 		draw_circle(Vector2(bx, by), 2.0 + (i % 2), Color(0.85, 0.95, 1.0, 0.9))
 	draw_rect(Rect2(-20, top - 1, 40, 2), Color(1, 1, 1, 0.7))
-
-
-## Dor de dente: bochecha inchada, dente com curativo e estrelinhas girando.
-func _draw_toothache(head_x: float) -> void:
-	var cheek_x := head_x + 10.0
-	draw_circle(Vector2(cheek_x + 4, -8), 6.0, COL_OUT)
-	draw_circle(Vector2(cheek_x + 4, -8), 5.0, COL_SWELL)
-	draw_rect(Rect2(cheek_x, -11, 9, 2), COL_TOOTH)
-	draw_rect(Rect2(cheek_x + 3, -14, 2, 8), COL_TOOTH)
-	for i in 3:
-		var ang := _anim * 0.12 + i * TAU / 3.0
-		var c := Vector2(head_x + 14 + cos(ang) * 16.0, -30 + sin(ang) * 5.0)
-		draw_rect(Rect2(c.x - 1, c.y - 3, 2, 6), COL_STAR)
-		draw_rect(Rect2(c.x - 3, c.y - 1, 6, 2), COL_STAR)
