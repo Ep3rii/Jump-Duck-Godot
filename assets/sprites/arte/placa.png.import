@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://1r8rv2sdjn1r"
-path="res://.godot/imported/spr_brilho.png-dc9cef4336834fe4e228e1d30de586dd.ctex"
+uid="uid://cearlp7nqehek"
+path="res://.godot/imported/placa.png-4f30c609af26b65daf9e462eecd37f6e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/sprites/spr_brilho.png"
-dest_files=["res://.godot/imported/spr_brilho.png-dc9cef4336834fe4e228e1d30de586dd.ctex"]
+source_file="res://assets/sprites/arte/placa.png"
+dest_files=["res://.godot/imported/placa.png-4f30c609af26b65daf9e462eecd37f6e.ctex"]
 
 [params]
 

@@ -3,7 +3,6 @@ extends RefCounted
 
 # nome: [largura, altura, n_frames, origem_x, origem_y, fps]
 const META := {
-	"spr_brilho": [16, 16, 5, 8, 8, 12.0],
 	"spr_objBAgua01": [64, 64, 1, 0, 64, 3.0],
 	"spr_tileSetGrama01": [64, 64, 1, 0, 0, 30.0],
 }

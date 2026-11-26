@@ -2,7 +2,7 @@
 extends Node2D
 ## Decoracao de cenario. Moinho, celeiro, cerca, arvores e arbusto usam a arte de
 ## assets/sprites/arte/cenario/ (tools/arte/cenario.py), na ESCALA DO PATO: o pato e pequeno e
-## o cenario e grande. Placa de saida, junco e pilar ainda sao desenhados em codigo.
+## o cenario e grande. Placa de saida, junco e pilar usam objetos.py e o tileset de pedra.
 ## Nao colide com nada. Origem = base, no chao (centro para moinho/celeiro/arvore/arbusto,
 ## canto esquerdo para a cerca). Nao use 'scale': a arte so fica nitida no tamanho dela.
 
@@ -140,68 +140,28 @@ func _draw_arbusto() -> void:
 
 
 func _draw_placa_saida() -> void:
-	# seta de madeira apontando para a direita
-	_r(-1, -20, 3, 20, WOOD_DARK)
-	_r(-10, -26, 18, 9, OUTLINE)
-	_r(-9, -25, 16, 7, WOOD)
-	for i in 5:
-		_r(8 + i, -26 + i, 1, 9 - i * 2, OUTLINE if i == 4 else WOOD)
-	_r(-6, -22, 10, 1, WOOD_LIGHT)
+	Sprites.draw_art(self, "seta", -10.0, -24.0 + BASE)
 
 
 func _draw_junco() -> void:
-	# moita de juncos/taboas da beira do lago
-	# cada haste se curva com o vento, mais na ponta
-	var stems := [[-6, 22], [-3, 28], [0, 20], [3, 26], [6, 18]]
-	for i in stems.size():
-		var st: Array = stems[i]
-		var h: int = st[1]
-		for seg in 4:
-			var y0 := -h + seg * h / 4.0
-			var bend := sin(_time * 1.8 + i * 0.9 + position.x * 0.05) * 1.5 * (1.0 - seg / 4.0)
-			var x: float = st[0] + floorf(bend + 0.5)
-			_r(x, y0, 1, ceilf(h / 4.0), LEAF_DARK)
-			_r(x + 1, y0 + 1, 1, ceilf(h / 4.0) - 1, LEAF)
-	for i in [1, 3]:
-		var st: Array = stems[i]
-		var bend := floorf(sin(_time * 1.8 + i * 0.9 + position.x * 0.05) * 1.5 + 0.5)
-		_r(st[0] - 1 + bend, -st[1] - 1, 3, 7, OUTLINE)
-		_r(st[0] + bend, -st[1], 1, 5, WOOD)
+	# moita de juncos com taboas, balancando com o vento (junco.png, 2 quadros)
+	var q := 1 if sin(_time * 1.8 + position.x * 0.05) > 0.0 else 0
+	Sprites.draw_art(self, "junco", -8.0, -28.0 + BASE, q, 2)
 
 
 ## Pilar de pedra com musgo (cobre os paredoes no meio dos lagos, que no tileset de grama
 ## pareciam uma coluna de terra). Origem no canto inferior esquerdo.
 func _draw_pilar() -> void:
-	var w := 16.0 * tiles_w
+	# pilar de pedra com os blocos do tileset de pedra (topo com laje, miolo em alvenaria)
+	var tiles := Sprites.art("tileset_pedra")
 	var h := 16.0 * tiles_h
-	_r(0, -h, w, h, Color8(60, 58, 70))
-	for row in int(h / 8.0):
-		var y := -h + row * 8.0
-		var shift := 6.0 if row % 2 == 1 else 0.0
-		var x := -shift
-		var n := 0
-		while x < w:
-			var bx := maxf(x, 0.0) + 1.0
-			var bw := minf(x + 12.0, w) - bx - 1.0
-			if bw > 0.0:
-				var hsh := posmod(row * 7 + n * 13 + int(position.x), 5)
-				var c := STONE if hsh > 1 else STONE_DARK
-				var wet := clampf((y + h) / h, 0.0, 1.0)  # mais escuro e molhado embaixo
-				c = c.darkened(wet * 0.35)
-				_r(bx, y + 1, bw, 6, c)
-				_r(bx, y + 1, bw, 1, c.lightened(0.25))
-			x += 12.0
-			n += 1
-	# musgo descendo do alto e em manchas
-	for i in tiles_w * 4:
-		var mx := float(i * 4)
-		var drip := 3.0 + posmod(i * 5 + int(position.x), 7)
-		_r(mx, -h, 4, drip, LEAF_DARK)
-		_r(mx, -h, 4, 2, LEAF)
-	for i in int(h / 24.0):
-		var my := -h + 12.0 + i * 24.0
-		var mx := float(posmod(i * 11 + int(position.x), int(w) - 6))
-		_r(mx, my, 6, 3, LEAF_DARK)
-		_r(mx + 1, my, 4, 1, LEAF)
-	_r(0, -h, 1, h, OUTLINE)
-	_r(w - 1, -h, 1, h, OUTLINE)
+	for j in tiles_h:
+		for i in tiles_w:
+			var idx := 13
+			if tiles_w == 1:
+				idx = 25 if j == 0 else 26
+			else:
+				var lado := 0 if i == 0 else (2 if i == tiles_w - 1 else 1)
+				idx = (4 if j == 0 else 12) + lado
+			draw_texture_rect_region(tiles, Rect2(i * 16.0, -h + j * 16.0, 16, 16),
+				Rect2((idx % 4) * 32.0, (idx / 4) * 32.0, 32, 32))

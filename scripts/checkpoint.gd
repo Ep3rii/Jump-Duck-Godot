@@ -4,6 +4,8 @@ extends Node2D
 ## para este ponto (em vez do inicio da fase). Reinicia a cada tentativa da fase.
 ## A origem e o pe do mastro, no chao (o pato reaparece exatamente aqui).
 
+const Sprites := preload("res://scripts/sprites.gd")
+
 const COL_POLE := Color8(13, 80, 0)
 const COL_OFF := Color8(150, 160, 150)
 const COL_OFF_DARK := Color8(90, 100, 90)
@@ -48,16 +50,6 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	var flag := COL_OFF.lerp(COL_ON, _raise)
-	var flag_dark := COL_OFF_DARK.lerp(COL_ON_DARK, _raise)
-	draw_rect(Rect2(-4, -2, 8, 2), COL_POLE)
-	draw_rect(Rect2(-1, -24, 2, 22), COL_POLE)
-	draw_rect(Rect2(-2, -26, 4, 2), flag_dark)
-	# apagada: bandeira murcha embaixo; acesa: sobe e tremula no vento
-	var top := lerpf(-12.0, -23.0, _raise)
-	var wave_amp := lerpf(0.0, 1.0, _raise)
-	for col in 9:
-		var h := 7 - int(col * 0.7)
-		var droop := (1.0 - _raise) * col * 0.6
-		var y := top + (7 - h) * 0.5 + floorf(sin(_time * 7.0 + col * 0.6) * wave_amp + droop)
-		draw_rect(Rect2(1 + col, y, 1, h), flag if col < 7 else flag_dark)
+	# apagado: bandeira cinza murcha; aceso: verde no alto, tremulando (checkpoint.png)
+	var q := 0 if _raise < 0.5 else 1 + int(_time * 7.0) % 3
+	Sprites.draw_bicho(self, "checkpoint", q, 4, Vector2(4, 28))

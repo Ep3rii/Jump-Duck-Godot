@@ -8,6 +8,8 @@ extends Node2D
 ## Com "rajada" liga e desliga (as listras ficam fracas no intervalo e voltam um pouco antes
 ## da rajada, avisando). Origem no canto INFERIOR esquerdo, tamanho em tiles de 16 px.
 
+const Sprites := preload("res://scripts/sprites.gd")
+
 @export var tiles_w: int = 4:
 	set(v):
 		tiles_w = v
@@ -134,10 +136,10 @@ func _draw() -> void:
 		if direcao == 2:
 			var x := floorf(lane * (w - 2.0))
 			var y := -fposmod(phase, h)
-			draw_rect(Rect2(x, y - 6.0, 1, 6), col)
+			Sprites.draw_art(self, "vento", x - 6.0, y - 12.0, 1, 2, col)
 		else:
 			var y := -floorf(lane * (h - 2.0)) - 1.0
 			var x := fposmod(phase, w)
 			if direcao == 1:
 				x = w - x
-			draw_rect(Rect2(x - 4.0, y, 8, 1), col)
+			Sprites.draw_art(self, "vento", x - 6.0, y - 6.0, 0, 2, col)

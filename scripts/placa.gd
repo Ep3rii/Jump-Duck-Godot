@@ -5,6 +5,8 @@ extends Node2D
 ## Origem no canto INFERIOR esquerdo (como o Block), largura em tiles de 16 px.
 ## Para ligar: no inspetor, em "alvos", aponte para os nos que devem reagir.
 
+const Sprites := preload("res://scripts/sprites.gd")
+
 signal changed(pressed: bool)
 
 @export var tiles_w: int = 1:
@@ -57,10 +59,5 @@ func _physics_process(_delta: float) -> void:
 
 
 func _draw() -> void:
-	var w := 16.0 * tiles_w
-	draw_rect(Rect2(0, -2, w, 2), COL_BASE_DARK)
-	draw_rect(Rect2(1, -3, w - 2, 1), COL_BASE)
-	var top_h := 1.0 if pressed else 3.0
-	draw_rect(Rect2(2, -3 - top_h, w - 4, top_h), COL_TOP_DARK if pressed else COL_TOP)
-	if not pressed:
-		draw_rect(Rect2(2, -6, w - 4, 1), Color8(255, 120, 100))
+	for i in tiles_w:
+		Sprites.draw_frame(self, "placa", Rect2(i * 16.0, -16.0, 16, 16), 1 if pressed else 0)

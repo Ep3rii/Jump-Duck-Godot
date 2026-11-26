@@ -7,6 +7,8 @@ extends Node2D
 ## (chave.gd), gastando a chave.
 ## Origem no canto INFERIOR esquerdo (como o Block), tamanho em tiles de 16 px.
 
+const Sprites := preload("res://scripts/sprites.gd")
+
 @export var tiles_w: int = 1:
 	set(v):
 		tiles_w = v
@@ -108,33 +110,20 @@ func _physics_process(_delta: float) -> void:
 
 
 func _draw() -> void:
+	# arte: assets/sprites/arte/porta.png (topo, meio, base, fechadura, batente aberto)
 	var w := 16.0 * tiles_w
 	var h := 16.0 * tiles_h
 	if is_open and not Engine.is_editor_hint():
-		# aberta: so o batente de cima e um contorno apagado
-		draw_rect(Rect2(0, -h, w, 3), COL_DARK)
-		draw_rect(Rect2(0, -h, w, h), Color(COL_STONE, 0.18), false)
+		for i in tiles_w:
+			Sprites.draw_frame(self, "porta", Rect2(i * 16.0, -h, 16, 16), 4)
 		return
-	# madeira em tabuas verticais com faixas de ferro (contrasta com grama e com pedra)
-	draw_rect(Rect2(0, -h, w, h), COL_WOOD_DARK)
-	var plank := 0.0
-	while plank < w:
-		draw_rect(Rect2(plank + 1, -h + 1, minf(4.0, w - plank - 2.0), h - 2), COL_WOOD)
-		draw_rect(Rect2(plank + 1, -h + 1, 1, h - 2), COL_WOOD_LIGHT)
-		plank += 5.0
-	var band := -h + 4.0
-	while band < -2.0:
-		draw_rect(Rect2(0, band, w, 3), COL_IRON)
-		draw_rect(Rect2(0, band, w, 1), COL_IRON_LIGHT)
-		draw_rect(Rect2(2, band + 1, 1, 1), COL_DARK)
-		draw_rect(Rect2(w - 3, band + 1, 1, 1), COL_DARK)
-		band += 16.0
+	for j in tiles_h:
+		var peca := 1
+		if j == 0:
+			peca = 0
+		elif j == tiles_h - 1:
+			peca = 2
+		for i in tiles_w:
+			Sprites.draw_frame(self, "porta", Rect2(i * 16.0, -h + j * 16.0, 16, 16), peca)
 	if trancada:
-		# fechadura dourada no meio da porta
-		var lx := w * 0.5 - 5.0
-		var ly := -h * 0.5 - 6.0
-		draw_rect(Rect2(lx, ly, 10, 12), COL_LOCK_OUT)
-		draw_rect(Rect2(lx + 1, ly + 1, 8, 10), COL_LOCK)
-		draw_rect(Rect2(lx + 4, ly + 3, 2, 3), COL_LOCK_OUT)
-		draw_rect(Rect2(lx + 3, ly + 4, 4, 1), COL_LOCK_OUT)
-		draw_rect(Rect2(lx + 4, ly + 6, 2, 3), COL_LOCK_OUT)
+		Sprites.draw_frame(self, "porta", Rect2(w * 0.5 - 8.0, -h * 0.5 - 8.0, 16, 16), 3)

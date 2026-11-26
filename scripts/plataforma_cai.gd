@@ -5,6 +5,8 @@ extends Node2D
 ## segundos depois (so volta se nada estiver no caminho).
 ## Origem no canto INFERIOR esquerdo, 1 tile de altura, largura em tiles de 16 px.
 
+const Sprites := preload("res://scripts/sprites.gd")
+
 @export var tiles_w: int = 2:
 	set(v):
 		tiles_w = v
@@ -114,21 +116,10 @@ func _draw() -> void:
 		a = clampf(1.0 - _fall_y / 120.0, 0.0, 1.0)
 	elif state == "voltando":
 		a = _fade
-	var r := Rect2(o.x, o.y - 16.0, w, 16.0)
-	draw_rect(r, Color(COL_OUT, a))
-	draw_rect(Rect2(r.position.x + 1, r.position.y + 1, w - 2, 13), Color(COL_STONE, a))
-	draw_rect(Rect2(r.position.x + 1, r.position.y + 1, w - 2, 2), Color(COL_LIGHT, a))
-	draw_rect(Rect2(r.position.x + 1, r.position.y + 12, w - 2, 2), Color(COL_DARK, a))
-	# rachaduras (mais abertas tremendo)
-	var crack := Color(COL_CRACK, a)
+	# pedra inteira parada; rachada tremendo, caindo e voltando (pedra_cai.png)
+	var q := 0 if state == "parada" else 1
 	for k in tiles_w:
-		var cx := r.position.x + k * 16.0 + 5.0
-		draw_rect(Rect2(cx, r.position.y + 3, 1, 3), crack)
-		draw_rect(Rect2(cx + 1, r.position.y + 6, 1, 3), crack)
-		draw_rect(Rect2(cx + 2, r.position.y + 9, 1, 3), crack)
-		if state != "parada":
-			draw_rect(Rect2(cx + 6, r.position.y + 4, 3, 1), crack)
-			draw_rect(Rect2(cx + 8, r.position.y + 5, 1, 4), crack)
+		Sprites.draw_frame(self, "pedra_cai", Rect2(o.x + k * 16.0, o.y - 16.0, 16, 16), q, Color(1, 1, 1, a))
 	# poeira caindo enquanto treme
 	if state == "tremendo":
 		for i in 3:

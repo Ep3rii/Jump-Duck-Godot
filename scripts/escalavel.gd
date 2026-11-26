@@ -5,6 +5,8 @@ extends Node2D
 ## com o chao/plataforma de cima para ele sair andando para o lado.
 ## Origem no canto INFERIOR esquerdo, 1 tile de largura, altura em tiles de 16 px.
 
+const Sprites := preload("res://scripts/sprites.gd")
+
 @export var tiles_h: int = 4:
 	set(v):
 		tiles_h = v
@@ -38,16 +40,7 @@ func top_y() -> float:
 
 
 func _draw() -> void:
-	var h := 16.0 * tiles_h
-	for y in int(h):
-		var x := 7.0 + floorf(sin(y * 0.35) * 2.0)
-		draw_rect(Rect2(x, -h + y, 2, 1), COL_STEM)
-		draw_rect(Rect2(x, -h + y, 1, 1), COL_STEM_HI)
-	for i in tiles_h * 2:
-		var ly := -h + 4.0 + i * 8.0
-		var left := i % 2 == 0
-		var flap := floorf(sin(_time * 2.2 + i * 0.8) * 0.8 + 0.5)
-		draw_rect(Rect2((3 if left else 10) + flap, ly, 4, 2), COL_LEAF)
-		draw_rect(Rect2((4 if left else 11) + flap, ly - 1 + (flap if left else -flap), 2, 1), COL_STEM_HI)
-		if i % 3 == 1:  # florzinha de vez em quando
-			draw_rect(Rect2(8 if left else 5, ly + 2, 2, 2), Color8(255, 240, 240))
+	# trechos de cipo de 16 px empilhados (cipo.png, 2 quadros de folhas balancando)
+	var q := int(_time * 2.2) % 2
+	for j in tiles_h:
+		Sprites.draw_frame(self, "cipo", Rect2(0, -16.0 * (j + 1), 16, 16), (q + j) % 2)

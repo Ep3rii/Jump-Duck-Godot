@@ -1,7 +1,9 @@
 @tool
 extends Node2D
 ## Saida da fase (decisao D4): encostar aqui conclui a fase. As flores viram pontuacao.
-## Desenho provisorio em codigo (mastro + bandeira); a origem e a base do mastro, no chao.
+## Arte: assets/sprites/arte/saida.png; a origem e a base do mastro, no chao.
+
+const Sprites := preload("res://scripts/sprites.gd")
 
 const COL_POLE := Color8(13, 80, 0)
 const COL_POLE_HI := Color8(95, 192, 26)
@@ -32,15 +34,5 @@ func _process(delta: float) -> void:
 
 
 func _draw() -> void:
-	# base
-	draw_rect(Rect2(-5, -3, 10, 3), COL_POLE)
-	# mastro
-	draw_rect(Rect2(-1, -40, 3, 38), COL_POLE)
-	draw_rect(Rect2(0, -40, 1, 38), COL_POLE_HI)
-	draw_rect(Rect2(-2, -43, 5, 3), COL_FLAG)
-	# bandeira tremulando (cada coluna de 1 px sobe/desce com uma onda)
-	for col in 14:
-		var h := 10 - int(col * 0.5)
-		var y := -39.0 + floorf(sin(_time * 6.0 + col * 0.5))
-		var c := COL_FLAG_DARK if col == 0 or col % 4 == 3 else COL_FLAG
-		draw_rect(Rect2(2 + col, y + floorf((10 - h) * 0.5), 1, h), c)
+	# bandeira de saida (assets/sprites/arte/saida.png, 4 quadros tremulando); pe do mastro na origem
+	Sprites.draw_bicho(self, "saida", int(_time * 6.0) % 4, 4, Vector2(5, 48))

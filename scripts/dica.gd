@@ -4,6 +4,8 @@ extends Node2D
 ## Use "|" para quebrar linha (ex.: "ESPAÇO NO AR:|PULO DUPLO").
 ## Origem = pe da placa, no chao.
 
+const Sprites := preload("res://scripts/sprites.gd")
+
 const PixelFont := preload("res://scripts/pixel_font.gd")
 
 @export_multiline var texto := "DICA":
@@ -50,12 +52,8 @@ func is_showing() -> bool:
 
 
 func _draw() -> void:
-	# placa
-	draw_rect(Rect2(-1, -10, 3, 10), COL_POST)
-	draw_rect(Rect2(-7, -17, 14, 9), COL_BOARD_DARK)
-	draw_rect(Rect2(-6, -16, 12, 7), COL_BOARD)
-	draw_rect(Rect2(-4, -14, 8, 1), COL_BOARD_DARK)
-	draw_rect(Rect2(-4, -12, 6, 1), COL_BOARD_DARK)
+	# placa de madeira (dica.png, 16x20 no jogo); o pe do poste fica na origem
+	Sprites.draw_art(self, "dica", -8.0, -20.0)
 	if _show <= 0.01:
 		return
 	# balao
