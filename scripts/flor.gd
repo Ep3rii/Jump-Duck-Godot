@@ -5,8 +5,8 @@ const EfeitoScene := preload("res://scenes/efeito.tscn")
 
 const Sprites := preload("res://scripts/sprites.gd")
 ## A rosa original com o dobro de detalhe (assets/sprites/arte/flor.png, 4 quadros).
-const ART_ANIMS := {"default": ["res://assets/sprites/arte/flor.png", 4, 5.0]}
-const ART_ORIGIN := Vector2(16, 28)  # o mesmo ponto do original (8, 14), em px do desenho
+const ART_ANIMS := {"default": ["res://assets/sprites/arte/flor.png", 16, 20.0]}
+const ART_ORIGIN := Vector2(8, 14)  # o mesmo ponto do original, em px
 
 var sprite: AnimatedSprite2D
 

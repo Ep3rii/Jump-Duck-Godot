@@ -8,7 +8,7 @@ extends Enemy
 
 const Solids := preload("res://scripts/solids.gd")
 const Sprites := preload("res://scripts/sprites.gd")
-const QUADROS := 7
+const QUADROS := 32  # voo 0..15, rasante 16..31
 const PIVO := Vector2(10, 10)  # meio do corpo, no quadro (px do jogo)
 
 const WARN_TIME := 22
@@ -127,10 +127,10 @@ func _start_swoop(p: Node2D) -> void:
 # ---------------------------------------------------------------- desenho
 func _draw() -> void:
 	# voo: quadros 0..5 batendo as asas (mais rapido no aviso, piscando claro); rasante: 6
-	var q := 6
+	var q := 16 + int(_anim / 2.0) % 16
 	var cor := Color.WHITE
 	if state != "rasante":
-		q = int(_anim / (3.0 if state == "aviso" else 5.0)) % 6
+		q = int(_anim * 16.0 / (18.0 if state == "aviso" else 30.0)) % 16
 		if state == "aviso" and int(_anim / 3.0) % 2 == 0:
 			cor = Color(1.6, 1.4, 1.2)
 	Sprites.draw_bicho(self, "gaviaozinho", q, QUADROS, PIVO, dir < 0, cor)

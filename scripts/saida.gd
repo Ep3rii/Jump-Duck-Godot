@@ -31,4 +31,4 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	# bandeira de saida (assets/sprites/arte/saida.png, 4 quadros tremulando); pe do mastro na origem
-	Sprites.draw_bicho(self, "saida", int(_time * 6.0) % 4, 4, Vector2(5, 48))
+	Sprites.draw_bicho(self, "saida", int(_time * 24.0) % 16, 16, Vector2(5, 48))

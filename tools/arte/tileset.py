@@ -147,6 +147,11 @@ def sample_scene(tiles, scale_down=2):
 
 
 def main():
+    if not os.path.exists(os.path.join(SPR, "spr_tileSetGrama01.png")):
+        # o original do GameMaker saiu do projeto; a folha final (4x9, 16x16) e gravada por
+        # tileset_novos.py (python tools/arte/tileset_novos.py --salvar)
+        print("spr_tileSetGrama01.png nao existe mais: use tools/arte/tileset_novos.py")
+        return
     tiles = build()
     sheet = Canvas(512, 512)
     for (tx, ty), t in tiles.items():

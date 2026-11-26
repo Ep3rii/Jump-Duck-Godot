@@ -12,21 +12,30 @@ const Vento := preload("res://scripts/vento.gd")
 const Particulas := preload("res://scripts/particulas.gd")
 const Sprites := preload("res://scripts/sprites.gd")
 
-## Animacoes com a arte nova aprovada (32x32 por quadro, categoria "plana crocante").
+## Animacoes do pato (16x16 por quadro, paleta Endesga 32).
 ## As outras continuam com os quadros antigos ate serem redesenhadas e aprovadas.
 const ART_ANIMS := {
-	"idle": ["res://assets/sprites/arte/pato_parado.png", 1, 1.0],
-	"run": ["res://assets/sprites/arte/pato_correndo.png", 8, 16.0],
-	"jump": ["res://assets/sprites/arte/pato_pulando.png", 4, 8.0, false],
-	"apex": ["res://assets/sprites/arte/pato_apice.png", 2, 6.0, false],
-	"fall": ["res://assets/sprites/arte/pato_caindo.png", 6, 8.0],
-	"hurt": ["res://assets/sprites/arte/pato_dano.png", 4, 12.0],
-	"dead": ["res://assets/sprites/arte/pato_morte.png", 4, 8.0],
+	# 16 quadros por animacao (tools/arte/pato16.py); fps escolhido para cada ciclo durar o
+	# mesmo que antes (correr 0,5 s, cair 0,75 s, parado 2 s)
+	"idle": ["res://assets/sprites/arte/pato_parado.png", 16, 8.0],
+	"run": ["res://assets/sprites/arte/pato_correndo.png", 16, 32.0],
+	"jump": ["res://assets/sprites/arte/pato_pulando.png", 16, 32.0, false],
+	"apex": ["res://assets/sprites/arte/pato_apice.png", 16, 48.0, false],
+	"fall": ["res://assets/sprites/arte/pato_caindo.png", 16, 21.0],
+	"hurt": ["res://assets/sprites/arte/pato_dano.png", 16, 48.0],
+	"dead": ["res://assets/sprites/arte/pato_morte.png", 16, 14.0],
 }
+## Mergulhado: pato deitado, pes batendo (laco de 1 s). Fica fora de ART_ANIMS porque o menu e a
+## cutscene montam o pato com ART_ANIMS e nao precisam dela; so entra se a tira ja foi importada
+## (sem ela o pato mergulhado volta a usar a queda).
+const DIVE_ANIM := ["res://assets/sprites/arte/pato_mergulhando.png", 16, 16.0]
+## Tremor do dano feito aqui (o pato_dano.png tem o pato inteiro, sem deslocar): x do desenho
+## em pixels do jogo, pelo quadro da animacao "hurt" ([0, 1, 0, -1][(quadro / 2) % 4]).
+const HURT_SHAKE: Array[int] = [0, 1, 0, -1]
 ## Velocidade vertical abaixo da qual, no ar, o pato esta no "apice" (transicao entre subir e cair).
 const APEX_SPEED := 0.8
-## Ponto do quadro de 32 que fica nos pes: a ultima linha de contorno cai sobre a borda do chao.
-const ART_ORIGIN := Vector2(16, 31)
+## Ponto do quadro de 16 que fica nos pes: a ultima linha de contorno cai sobre a borda do chao.
+const ART_ORIGIN := Vector2(8, 15)
 
 const HURT_TIME := 30  # frames parado no estado "hurt"
 const DEATH_TIME := 60  # frames da animacao de morte ate a tela de fim de jogo
@@ -82,7 +91,10 @@ func _ready() -> void:
 	start_x = position.x
 	start_y = position.y
 	invulnerability_timer = Game.invulnerability_remaining
-	_art = Sprites.make_art_sprite(Sprites.art_frames(ART_ANIMS), ART_ORIGIN)
+	var anims := ART_ANIMS.duplicate()
+	if ResourceLoader.exists(DIVE_ANIM[0]):
+		anims["dive"] = DIVE_ANIM
+	_art = Sprites.make_art_sprite(Sprites.art_frames(anims), ART_ORIGIN)
 	_art.name = "Arte"
 	add_child(_art)
 	_art.play(_anim)
@@ -95,7 +107,7 @@ func sombra_largura() -> float:
 
 ## Um clarao suave em volta do pato nas fases escuras (luz.gd).
 func luzes() -> Array:
-	return [[global_position + Vector2(0, -8), 42.0, Color(1.0, 1.0, 1.0), 0.85]]
+	return [[global_position + Vector2(0, -8), 28.0, Color(1.0, 1.0, 1.0), 0.85]]
 
 
 # ------------------------------------------------------------------ colisao
@@ -167,7 +179,7 @@ func take_damage(source_x: float = NAN) -> void:
 	fall_start_y = -1.0
 	climbing = false
 	_drop_carried()
-	_art.modulate.a = 1.0
+	_art.visible = true
 	if player_state == "hurt":
 		invulnerability_timer = INVULN_TIME
 		Game.invulnerability_remaining = INVULN_TIME
@@ -390,7 +402,7 @@ func _step_swim(water: Node2D) -> void:
 			swim = "surface"
 		air -= 1
 		if air % 30 == 0:
-			Particulas.emit(get_tree(), "bolha", position + Vector2(xscale * 5.0, -12), 1)
+			Particulas.emit(get_tree(), "bolha", position + Vector2(xscale * 6.0, -8), 1)  # no bico do pato deitado
 		if air <= 0:
 			_drown(surf)
 	if move != 0:
@@ -500,10 +512,13 @@ func _update_sprite() -> void:
 	_art.flip_h = xscale < 0
 	if player_state != "alive":
 		_art.scale = Vector2.ONE * Sprites.ART_SCALE
-		_art.modulate.a = 1.0
+		_art.visible = true
 		_art.speed_scale = 1.0
 		_set_anim("dead" if player_state == "dead" else "hurt")
+		# tremor do dano: so no estado hurt, 1 px para cada lado
+		_art.position.x = float(HURT_SHAKE[int(_art.frame / 2.0) % 4]) if player_state == "hurt" else 0.0
 		return
+	_art.position.x = 0.0
 
 	var next_anim := "idle"
 	if move != 0:
@@ -511,7 +526,7 @@ func _update_sprite() -> void:
 	if swim == "surface":
 		pass  # boiando: parado ou "andando" (sem sprite de nado ainda)
 	elif swim == "dive":
-		next_anim = "fall"  # mergulhado: quadro de queda (sem sprite de mergulho ainda)
+		next_anim = "dive" if _art.sprite_frames.has_animation("dive") else "fall"
 	elif climbing:
 		next_anim = "jump"  # sem sprite de escalar ainda: quadro do pulo, parado
 	elif spdv < -APEX_SPEED:
@@ -522,12 +537,18 @@ func _update_sprite() -> void:
 		next_anim = "apex"  # no alto do pulo: a asa bate e os pes comecam a descer
 
 	_set_anim(next_anim)
-	_art.speed_scale = 0.0 if climbing and spdv == 0.0 else 1.0
+	if climbing and spdv == 0.0:
+		_art.speed_scale = 0.0
+	elif next_anim == "dive" and move == 0 and absf(spdv) < DIVE_SPEED:
+		_art.speed_scale = 0.5  # parado debaixo d'agua (so subindo devagar): pernada mais lenta
+	else:
+		_art.speed_scale = 1.0
 	# estica/achata a partir dos pes e volta ao normal
 	_squash = _squash.lerp(Vector2.ONE, 0.2)
 	_art.scale = _squash * Sprites.ART_SCALE
 	var blink := invulnerability_timer > 0 and invulnerability_timer % 12 < 6
-	_art.modulate.a = 0.35 if blink else 1.0
+	# pisca liga/desliga (sem alfa parcial: nada de cor fora da paleta nem contorno sumindo)
+	_art.visible = not blink
 
 
 # ---------------------------------------------------------- eventos de colisao

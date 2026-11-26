@@ -43,7 +43,7 @@ tiles_w = 40
 
 [node name="TilesChao" type="TileMapLayer" parent="." unique_id=561408322 groups=["solid_tiles"]]
 z_index = -200
-scale = Vector2(0.5, 0.5)
+scale = Vector2(1, 1)
 tile_set = ExtResource("5_77jo8")
 
 [node name="Mecanicas" type="Node2D" parent="." unique_id=628255213]

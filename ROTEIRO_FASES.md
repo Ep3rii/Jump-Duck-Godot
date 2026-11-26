@@ -106,23 +106,28 @@ do GameMaker é usado mais. O que continua desenhado em código, de propósito, 
 interface: partículas, bolhas, estrelinhas de tontura, sombras, luz, o céu em faixas, o balão de
 texto das dicas, os painéis do menu e as guias que só aparecem no editor.
 
-### Tamanhos (definidos em 25/11/2026)
+### Tamanhos (16x16 desde 26/11/2026)
 
-O jogo continua do mesmo tamanho na tela; os desenhos novos só têm mais detalhe. A regra é uma só:
-**2 pixels do desenho = 1 pixel do jogo** (`Sprites.ART_SCALE` em `scripts/sprites.gd`), e os
-arquivos são gravados em **1:1** (1 pixel do arquivo = 1 pixel do desenho; o jogo amplia sozinho).
-Até 25/11/2026 parte da arte era gravada ampliada 4x (quadros de 128); foi convertida para 1:1 para
-dar para editar à mão pixel por pixel, sem mudar nada na tela.
+**Pixel art 16x16:** 1 pixel do arquivo = 1 pixel do jogo (`Sprites.ART_SCALE = 1`). Até
+26/11/2026 os desenhos tinham o dobro de resolução (32 por bloco); foram reduzidos para 16 com
+o contorno de 1 px refeito, a pedido do dono. Os geradores de `tools/arte/` continuam desenhando
+na grade de 32 e o `pixelkit` reduz para 16 ao gravar (`Canvas.reduz2`).
 
-| Tipo | Tamanho do arquivo | Tamanho no jogo |
+| Tipo | Tamanho do quadro | Tamanho no jogo |
 |---|---|---|
-| **Blocos e texturas** (chão, parede, caixa, pedra que cai, cipó, água) | **32x32** por bloco | 1 bloco (16 px) |
-| **Entidades pequenas** (pato, Pata, flor, chave, coração) | **32x32** por quadro | 1 bloco: o tamanho do pato |
-| **Inimigos comuns** (raposa, jacaré, gaviãozinho, águia) | quadro do tamanho do bicho (ex.: raposa 46x34) | um pouco maiores que o pato |
-| **Mini-chefes e chefes** (jacaré gigante, gavião) | **64x64** por quadro | 2 blocos (32 px) |
-| Objetos mais altos que um bloco (bandeiras, porta) | 32 de largura x altura em blocos (ex.: porta de 3 blocos = 32x96) | conforme o objeto |
-| **Cenário grande** (moinho, celeiro, árvore, cerca, arbusto) | conforme o desenho | ver "Escala" abaixo |
-| **Fundos** (montanhas, colinas, nuvens, torre ao longe, parede da torre) | tiras de 1024 px que emendam nas pontas | repetem a cada 512 px |
+| **Blocos e texturas** (chão, parede, caixa, pedra que cai, cipó, água) | **16x16** por bloco | 1 bloco |
+| **Entidades pequenas** (pato, Pata, flor, chave, coração) | **16x16** por quadro | o tamanho do pato |
+| **Inimigos comuns** | raposa 23x17, jacaré 32x14, gaviãozinho 23x19, águia 31x26 | um pouco maiores que o pato |
+| **Mini-chefes e chefes** (jacaré gigante, gavião) | **32x32** por quadro | 2 blocos |
+| Objetos mais altos que um bloco (bandeiras, porta) | 16 de largura x altura em blocos | conforme o objeto |
+| **Cenário grande e fundos** | conforme o desenho, na mesma densidade (1:1) | ver "Escala" abaixo |
+
+**Paleta única: Endesga 32** (32 cores, escolhida pelo dono em 26/11/2026). Toda cor de todo
+asset é uma das 32: o `pixelkit` troca cada cor pela mais próxima ao gravar (`na_paleta`).
+
+**Animação: no mínimo 15 quadros** (exigência do dono, 26/11/2026). Toda animação tem 16
+quadros. Em 16x16 cada parte só se move de 1 em 1 pixel, então parte dos quadros repete a pose
+da vizinha (segura o tempo); os geradores contam os desenhos diferentes de cada animação.
 
 Os inimigos comuns foram reduzidos para o tamanho do pato e os chefes para 2 blocos (colisões e
 testes já ajustados), então os desenhos novos encaixam sem mexer nas fases.
@@ -133,16 +138,16 @@ Definida a partir do pato e do tileset originais (25/11/2026). Vale para todos o
 
 | Regra | Como é |
 |---|---|
-| **Grade** | 32 px de desenho por bloco (o dobro do original, que tem 16), gravados em 1:1. Chefes: grade de 64. Nada de meio pixel, rotação ou escala quebrada. |
+| **Grade** | 16 px por bloco (como o original), gravados em 1:1. Chefes: 32. Nada de meio pixel, rotação ou escala quebrada. |
 | **Contorno** | 1 pixel, contínuo, seguindo só as bordas (sem pixel sobrando nos cantos de dentro), numa cor escura do próprio material, nunca preto puro: cinza `#636363` no pato, verde-escuro suave `#1d6b22` na borda do terreno. |
 | **Preenchimento** | Cor chapada, mais no máximo 1 ou 2 tons de sombra onde o volume dobra (barriga do pato `#e2e2e2`, base da terra `#d89d40` / `#99692c`). Sem degradê, sem pontilhado, sem suavização e sem textura de ruído. |
-| **Paleta** | Viva e limpa, como a original: branco `#ffffff`, amarelo `#ffff00` / `#fff200`, verdes `#31dc31` `#2ecf2e` `#28b228` `#2ba024`, terra `#e59f43` `#d89d40`, flores brancas com miolo laranja `#f28b57`. Poucas cores por sprite (o pato usa 5). |
-| **Formas** | Silhuetas simples e fáceis de ler, degraus de pixel limpos (sem pixel solto), cantos arredondados por 1 ou 2 pixels. Detalhe mínimo: o olho é um ponto 2x2, sem pupila nem brilho. |
+| **Paleta** | **Endesga 32** em todos os assets (viva, a mais parecida com a original). Poucas cores por sprite. |
+| **Formas** | Silhuetas simples e quadradas, fáceis de ler, degraus de pixel limpos (sem pixel solto). Detalhe mínimo: o olho é 1 pixel, sem pupila nem brilho. |
 | **Luz** | Vem de cima e da **esquerda** (o sol fica à esquerda no céu): tom claro em cima/esquerda, tom de sombra embaixo/direita. Sombra projetada cai para baixo e para a direita. |
-| **Escala** | O pato é pequeno e o cenário é grande. Régua: 1 pato = 32 px da grade (16 no jogo). Cerca 1,5 pato; arbusto 1,5; árvore jovem 4; árvore 7; celeiro 6,5 de altura por 9,5 de largura; moinho 7,5 (10 com as pás); torre ao longe de 4 a 8,5. Nada de cenário menor que o pato perto do chão do jogo. |
+| **Escala** | O pato é pequeno e o cenário é grande. Régua: 1 pato = 16 px. Cerca 1,5 pato; arbusto 1,5; árvore jovem 4; árvore 7; celeiro 6,5 de altura por 9,5 de largura; moinho 7,5 (10 com as pás); torre ao longe de 4 a 8,5. Nada de cenário menor que o pato perto do chão do jogo. |
 | **Distância** | Quanto mais longe, mais claro e azulado, sem contorno (ou com contorno suave) e com menos detalhe. Só o plano do jogo usa as cores vivas inteiras. |
 | **Blocos** | Faixa de grama com franja de folhas em dentes e florzinhas; terra lisa em duas faixas; borda de 1 px verde-escura; cantos arredondados nas pontas e na base das plataformas. Tudo se repete a cada 8 ou 16 px para emendar sem costura. |
-| **Animação** | Poucos quadros (3 a 6), com movimentos de 1 a 2 pixels: pés e cabeça mexem, o corpo quase não. |
+| **Animação** | No mínimo 15 quadros (todas têm 16), com movimentos de 1 pixel: pés, asas e cabeça mexem; passos sempre inteiros (nada de meio pixel entre quadros). |
 
 Sem acessórios no pato e sem tema medieval: o estilo é o do original, só que com mais detalhe.
 
@@ -220,9 +225,12 @@ editor de pixel art (Aseprite, LibreSprite, Piskel; no Photoshop/GIMP use interp
 próximo"). Salvou, o Godot reimporta sozinho e o jogo já mostra a mudança.
 
 1. **Não mude o tamanho do arquivo nem a ordem dos quadros.** As tiras são quadros lado a lado do
-   mesmo tamanho (pato: 32x32; raposa: 46x34, 6 quadros; jacaré: 64x28, 6; gaviãozinho: 46x38, 7;
-   águia: 62x52, 7; flor: 32x32, 4). Os tilesets têm 4x9 blocos de 32 em posições fixas (o jogo
-   escolhe cada bloco pela posição no arquivo). Pintar dentro de cada quadro pode à vontade.
+   mesmo tamanho, 16 por animação (pato: 16x16 em cada `pato_*.png`; Pata: 48 quadros, 16 por
+   animação; raposa: 23x17, 16; jacaré: 32x14, 32 = nado + mordida; gaviãozinho: 23x19, 32 = voo +
+   rasante; águia: 31x26, 48 = voo + mergulho + bico preso; chefes: 32x32, 64 e 80; flor, água,
+   brilho, cipó: 16x16, 16). Os tilesets têm 4x9 blocos de 16 em posições fixas (o jogo escolhe
+   cada bloco pela posição no arquivo). Pintar dentro de cada quadro pode à vontade.
+   Use só as cores da Endesga 32 (o gerador tambem as usa).
 2. **Fundo transparente e cores cheias:** nada de pixel meio transparente, suavização ou pincel
    macio (vira borda borrada no jogo).
 3. **Os geradores não apagam o que você editou.** Os scripts de `tools/arte/` (com `--salvar`)
@@ -241,7 +249,7 @@ Os sprites originais do GameMaker que os geradores usam como referência ficam e
   `assets/sprites/arte/`.
 - O personagem deve **ocupar o quadro**, com uma folga pequena (1 ou 2 px) nas bordas.
 - **Origem:** para quem anda no chão, o meio da base (os pés); para quem voa ou nada, o centro.
-- **Tileset:** 128x288 (4x9 blocos de 32), na mesma ordem do `tileset_grama.png`.
+- **Tileset:** 64x144 (4x9 blocos de 16), na mesma ordem do `tileset_grama.png`.
 - Para cada sprite, anote **quantos quadros** e o **FPS**; o resto eu configuro (origem, animações).
 - O jogo amplia a arte com filtro "vizinho mais próximo": os pixels ficam nítidos em qualquer
   resolução.

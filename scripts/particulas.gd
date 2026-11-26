@@ -7,8 +7,9 @@ const MAX := 400
 
 ## [cor, cor alternativa, gravidade, arrasto, vida (frames), tamanho]
 const KINDS := {
-	"poeira": [Color8(214, 196, 160, 200), Color8(180, 160, 128, 200), -0.02, 0.90, 24, 3.0],
-	"pouso": [Color8(214, 196, 160, 210), Color8(170, 150, 120, 210), -0.01, 0.88, 22, 2.5],
+	# poeira e pouso: bloquinhos opacos na grade, cores da Endesga 32 (areia #ead4aa, pedra #c0cbdc)
+	"poeira": [Color("#ead4aa"), Color("#c0cbdc"), -0.02, 0.90, 24, 3.0],
+	"pouso": [Color("#ead4aa"), Color("#c0cbdc"), -0.01, 0.88, 22, 2.5],
 	"anel": [Color8(255, 255, 255, 200), Color8(200, 240, 255, 200), 0.0, 0.86, 16, 2.0],
 	"respingo": [Color8(200, 235, 255, 230), Color8(110, 180, 240, 230), 0.22, 0.98, 40, 2.0],
 	"bolha": [Color8(220, 245, 255, 210), Color8(170, 220, 250, 210), -0.04, 0.97, 50, 2.0],
@@ -16,7 +17,7 @@ const KINDS := {
 	"pelo": [Color8(230, 120, 50), Color8(250, 230, 210), 0.05, 0.93, 40, 2.0],
 	"folha": [Color8(96, 170, 50), Color8(200, 150, 40), 0.015, 0.97, 220, 2.0],
 	"brilho": [Color8(255, 236, 120), Color8(255, 255, 255), -0.01, 0.93, 34, 2.0],
-	"pedrinha": [Color8(150, 140, 160), Color8(110, 100, 120), 0.25, 0.98, 50, 2.0],
+	"pedrinha": [Color("#8b9bb4"), Color("#5a6988"), 0.25, 0.98, 50, 2.0],
 	"vento": [Color8(240, 250, 255, 170), Color8(200, 230, 245, 170), 0.0, 1.0, 60, 1.0],
 }
 
@@ -111,8 +112,14 @@ func _draw() -> void:
 		var s: float = p[6]
 		match p[4]:
 			"poeira", "pouso":
-				var r := s * (1.6 - t * 0.6)
-				draw_circle(pos, r, Color(c, c.a * t))
+				# bloquinho preso a grade que encolhe em degraus (3 -> 2 -> 1 px), sem alfa
+				var q := clampi(int(ceil(s * t * 1.2)), 1, 3)
+				var o := pos.round()
+				if q == 3:  # "+" de 3x3 (bolinha de poeira)
+					draw_rect(Rect2(o.x - 1, o.y, 3, 1), c)
+					draw_rect(Rect2(o.x, o.y - 1, 1, 3), c)
+				else:
+					draw_rect(Rect2(o.x, o.y, q, q), c)
 			"anel":
 				draw_rect(Rect2(pos.x - 1, pos.y - 1, 2, 2), Color(c, c.a * t))
 			"bolha":

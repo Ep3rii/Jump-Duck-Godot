@@ -20,14 +20,16 @@ const PAIN_TIME := 180
 const HURT_TIME := 50
 const LEAP_GRAVITY := 0.25
 const SURFACE_DEPTH := 8.0  # na superficie a barriga fica 8 px abaixo da linha d'agua
+const PAIN_DEPTH := 2.0  # com dor de dente boia mais alto: bochecha e boca ficam fora d'agua
 const DEEP := 26.0  # submerso
 const BITE_DISTANCE := 32.0  # emerge a esta distancia do pato
-const HALF_W := 16.0  # 2 blocos de largura (arte de chefe: 256x256 -> 32 px)
-const HEIGHT := 10.0
+const HALF_W := 16.0  # 2 blocos de largura (quadro de 32 px)
+const HEIGHT := 16.0  # corpo de ~16 px acima da barriga (cabeca e cristas mais altas)
 const BITE_REACH := 10.0
+const Z_SALTO := -470  # absoluto: na frente do Jogador (-500) e da Agua (-480), atras das Dicas
 const Sprites := preload("res://scripts/sprites.gd")
-const QUADROS := 11  # tira assets/sprites/arte/chefe_jacare.png (tools/arte/chefes.py)
-const PIVO := Vector2(16, 23)  # ponto da barriga no quadro de 64 px (16 px no jogo)
+const QUADROS := 64  # chefe_jacare.png: nado, salto, mordida e dor, 16 quadros cada
+const PIVO := Vector2(16, 28)  # ponto da barriga no quadro de 32 px (JG_BARRIGA em tools/arte/chefes.py)
 
 
 var state := "espera"  # espera | nadando | aviso | salto | mordida_aviso | mordida | dor | ferido
@@ -66,6 +68,10 @@ func _surface() -> float:
 	return water.surface_y() + SURFACE_DEPTH
 
 
+func _pain_surface() -> float:
+	return water.surface_y() + PAIN_DEPTH
+
+
 func get_mask() -> Rect2:
 	var r := Rect2(roundf(position.x) - HALF_W, roundf(position.y) - HEIGHT, HALF_W * 2.0, HEIGHT)
 	if state == "mordida":
@@ -76,7 +82,7 @@ func get_mask() -> Rect2:
 
 
 func stomp_line_y() -> float:
-	return position.y - 7.0
+	return position.y - 11.0
 
 
 func harmful() -> bool:
@@ -104,7 +110,9 @@ func defeat() -> void:
 func force_state(s: String, frames := 999) -> void:
 	state = s
 	_timer = frames
-	if s == "dor" or s == "mordida_aviso" or s == "mordida":
+	if s == "dor":
+		position.y = _pain_surface()
+	elif s == "mordida_aviso" or s == "mordida":
 		position.y = _surface()
 
 
@@ -179,12 +187,18 @@ func _physics_process(_delta: float) -> void:
 				_lunge = 0.0
 		"dor":
 			_mouth = 0.4
+			position.y = move_toward(position.y, _pain_surface(), 1.5)
 			if _timer <= 0:
 				_restart_cycle(p)
 		"ferido":
 			position.y = move_toward(position.y, _surface() + DEEP, 1.0)
 			if _timer <= 0:
 				_restart_cycle(p)
+	# no salto o chefe passa na frente do pato (Jogador -500) e da agua (-480), para o ataque ficar
+	# legivel; nos outros estados volta para o z das Entidades (o pato fica na frente e a agua
+	# cobre o que esta submerso)
+	z_as_relative = state != "salto"
+	z_index = Z_SALTO if state == "salto" else 0
 	queue_redraw()
 
 
@@ -226,21 +240,20 @@ func _start_leap(p: Node2D) -> void:
 
 # ---------------------------------------------------------------- desenho
 func _draw() -> void:
-	# nadando: quadros 0..3; saltando: 4..5; mordida: 6..8 (boca abrindo); dor: 9..10
-	var q := int(_anim / 9.0) % 4
+	# nadando: 0..15; salto: 16..23 subindo (focinho para cima), 24..31 descendo; mordida:
+	# 32..47 (boca abrindo); dor: 48..63
+	var q := int(_anim * 16.0 / 36.0) % 16
 	match state:
 		"salto":
-			q = 4 if _vy < 0.0 else 5
-		"mordida_aviso":
-			q = 6
-		"mordida":
-			q = 6 + clampi(int(_mouth * 3.0), 0, 2)
+			q = (16 if _vy < 0.0 else 24) + int(_anim / 3.0) % 8
+		"mordida_aviso", "mordida":
+			q = 32 + clampi(int(_mouth * 15.0), 0, 15)
 		"dor":
-			q = 9 + int(_anim / 8.0) % 2
+			q = 48 + int(_anim / 3.0) % 16
 		"ferido":
-			q = 9
+			q = 48
 	var submerged := state in ["nadando", "aviso", "ferido", "espera"]
-	var a := 0.5 if submerged else 1.0
+	var a := 0.6 if submerged else 1.0
 	if state == "ferido" and int(_anim / 5.0) % 2 == 0:
 		a = 0.25
 	if state == "aviso":
@@ -249,12 +262,41 @@ func _draw() -> void:
 		Vector2(_lunge * float(dir), 0.0))
 
 
+## Bolhas do aviso em pixel art (cores da ENDESGA 32): aneis de 5x5 e 3x3 com 1 px de brilho,
+## presos a grade, que sobem pela agua e estouram na linha da agua (nunca passam dela). Na
+## superficie, marolinhas de 2 px no lugar de uma barra lisa.
+const COR_BOLHA := Color("#2ce8f5")
+const COR_BRILHO := Color("#ffffff")
+const BOLHA_GRANDE := [Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0), Vector2i(0, 1), Vector2i(4, 1),
+	Vector2i(0, 2), Vector2i(4, 2), Vector2i(0, 3), Vector2i(4, 3), Vector2i(1, 4), Vector2i(2, 4),
+	Vector2i(3, 4)]
+const BOLHA_PEQUENA := [Vector2i(1, 0), Vector2i(0, 1), Vector2i(2, 1), Vector2i(1, 2)]
+
+
 func _draw_bubbles() -> void:
 	var t := WARN_TIME - _timer
-	var top: float = water.surface_y() - position.y
+	var top := roundf(water.surface_y() - position.y)
 	for i in 4:
 		var k := fposmod(t * 0.6 + i * 9.0, 30.0)
-		var bx := -14.0 + i * 9.0 + sin((t + i * 7) * 0.3) * 2.0
-		var by := top + 10.0 - k
-		draw_circle(Vector2(bx, by), 2.0 + (i % 2), Color(0.85, 0.95, 1.0, 0.9))
-	draw_rect(Rect2(-20, top - 1, 40, 2), Color(1, 1, 1, 0.7))
+		var bx := roundf(-14.0 + i * 9.0 + sin((t + i * 7) * 0.3) * 1.0)
+		var by := roundf(top + 22.0 - k)
+		if by >= top + 2.0:
+			var grande := i % 2 == 1
+			var forma: Array = BOLHA_GRANDE if grande else BOLHA_PEQUENA
+			var lado := 5.0 if grande else 3.0
+			var o := Vector2(bx - floorf(lado * 0.5), by - lado)
+			for c: Vector2i in forma:
+				draw_rect(Rect2(o.x + c.x, o.y + c.y, 1, 1), COR_BOLHA)
+			draw_rect(Rect2(o.x + 1, o.y + 1, 1, 1), COR_BRILHO)
+		elif k < 26.0:
+			# estouro na linha da agua: 4 pingos em cruz que se afastam e somem
+			var d := 2.0 if k < 24.0 else 3.0
+			for v: Vector2 in [Vector2(-d, 0), Vector2(d, 0), Vector2(0, -d), Vector2(-1, -d + 1)]:
+				draw_rect(Rect2(bx + v.x, top - 2.0 + v.y, 1, 1), COR_BRILHO)
+	# marolinhas: tracos de 2 px na linha da agua, andando 2 px de tempos em tempos
+	var passo := 2.0 * (int(t / 8.0) % 2)
+	var x := -20.0
+	while x < 20.0:
+		draw_rect(Rect2(x + passo, top - 1.0, 2, 1), COR_BRILHO)
+		draw_rect(Rect2(x + passo + 2.0, top, 3, 1), COR_BOLHA)
+		x += 10.0

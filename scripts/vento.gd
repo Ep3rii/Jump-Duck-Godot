@@ -141,5 +141,11 @@ func _draw() -> void:
 			var y := -floorf(lane * (h - 2.0)) - 1.0
 			var x := fposmod(phase, w)
 			if direcao == 1:
+				# para a esquerda: o quadro horizontal aponta para a direita, entao e espelhado
+				# (o risco de 12 px fica no mesmo lugar, centrado em x)
 				x = w - x
-			Sprites.draw_art(self, "vento", x - 6.0, y - 6.0, 0, 2, col)
+				draw_set_transform(Vector2(floorf(x), 0.0), 0.0, Vector2(-1, 1))
+				Sprites.draw_art(self, "vento", -6.0, y - 6.0, 0, 2, col)
+				draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+			else:
+				Sprites.draw_art(self, "vento", x - 6.0, y - 6.0, 0, 2, col)

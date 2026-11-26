@@ -8,21 +8,44 @@ extends Node2D
 
 const Particulas := preload("res://scripts/particulas.gd")
 
-const GRASS := Color8(70, 160, 40)
-const GRASS_DARK := Color8(40, 110, 30)
-const GRASS_LIGHT := Color8(133, 220, 60)
-const PETALS := [Color8(255, 255, 255), Color8(255, 220, 80), Color8(250, 140, 190), Color8(170, 150, 255)]
-const PEBBLE := Color8(150, 140, 130)
-const MOSS := Color8(80, 140, 50)
-const MOSS_DARK := Color8(50, 96, 36)
-const RUBBLE := Color8(130, 124, 146)
-const WEB := Color8(230, 230, 240, 150)
+# Cores so da ENDESGA 32 (a paleta da arte, ver tools/arte/pixelkit.py), sem clarear/escurecer
+# em codigo: o tom de luz e o de sombra sao outra cor da paleta.
+const GRASS := Color("#3e8948")
+const GRASS_DARK := Color("#265c42")
+const GRASS_LIGHT := Color("#63c74d")
+const PETALS := [Color("#ffffff"), Color("#fee761"), Color("#f6757a"), Color("#b55088")]
+const FLOWER_CORE := Color("#feae34")
+const PEBBLE := Color("#8b9bb4")
+const PEBBLE_LIGHT := Color("#c0cbdc")
+const MOSS := Color("#3e8948")
+const MOSS_DARK := Color("#265c42")
+const RUBBLE := Color("#8b9bb4")
+const RUBBLE_DARK := Color("#5a6988")
+const WEB := Color("#c0cbdc")
+## Borboletas amarelas e laranjas (a branca sumia nas nuvens), corpo escuro.
+const BUTTERFLY := [Color("#fee761"), Color("#feae34")]
+const BUTTERFLY_BODY := Color("#3e2731")
+const DRAGONFLY := Color("#0099db")
+const DRAGONFLY_WING := Color("#c0cbdc")
+const DUST := Color("#ead4aa")
+## Teia de canto presa no teto, pixel a pixel (1 px opaco): 3 fios (no teto, a 45 graus e na
+## vertical) e 2 arcos em degrau ligando os fios.
+const WEB_PIXELS := [
+	Vector2i(0, 0), Vector2i(1, 0), Vector2i(2, 0), Vector2i(3, 0), Vector2i(4, 0), Vector2i(5, 0),
+	Vector2i(6, 0), Vector2i(0, 1), Vector2i(0, 2), Vector2i(0, 3), Vector2i(0, 4), Vector2i(0, 5),
+	Vector2i(0, 6), Vector2i(1, 1), Vector2i(2, 2), Vector2i(3, 3), Vector2i(4, 4), Vector2i(5, 5),
+	Vector2i(2, 1), Vector2i(1, 2),
+	Vector2i(4, 1), Vector2i(4, 2), Vector2i(2, 4), Vector2i(1, 4)]
 
 enum Tipo { FAZENDA, LAGO, TORRE }
 
 var tipo := Tipo.FAZENDA
 var _details: Array = []  # [pos, kind, seed]
-var _bugs: Array = []  # [pos, vel, phase]
+var _bugs: Array = []  # [pos, vel, phase, sentido]
+## Celulas solidas (16 px, coordenadas do mundo) e retangulos dos blocos parados: os bichinhos
+## so voam no ar (nunca na frente da terra).
+var _solid_cells := {}
+var _solid_rects: Array[Rect2] = []
 var _time := 0.0
 var _leaf_timer := 0
 
@@ -38,7 +61,7 @@ func _ready() -> void:
 	_scan_ground.call_deferred()
 	var n := 16 if tipo == Tipo.TORRE else 5
 	for i in n:
-		_bugs.append([Vector2(-99999, -99999), Vector2.ZERO, i * 1.7])
+		_bugs.append([Vector2(-99999, -99999), Vector2.ZERO, i * 1.7, 1.0])
 
 
 static func _hash(c: Vector2i, salt: int) -> int:
@@ -46,8 +69,15 @@ static func _hash(c: Vector2i, salt: int) -> int:
 
 
 func _scan_ground() -> void:
+	for n in get_tree().get_nodes_in_group("solid"):
+		var parado: bool = not (n.is_in_group("caixa") or n.is_in_group("plataforma")
+			or n.is_in_group("plataforma_cai") or n.is_in_group("porta"))
+		if parado and n.has_method("get_rect"):
+			_solid_rects.append(n.get_rect())
 	for layer: TileMapLayer in get_tree().get_nodes_in_group("solid_tiles"):
 		for cell in layer.get_used_cells():
+			var centro := layer.to_global(layer.map_to_local(cell))
+			_solid_cells[Vector2i(floori(centro.x / 16.0), floori(centro.y / 16.0))] = true
 			var above := layer.get_cell_source_id(cell + Vector2i(0, -1)) != -1
 			var below := layer.get_cell_source_id(cell + Vector2i(0, 1)) != -1
 			var top_pos := layer.to_global(layer.map_to_local(cell)) + Vector2(-8, -8)
@@ -94,23 +124,54 @@ func _view() -> Rect2:
 	return Rect2(Game.cam_pos, Game.view_size)
 
 
+## Ponto dentro de terra/pedra solida?
+func _solido(p: Vector2) -> bool:
+	if _solid_cells.has(Vector2i(floori(p.x / 16.0), floori(p.y / 16.0))):
+		return true
+	for r in _solid_rects:
+		if r.has_point(p):
+			return true
+	return false
+
+
+## Ponto de ar com folga embaixo (o bicho nao nasce encostado no chao).
+func _no_ar(p: Vector2) -> bool:
+	return not _solido(p) and not _solido(p + Vector2(0, 4))
+
+
 func _update_bugs() -> void:
 	var v := _view()
 	for b: Array in _bugs:
 		var pos: Vector2 = b[0]
 		b[2] += 0.05
 		if not v.grow(60).has_point(pos):
-			# entra de novo perto da camera
+			# entra de novo perto da camera, so num lugar de ar (ate 8 tentativas)
 			var ph: float = b[2]
-			pos = v.position + Vector2(fposmod(ph * 97.0, v.size.x), 30.0 + fposmod(ph * 53.0, v.size.y - 60.0))
+			pos = Vector2(-99999, -99999)
+			for k in 8:
+				var q := ph + k * 0.37
+				var cand := v.position + Vector2(fposmod(q * 97.0, v.size.x),
+					30.0 + fposmod(q * 53.0, v.size.y - 60.0))
+				if _no_ar(cand):
+					pos = cand
+					break
+			if pos.x < -9999.0:
+				b[0] = pos
+				continue
 		var t: float = b[2]
 		var vel := Vector2(cos(t * 0.7) * 0.5 + sin(t * 1.9) * 0.3, sin(t * 1.3) * 0.35)
 		if tipo == Tipo.TORRE:
 			vel *= 0.25
 		elif tipo == Tipo.LAGO:
 			vel = Vector2(cos(t * 0.5) * 1.2, sin(t * 2.3) * 0.4)
+		vel *= float(b[3])
+		var nova := pos + vel
+		if _solido(nova):
+			# bateu na terra: fica onde esta e volta pelo outro lado
+			b[3] = -float(b[3])
+			nova = pos
 		b[1] = vel
-		b[0] = pos + vel
+		b[0] = nova
 
 
 func _drop_leaf() -> void:
@@ -129,57 +190,72 @@ func _draw() -> void:
 		var h: int = d[2]
 		match d[1]:
 			"tufo":
-				var sway := sin(_time * 2.0 + p.x * 0.1) * 0.8
+				# 3 folhinhas de 1 px; so a ponta balanca, 1 px inteiro por vez
+				var sway := roundf(sin(_time * 2.0 + p.x * 0.1) * 0.8)
 				var tall := 2.0 + h % 3
-				draw_line(p, p + Vector2(-1 + sway, -tall), GRASS_DARK, 1.0)
-				draw_line(p + Vector2(1, 0), p + Vector2(1 + sway, -tall - 1), GRASS, 1.0)
-				draw_line(p + Vector2(2, 0), p + Vector2(3 + sway, -tall + 1), GRASS_LIGHT, 1.0)
+				p = p.floor()
+				var altos := [tall, tall + 1.0, tall - 1.0]
+				var cores := [GRASS_DARK, GRASS, GRASS_LIGHT]
+				for f in 3:
+					var alto: float = altos[f]
+					var cor: Color = cores[f]
+					draw_rect(Rect2(p.x + f, p.y - alto + 1.0, 1, alto - 1.0), cor)
+					draw_rect(Rect2(p.x + f + sway, p.y - alto, 1, 1), cor)
 			"flor":
-				var sway := sin(_time * 1.6 + p.x * 0.13) * 0.7
+				var sway := roundf(sin(_time * 1.6 + p.x * 0.13) * 0.7)
 				var c: Color = PETALS[h % PETALS.size()]
-				draw_line(p, p + Vector2(sway, -4), GRASS_DARK, 1.0)
+				p = p.floor()
+				draw_rect(Rect2(p.x, p.y - 3, 1, 3), GRASS_DARK)
 				draw_rect(Rect2(p.x - 1 + sway, p.y - 6, 3, 2), c)
 				draw_rect(Rect2(p.x + sway, p.y - 7, 1, 4), c)
-				draw_rect(Rect2(p.x + sway, p.y - 6, 1, 1), Color8(255, 200, 60))
+				draw_rect(Rect2(p.x + sway, p.y - 6, 1, 1), FLOWER_CORE)
 			"pedrinha":
 				draw_rect(Rect2(p.x, p.y - 2, 3, 2), PEBBLE)
-				draw_rect(Rect2(p.x, p.y - 2, 2, 1), PEBBLE.lightened(0.3))
+				draw_rect(Rect2(p.x, p.y - 2, 2, 1), PEBBLE_LIGHT)
 			"musgo":
 				draw_rect(Rect2(p.x - 1, p.y - 1, 5, 2), MOSS_DARK)
 				draw_rect(Rect2(p.x, p.y - 2, 3, 1), MOSS)
 			"entulho":
 				draw_rect(Rect2(p.x, p.y - 2, 2, 2), RUBBLE)
-				draw_rect(Rect2(p.x + 2, p.y - 1, 2, 1), RUBBLE.darkened(0.2))
+				draw_rect(Rect2(p.x + 2, p.y - 1, 2, 1), RUBBLE_DARK)
 			"teia":
-				var x := p.x + (h % 2) * 10.0
-				for i in 4:
-					draw_line(Vector2(x, p.y), Vector2(x + 6 - i * 2, p.y + i * 2 + 2), WEB, 1.0)
-				draw_line(Vector2(x, p.y + 3), Vector2(x + 3, p.y), WEB, 1.0)
+				# canto esquerdo ou direito do bloco (espelhada em x)
+				var direita := h % 2 == 1
+				var x0 := floorf(p.x) + (15.0 if direita else 0.0)
+				for c: Vector2i in WEB_PIXELS:
+					var dx := -c.x if direita else c.x
+					draw_rect(Rect2(x0 + dx, floorf(p.y) + c.y, 1, 1), WEB)
 			"musgo_pendurado":
 				var len := 3.0 + h % 6
-				var sway := sin(_time * 1.2 + p.x) * 0.6
-				draw_line(p + Vector2(4, 0), p + Vector2(4 + sway, len), MOSS_DARK, 1.0)
-				draw_line(p + Vector2(7, 0), p + Vector2(7 + sway, len * 0.6), MOSS, 1.0)
+				var sway := roundf(sin(_time * 1.2 + p.x) * 0.6)
+				p = p.floor()
+				draw_rect(Rect2(p.x + 4, p.y, 1, len - 1.0), MOSS_DARK)
+				draw_rect(Rect2(p.x + 4 + sway, p.y + len - 1.0, 1, 1), MOSS_DARK)
+				var curto := maxf(2.0, floorf(len * 0.6))
+				draw_rect(Rect2(p.x + 7, p.y, 1, curto - 1.0), MOSS)
+				draw_rect(Rect2(p.x + 7 + sway, p.y + curto - 1.0, 1, 1), MOSS)
 	_draw_bugs()
 
 
 func _draw_bugs() -> void:
 	for b: Array in _bugs:
-		var p: Vector2 = b[0]
+		var p: Vector2 = (b[0] as Vector2).floor()
 		var t: float = b[2]
+		if p.x < -9999.0 or _solido(p):
+			continue
 		match tipo:
 			Tipo.FAZENDA:  # borboleta: asas abrindo e fechando
 				var open := int(_time * 12.0 + t) % 2 == 0
-				var c := Color8(255, 200, 60) if int(t) % 2 == 0 else Color8(255, 255, 255)
+				var c: Color = BUTTERFLY[int(t) % 2]
 				var w := 2.0 if open else 1.0
 				draw_rect(Rect2(p.x - w, p.y - 1, w, 2), c)
 				draw_rect(Rect2(p.x + 1, p.y - 1, w, 2), c)
-				draw_rect(Rect2(p.x, p.y - 1, 1, 3), Color8(60, 40, 30))
+				draw_rect(Rect2(p.x, p.y - 1, 1, 3), BUTTERFLY_BODY)
 			Tipo.LAGO:  # libelula azul
 				var flick := int(_time * 20.0 + t) % 2 == 0
-				draw_rect(Rect2(p.x - 3, p.y, 6, 1), Color8(60, 140, 220))
-				draw_rect(Rect2(p.x - 1, p.y - (2 if flick else 1), 1, 1), Color8(220, 240, 255, 180))
-				draw_rect(Rect2(p.x + 1, p.y - (1 if flick else 2), 1, 1), Color8(220, 240, 255, 180))
+				draw_rect(Rect2(p.x - 3, p.y, 6, 1), DRAGONFLY)
+				draw_rect(Rect2(p.x - 1, p.y - (2 if flick else 1), 1, 1), DRAGONFLY_WING)
+				draw_rect(Rect2(p.x + 1, p.y - (1 if flick else 2), 1, 1), DRAGONFLY_WING)
 			Tipo.TORRE:  # poeira na luz
 				var a := 0.35 + 0.3 * sin(_time * 2.0 + t * 3.0)
-				draw_rect(Rect2(floorf(p.x), floorf(p.y), 1, 1), Color(1.0, 0.95, 0.8, a))
+				draw_rect(Rect2(p.x, p.y, 1, 1), Color(DUST, a))

@@ -19,10 +19,40 @@ const COL_BUBBLE := Color8(13, 80, 0, 230)
 const COL_BUBBLE_EDGE := Color8(133, 242, 56)
 
 var _show := 0.0  # 0..1 (aparece/desaparece suave)
+## A placa de madeira fica num filho interno com z relativo -100 (Dicas -450 -> -550): atras
+## do pato (Jogador -500), na frente do terreno. So o balao fica neste no, acima do pato.
+const Z_PLACA := -100
+
+
+## O balao e desenhado num CanvasLayer interno (camada 6, seguindo a camera): acima da
+## pelicula de luz (luz.gd, camada 5) para o texto sair em branco puro, e abaixo do HUD (10).
+const CAMADA_BALAO := 6
+## Margem (px de jogo) entre o balao e a borda da tela.
+const MARGEM_TELA := 2.0
+
+var _balao: Node2D = null
 
 
 func _ready() -> void:
 	add_to_group("dica")
+	var placa := Node2D.new()
+	placa.name = "Placa"
+	placa.z_index = Z_PLACA
+	placa.draw.connect(func() -> void:
+		# placa de madeira (dica.png, 16x20 no jogo); o pe do poste fica na origem
+		Sprites.draw_art(placa, "dica", -8.0, -20.0))
+	add_child(placa, false, Node.INTERNAL_MODE_FRONT)
+	if not Engine.is_editor_hint():
+		# no editor o CanvasLayer nao aparece na vista 2D: la o balao vai direto no _draw()
+		var cl := CanvasLayer.new()
+		cl.name = "CamadaBalao"
+		cl.layer = CAMADA_BALAO
+		cl.follow_viewport_enabled = true
+		add_child(cl, false, Node.INTERNAL_MODE_FRONT)
+		_balao = Node2D.new()
+		_balao.name = "Balao"
+		_balao.draw.connect(func() -> void: _desenha_balao(_balao))
+		cl.add_child(_balao)
 
 
 func _lines() -> PackedStringArray:
@@ -40,7 +70,13 @@ func _process(delta: float) -> void:
 			target = 1.0
 	var before := _show
 	_show = move_toward(_show, target, delta * 6.0)
-	if _show != before or Engine.is_editor_hint():
+	if _balao != null:
+		_balao.visible = is_visible_in_tree()
+		if _show > 0.0 or before > 0.0:
+			# acompanha a placa e a camera (o balao se prende a borda da tela)
+			_balao.global_transform = global_transform
+			_balao.queue_redraw()
+	elif _show != before or Engine.is_editor_hint():
 		queue_redraw()
 
 
@@ -49,25 +85,45 @@ func is_showing() -> bool:
 
 
 func _draw() -> void:
-	# placa de madeira (dica.png, 16x20 no jogo); o pe do poste fica na origem
-	Sprites.draw_art(self, "dica", -8.0, -20.0)
+	if _balao == null:
+		_desenha_balao(self)
+
+
+## Desenha o balao em `n` (mesmas coordenadas locais da placa: origem no pe do poste).
+func _desenha_balao(n: CanvasItem) -> void:
 	if _show <= 0.01:
 		return
-	# balao
 	var lines := _lines()
 	var w := 0.0
 	for l in lines:
 		w = maxf(w, PixelFont.width(l))
 	var h := lines.size() * 11.0 + 6.0
+	var bw := w + 8.0
 	var x0 := floorf(-w * 0.5) - 4.0
 	var y0 := -22.0 - h - floorf((1.0 - _show) * 6.0)
+	if not Engine.is_editor_hint() and is_inside_tree():
+		# prende o balao dentro da area visivel da camera (coordenadas locais da placa)
+		var inv := get_global_transform_with_canvas().affine_inverse()
+		var vr := get_viewport_rect()
+		var tl := inv * (vr.position + Vector2(MARGEM_TELA, MARGEM_TELA))
+		var br := inv * (vr.end - Vector2(MARGEM_TELA, MARGEM_TELA))
+		var left := minf(tl.x, br.x)
+		var right := maxf(tl.x, br.x)
+		var top := minf(tl.y, br.y)
+		if right - left >= bw:
+			x0 = floorf(clampf(x0, left, right - bw))
+		if y0 < top:
+			y0 = ceilf(top)
 	var bubble := COL_BUBBLE
 	bubble.a *= _show
 	var edge := COL_BUBBLE_EDGE
 	edge.a *= _show
-	draw_rect(Rect2(x0, y0, w + 8.0, h), bubble)
-	draw_rect(Rect2(x0, y0, w + 8.0, h), edge, false)
-	draw_rect(Rect2(-2, y0 + h, 4, 2), edge)
+	n.draw_rect(Rect2(x0, y0, bw, h), bubble)
+	n.draw_rect(Rect2(x0, y0, bw, h), edge, false)
+	# ponta sobre a placa, mas sempre encostada no balao
+	var px := clampf(-2.0, x0 + 1.0, x0 + bw - 5.0)
+	n.draw_rect(Rect2(px, y0 + h, 4, 2), edge)
 	var white := Color(1, 1, 1, _show)
+	var cx := x0 + bw * 0.5
 	for i in lines.size():
-		PixelFont.draw_plain(self, 0.0, y0 + 9.0 + i * 11.0, lines[i], white, PixelFont.CENTER)
+		PixelFont.draw_plain(n, cx, y0 + 9.0 + i * 11.0, lines[i], white, PixelFont.CENTER)

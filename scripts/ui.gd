@@ -1,18 +1,25 @@
 extends Control
-## Menus e HUD, desenhados em codigo numa grade de 320x180 (equivale ao Draw_64 do
-## obj_game_manager). A fonte e a de pixel_font.gd (assets/sprites/arte/fonte.png).
+## Menus e HUD, desenhados em codigo (equivale ao Draw_64 do obj_game_manager). A tela tem
+## 384x216 pixels do jogo (Game.TELA): o HUD usa os cantos dela e os menus continuam numa grade
+## de 320x180, centrada (Game.UI_OFS), sempre em pixels inteiros. A fonte e a de pixel_font.gd (assets/sprites/arte/fonte.png).
 ## O layout dos botoes vem de Game.ui_layout(); aqui so se desenha.
 
 const Sprites := preload("res://scripts/sprites.gd")
 
-const COL_DARK := Color8(13, 80, 0)
-const COL_MID := Color8(71, 144, 20)
-const COL_LIGHT := Color8(95, 192, 26)
-const COL_HI := Color8(133, 242, 56)
-const COL_YELLOW := Color8(255, 210, 63)
-const COL_YELLOW_DARK := Color8(122, 90, 0)
-const COL_DIM := Color8(150, 190, 130)
-const COL_HINT := Color8(215, 237, 183)
+## Cores da UI, todas da paleta Endesga 32 (a mesma da arte; ver tools/arte/pixelkit.py).
+const COL_DARK := Color("193c3e")  # fundo dos paineis e do HUD, sombra do texto
+const COL_MID := Color("3e8948")  # botao, moldura dos paineis (o verde do cenario)
+const COL_LIGHT := Color("63c74d")  # brilho do botao (a grama)
+const COL_HI := Color("63c74d")  # borda de fora dos paineis
+const COL_YELLOW := Color("fee761")
+const COL_YELLOW_DARK := Color("733e39")
+const COL_ORANGE := Color("feae34")
+const COL_DIM := Color("8b9bb4")
+const COL_HINT := Color("c0cbdc")
+const COL_RED := Color("e43b44")  # vida do chefe
+const COL_RED_DARK := Color("3e2731")  # encaixe vazio da vida do chefe
+const COL_BUBBLE := Color("2ce8f5")  # bolha de folego
+const COL_BUBBLE_OFF := Color("5a6988")
 
 const PixelFont := preload("res://scripts/pixel_font.gd")
 const Chave := preload("res://scripts/chave.gd")
@@ -80,12 +87,12 @@ func _button(r: Dictionary, selected: bool, now: int) -> void:
 	_round(x1, y1 + drop, x2, y2 + drop, COL_DARK, rad)  # sombra
 	_round(x1, y1, x2, y2, COL_YELLOW_DARK if selected else COL_DARK, rad)  # borda
 	_round(x1 + 1, y1 + 1, x2 - 1, y2 - 1, COL_YELLOW if selected else COL_MID, rad)
-	_fill(x1 + 1 + rad, y1 + 1, x2 - 1 - rad, y1 + 1, Color(1, 1, 1, 0.9) if selected else COL_LIGHT)
+	_fill(x1 + 1 + rad, y1 + 1, x2 - 1 - rad, y1 + 1, Color.WHITE if selected else COL_LIGHT)
 	if selected:
+		# flor-cursor sempre 1:1 (16x16) e em pixels inteiros, a esquerda do botao
 		var hop := floorf(absf(sin(now / 180.0)) * 3.0)
-		var fs := 0.75 if small else 1.0
-		Sprites.draw_frame(self, "flor", Rect2(x1 - 10.0 - 8.0 * fs,
-			(y1 + y2) / 2.0 + 7.0 * fs - hop - 14.0 * fs, 16.0 * fs, 16.0 * fs), (now / 200) % 4)
+		Sprites.draw_frame(self, "flor", Rect2(floorf(x1 - 18.0),
+			floorf((y1 + y2) / 2.0 - 7.0 - hop), 16.0, 16.0), (now / 50) % 16)
 
 
 ## Botao com o texto centralizado (texto em dobro nos botoes marcados com "big").
@@ -100,13 +107,11 @@ func _plain_button(r: Dictionary, on: bool, now: int) -> void:
 		_text(tx, ty, r["label"], Color.WHITE, CENTER, sc)
 
 
+## Painel opaco (nada do cenario aparece atras do texto), so com cores da Endesga 32.
 func _panel(x1: float, y1: float, x2: float, y2: float) -> void:
-	var fill := COL_DARK
-	fill.a = 0.9
 	_round(x1, y1, x2, y2, COL_HI, 3)
 	_round(x1 + 1, y1 + 1, x2 - 1, y2 - 1, COL_MID, 3)
-	_round(x1 + 2, y1 + 2, x2 - 2, y2 - 2, Color8(13, 80, 0), 2)
-	_round(x1 + 2, y1 + 2, x2 - 2, y2 - 2, fill, 2)
+	_round(x1 + 2, y1 + 2, x2 - 2, y2 - 2, COL_DARK, 2)
 
 
 ## Titulo da tela: plaquinha amarela arredondada.
@@ -115,7 +120,7 @@ func _title_banner(y: float, title: String) -> void:
 	_round(160 - half, y + 6, 160 + half, y + 24, COL_DARK, 3)
 	_round(160 - half, y + 4, 160 + half, y + 22, COL_YELLOW_DARK, 3)
 	_round(160 - half + 1, y + 5, 160 + half - 1, y + 21, COL_YELLOW, 3)
-	_fill(160 - half + 4, y + 5, 160 + half - 4, y + 5, Color(1, 1, 1, 0.9))
+	_fill(160 - half + 4, y + 5, 160 + half - 4, y + 5, Color.WHITE)
 	_text_plain(160, y + 13, title, COL_YELLOW_DARK, CENTER)
 
 
@@ -138,28 +143,42 @@ func _game_title(cx: float, y: float, now: int) -> void:
 		x += (PixelFont.width(ch, sc) + PixelFont.SPACING * sc)
 
 
+## Estrela pequena (9x9) do menu de fases com o canto em (x, y), em pixels inteiros. Se a
+## peca estrela_mini ainda nao foi gravada/importada, desenha uma cruzinha no lugar.
+func _mini_star(x: float, y: float, cheia: bool) -> void:
+	var x0 := floorf(x)
+	var y0 := floorf(y)
+	if Sprites.has_art("estrela_mini"):
+		Sprites.draw_frame(self, "estrela_mini", Rect2(x0, y0, 9.0, 9.0), 0 if cheia else 1)
+		return
+	var cont := COL_YELLOW_DARK if cheia else Color("3a4466")
+	var cor := COL_YELLOW if cheia else COL_DIM
+	_fill(x0 + 3, y0, x0 + 5, y0 + 8, cont)
+	_fill(x0, y0 + 3, x0 + 8, y0 + 5, cont)
+	_fill(x0 + 4, y0 + 1, x0 + 4, y0 + 7, cor)
+	_fill(x0 + 1, y0 + 4, x0 + 7, y0 + 4, cor)
+
+
 func _volume_bar(x: float, ty: float, level: int, on: bool) -> void:
 	for b in 10:
 		var bar_col := COL_DARK
 		if b < level:
 			bar_col = COL_YELLOW_DARK if on else COL_YELLOW
 		elif on:
-			bar_col = Color8(200, 160, 40)
+			bar_col = COL_ORANGE
 		_fill(x + b * 8, ty - 4, x + b * 8 + 5, ty + 3, bar_col)
 
 
 # --------------------------------------------------------------------- Draw_64
 func _draw() -> void:
-	var w := 320
-	var h := 180
-	var cx := w * 0.5
+	var tela := Vector2(Game.TELA)
 	var state: String = Game.game_state
 	var now := Time.get_ticks_msec()
 
-	# ---------- HUD ----------
+	# ---------- HUD (nos cantos da tela inteira) ----------
 	if Game.in_level and (state == "playing" or state == "pause"
 			or (state in ["settings", "controls", "credits"] and Game.pause_origin == "pause")):
-		_draw_hud(w, h)
+		_draw_hud(int(tela.x), int(tela.y))
 
 	# ---------- Menus ----------
 	if state == "playing" or state == "cutscene":
@@ -171,7 +190,17 @@ func _draw() -> void:
 	elif state in ["settings", "controls", "levels", "credits"] and not Game.in_level:
 		dim = 0.3
 	if dim > 0.0:
-		draw_rect(Rect2(0, 0, w, h), Color(0, 0, 0, dim), true)
+		draw_rect(Rect2(Vector2.ZERO, tela), Color(0, 0, 0, dim), true)
+
+	# os menus usam a grade de 320x180, centrada na tela
+	draw_set_transform(Game.UI_OFS)
+	_draw_menus(state, now)
+	draw_set_transform(Vector2.ZERO)
+
+
+func _draw_menus(state: String, now: int) -> void:
+	var w := 320
+	var cx := w * 0.5
 
 	var layout: Array = Game.ui_layout()
 	var sel: int = Game.ui_selection
@@ -200,10 +229,11 @@ func _draw() -> void:
 				_text_plain(r["x1"] + 10, ty + 1, "%d. %s" % [i + 1, r["label"]], fg, LEFT)
 				var rec: Dictionary = Game.best.get(Game.levels[r["level"]]["id"], {})
 				if not rec.is_empty():
-					_text_plain(r["x2"] - 52, ty + 1, str(rec["score"]), fg, RIGHT)
+					_text_plain(r["x2"] - 40, ty + 1, str(rec["score"]), fg, RIGHT)
+					# estrelas pequenas (9x9, estrela_mini) de 11 em 11 px (2 px de folga): cabem
+					# dentro da linha de 11 px, entre a borda de cima e a de baixo do botao
 					for s in 3:
-						Sprites.draw_frame(self, "estrela", Rect2(r["x2"] - 40 + s * 12 - 5.5, ty - 5.5,
-							11.0, 11.0), 0 if s < int(rec["stars"]) else 1)
+						_mini_star(r["x2"] - 36.0 + s * 11.0, ty - 4.0, s < int(rec["stars"]))
 			generic_from = layout.size() - 1
 
 		"credits":
@@ -263,8 +293,7 @@ func _draw() -> void:
 
 
 func _draw_hud(w: int, h: int) -> void:
-	var hud_bg := COL_DARK
-	hud_bg.a = 0.6
+	var hud_bg := COL_DARK  # opaco: o cenario nao aparece atras do texto
 	var hearts_x2 := 5 + Game.max_lives * 18
 	_fill(2, 2, hearts_x2, 21, hud_bg)
 	_fill(w - 76, 2, w - 2, 29, hud_bg)
@@ -275,16 +304,19 @@ func _draw_hud(w: int, h: int) -> void:
 		_text(4, h - 8, "TESTE: INVENCÍVEL", COL_YELLOW, LEFT)
 
 	if Game.boss_visible and Game.boss_max > 0:
-		# barra de vida do chefe, no topo entre os coracoes e as flores (embaixo fica a agua)
-		_fill(66, 2, 222, 23, hud_bg)
-		_outline(66, 2, 222, 23, COL_MID)
-		_text(144, 9, Game.boss_label, Color.WHITE, CENTER)
+		# barra de vida do chefe, no topo entre os coracoes e as flores (embaixo fica a agua);
+		# desenhada para 320 px de largura, centrada na tela
+		var bx := floorf((w - 320) / 2.0)
+		_fill(bx + 66, 2, bx + 222, 24, hud_bg)
+		_outline(bx + 66, 2, bx + 222, 24, COL_MID)
+		# titulo em y = 11: o acento (3 px acima das letras) fica com 1 linha livre abaixo da moldura
+		_text(bx + 144, 11, Game.boss_label, Color.WHITE, CENTER)
 		var seg_w := floorf(146.0 / Game.boss_max)
 		for i in Game.boss_max:
-			var x := 72.0 + i * seg_w
-			_fill(x, 15, x + seg_w - 3, 20, COL_DARK)
+			var x := bx + 72.0 + i * seg_w
+			_fill(x, 16, x + seg_w - 3, 21, COL_RED_DARK)
 			if i < Game.boss_hp:
-				_fill(x + 1, 16, x + seg_w - 4, 19, Color8(220, 60, 50))
+				_fill(x + 1, 17, x + seg_w - 4, 20, COL_RED)
 
 	var row_y := 23.0  # proxima linha livre embaixo dos coracoes
 	if Game.keys > 0:
@@ -304,10 +336,10 @@ func _draw_hud(w: int, h: int) -> void:
 		for i in 5:
 			var c := Vector2(9 + i * 10, row_y + 5.5)
 			if i < left and not blink:
-				draw_circle(c, 3.5, Color8(200, 235, 255))
+				draw_circle(c, 3.5, COL_BUBBLE)
 				draw_circle(c + Vector2(-1, -1), 1.0, Color.WHITE)
 			else:
-				draw_arc(c, 3.0, 0.0, TAU, 12, Color8(70, 110, 140), 1.0)
+				draw_arc(c, 3.0, 0.0, TAU, 12, COL_BUBBLE_OFF, 1.0)
 
 	for heart in Game.max_lives:
 		var cheio := heart < Game.player_lives
@@ -370,8 +402,9 @@ func _draw_result(now: int) -> void:
 		var bounce := 0.0
 		if s < stars:
 			bounce = floorf(sin(now / 220.0 + s) * 1.5)
-		Sprites.draw_frame(self, "estrela", Rect2(cx - 40 + s * 40 - 16.0, 70 + bounce - 16.0,
-			32.0, 32.0), 0 if s < stars else 1)
+		# 1:1 (16x16), de 24 em 24 px, centradas em cx, em pixels inteiros
+		Sprites.draw_frame(self, "estrela", Rect2(floorf(cx - 24.0 + s * 24.0 - 8.0),
+			floorf(70.0 + bounce - 8.0), 16.0, 16.0), 0 if s < stars else 1)
 	_text(cx, 90, "TEMPO: %.1f S   +%d" % [result["time_seconds"], result["time_points"]],
 		Color.WHITE, CENTER)
 	_text(cx, 101, "FLORES: %d DE %d   +%d" % [result["collectibles"],

@@ -38,6 +38,6 @@ func top_y() -> float:
 
 func _draw() -> void:
 	# trechos de cipo de 16 px empilhados (cipo.png, 2 quadros de folhas balancando)
-	var q := int(_time * 2.2) % 2
+	var q := int(_time * 17.6) % 16
 	for j in tiles_h:
-		Sprites.draw_frame(self, "cipo", Rect2(0, -16.0 * (j + 1), 16, 16), (q + j) % 2)
+		Sprites.draw_frame(self, "cipo", Rect2(0, -16.0 * (j + 1), 16, 16), (q + j * 8) % 16)

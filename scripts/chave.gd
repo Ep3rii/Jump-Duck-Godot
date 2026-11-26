@@ -22,7 +22,7 @@ func _ready() -> void:
 
 ## A chave brilha no escuro (luz.gd).
 func luzes() -> Array:
-	return [[global_position + Vector2(0, -8), 24.0, Color(1.0, 0.96, 0.6), 0.9]]
+	return [[global_position + Vector2(0, -8), 24.0, Color(1.0, 1.0, 0.9), 0.9]]
 
 
 func get_mask() -> Rect2:

@@ -46,5 +46,5 @@ func _process(delta: float) -> void:
 
 func _draw() -> void:
 	# apagado: bandeira cinza murcha; aceso: verde no alto, tremulando (checkpoint.png)
-	var q := 0 if _raise < 0.5 else 1 + int(_time * 7.0) % 3
-	Sprites.draw_bicho(self, "checkpoint", q, 4, Vector2(4, 28))
+	var q := 0 if _raise < 0.5 else 1 + int(_time * 37.0) % 16
+	Sprites.draw_bicho(self, "checkpoint", q, 17, Vector2(4, 28))

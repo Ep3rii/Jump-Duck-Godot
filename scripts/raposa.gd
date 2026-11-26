@@ -13,7 +13,7 @@ var dir := -1
 var xscale := 1  # image_xscale: 1 = olhando p/ esquerda (como o sprite original)
 
 const Sprites := preload("res://scripts/sprites.gd")
-const QUADROS := 6
+const QUADROS := 16
 const PIVO := Vector2(12, 17)  # pes da raposa, no quadro (px do jogo)
 
 var _t := 0.0
@@ -65,4 +65,5 @@ func _physics_process(_delta: float) -> void:
 
 func _draw() -> void:
 	# xscale 1 = olhando para a esquerda (como no original)
-	Sprites.draw_bicho(self, "raposa", int(_t / 7.0), QUADROS, PIVO, xscale > 0)
+	# 16 quadros por ciclo de trote (0,7 s, como antes)
+	Sprites.draw_bicho(self, "raposa", int(_t * 16.0 / 42.0) % QUADROS, QUADROS, PIVO, xscale > 0)

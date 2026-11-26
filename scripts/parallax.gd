@@ -24,20 +24,22 @@ const Sprites := preload("res://scripts/sprites.gd")
 
 ## Por hora: 5 faixas do ceu (de cima para baixo), tom das camadas, tom das nuvens, astro
 ## (sol/lua), posicao dele na tela (fracao), tom dele e luz ambiente da fase.
+## As faixas do ceu usam so cores da ENDESGA 32 (a paleta da arte); como ela tem poucos
+## azuis, faixas vizinhas podem repetir a cor. A faixa de baixo nunca e a cor das montanhas.
 const HORAS := [
-	{"ceu": [0x5fb6f2, 0x7cc6f6, 0xa0d8f9, 0xc6e9fb, 0xfdf3cf], "tinta": Color(1, 1, 1),
+	{"ceu": [0x0099db, 0x0099db, 0x2ce8f5, 0xc0cbdc, 0xffffff], "tinta": Color(1, 1, 1),
 		"nuvem": Color(1, 1, 1), "astro": "sol", "pos": Vector2(0.3, 0.37),
 		"astro_tinta": Color(1, 1, 1), "ambiente": Color(1, 1, 1)},
-	{"ceu": [0x3f9fee, 0x58b0f2, 0x76c2f6, 0x9bd5f9, 0xc2e7fb], "tinta": Color(1, 1, 1),
+	{"ceu": [0x0099db, 0x0099db, 0x0099db, 0x2ce8f5, 0xc0cbdc], "tinta": Color(1, 1, 1),
 		"nuvem": Color(1, 1, 1), "astro": "sol", "pos": Vector2(0.23, 0.3),
 		"astro_tinta": Color(1, 1, 1), "ambiente": Color(1, 1, 1)},
-	{"ceu": [0x4f9fe6, 0x77b6ec, 0xa6cdf0, 0xf6dfb0, 0xfbc98a], "tinta": Color(1.0, 0.97, 0.9),
+	{"ceu": [0x0099db, 0x0099db, 0xc0cbdc, 0xead4aa, 0xe8b796], "tinta": Color(1.0, 0.97, 0.9),
 		"nuvem": Color(1.0, 0.97, 0.9), "astro": "sol", "pos": Vector2(0.3, 0.36),
 		"astro_tinta": Color(1.0, 0.92, 0.72), "ambiente": Color(1, 1, 1)},
-	{"ceu": [0x5b5ea8, 0x9a63a8, 0xe0718f, 0xf79a63, 0xffcf6b], "tinta": Color(0.95, 0.7, 0.74),
+	{"ceu": [0x3a4466, 0x68386c, 0xb55088, 0xf77622, 0xfeae34], "tinta": Color(0.95, 0.7, 0.74),
 		"nuvem": Color(1.0, 0.74, 0.68), "astro": "sol", "pos": Vector2(0.2, 0.6),
 		"astro_tinta": Color(1.0, 0.66, 0.4), "ambiente": Color(1.0, 0.9, 0.82)},
-	{"ceu": [0x141b3d, 0x1c2550, 0x273465, 0x34457c, 0x465a94], "tinta": Color(0.42, 0.5, 0.8),
+	{"ceu": [0x181425, 0x181425, 0x262b44, 0x262b44, 0x3a4466], "tinta": Color(0.42, 0.5, 0.8),
 		"nuvem": Color(0.5, 0.56, 0.86), "astro": "lua", "pos": Vector2(0.24, 0.2),
 		"astro_tinta": Color(1, 1, 1), "ambiente": Color(0.66, 0.72, 0.96)},
 ]
@@ -85,9 +87,9 @@ static func _cor(hex: int) -> Color:
 	return Color8((hex >> 16) & 0xff, (hex >> 8) & 0xff, hex & 0xff)
 
 
-## Meio pixel do jogo = 1 pixel da arte: as camadas param sempre na grade.
+## 1 pixel do jogo = 1 pixel da arte: as camadas param sempre na grade.
 static func _grade(v: float) -> float:
-	return floorf(v * 2.0) / 2.0
+	return floorf(v)
 
 
 ## So ha fontes de luz (tochas, janelas, brilho do pato e da chave) no escuro da torre; ao ar
@@ -139,8 +141,8 @@ func _draw_stars(vx: float, vy: float, vw: float, vh: float) -> void:
 		var sx := float((i * 97 + 31) % int(vw))
 		var sy := float((i * 53 + 17) % int(vh * 0.6))
 		var on := int(_time_ms / 600.0 + i * 3) % 5 != 0
-		var s := 1.0 if i % 4 == 0 else 0.5
-		draw_rect(Rect2(vx + sx, vy + sy, s, s), Color(1, 1, 0.9, 1.0 if on else 0.45))
+		var s := 1.0
+		draw_rect(Rect2(vx + sx, vy + sy, s, s), Color(1, 1, 1, 1.0 if on else 0.45))
 
 
 func _draw_astro(vx: float, vy: float, vw: float, vh: float, h: Dictionary) -> void:
@@ -149,8 +151,8 @@ func _draw_astro(vx: float, vy: float, vw: float, vh: float, h: Dictionary) -> v
 	if h["astro"] == "lua":
 		Sprites.draw_art(self, "fundo/lua", c.x - 16.0, c.y - 16.0)
 	else:
-		var quadro := int(_time_ms / 900.0) % 2
-		Sprites.draw_art(self, "fundo/sol", c.x - 24.0, c.y - 24.0, quadro, 2, h["astro_tinta"])
+		var quadro := int(_time_ms / 220.0) % 16
+		Sprites.draw_art(self, "fundo/sol", c.x - 24.0, c.y - 24.0, quadro, 16, h["astro_tinta"])
 
 
 ## Fileira de nuvens que se repete a cada 'periodo' px e anda sozinha com o vento.
@@ -205,7 +207,7 @@ func _draw_tower(vx: float, vy: float, vw: float, vh: float, cor: Color) -> void
 func _draw_birds(vx: float, vy: float, vw: float) -> void:
 	var now := _time_ms
 	var period := 14000.0
-	var col := Color8(60, 80, 110) if hora < 4 else Color8(20, 24, 50)
+	var col := _cor(0x3a4466) if hora < 4 else _cor(0x181425)
 	for flock in 2:
 		var t := fposmod(now + flock * 6100.0, period) / period  # 0..1 atravessando a tela
 		var bx := vx - 40.0 + t * (vw + 80.0)
@@ -221,11 +223,92 @@ func _draw_birds(vx: float, vy: float, vw: float) -> void:
 
 
 # ------------------------------------------------- por dentro da torre
+## Enfeites da parede (janelas, tochas e estandartes) ficam presos ao mundo (fator 1.0), e nao
+## a parede de tijolos (FUNDO_FATOR): assim cada um tem um lugar fixo e da para escolher esse
+## lugar pelo terreno, sem chama pousada no piso, arco de janela nascendo no chao nem
+## estandarte atravessado por plataforma.
+const ENFEITE_FATOR := 1.0
+## Retangulo de cada enfeite em volta do seu ponto (x, y, largura, altura) e quanto precisa
+## ficar livre embaixo dele.
+const RET_JANELA := Rect2(-18.0, -30.0, 36.0, 60.0)
+const LIVRE_JANELA := 16.0
+const RET_TOCHA := Rect2(-8.0, -10.0, 16.0, 36.0)
+const LIVRE_TOCHA := 24.0
+const RET_BANDEIRA := Rect2(-10.0, 0.0, 20.0, 56.0)
+const LIVRE_BANDEIRA := 16.0
+
+const Solids := preload("res://scripts/solids.gd")
+
+## Celula da grade (Vector2i) -> [janela, tocha, bandeira] ja testados no terreno (Vector2 no
+## mundo, ou null quando nao coube na celula).
+var _enfeites := {}
+var _solidos: Array = []
+
+
+## Solidos parados da fase (tiles, blocos, portas) e as placas de pressao. Caixas e
+## plataformas moveis ficam de fora: mudam de lugar.
+func _solidos_fixos() -> Array:
+	if (_solidos.is_empty() or _solidos[1].is_empty()) and is_inside_tree():
+		var nos := []
+		for n in get_tree().get_nodes_in_group("solid"):
+			var movel: bool = (n.is_in_group("caixa") or n.is_in_group("plataforma")
+				or n.is_in_group("plataforma_cai"))
+			if not movel:
+				nos.append(n)
+		_solidos = [nos, get_tree().get_nodes_in_group("solid_tiles"),
+			get_tree().get_nodes_in_group("placa")]
+	return _solidos
+
+
+func _bate(ret: Rect2) -> bool:
+	var snap := _solidos_fixos()
+	if snap.is_empty():
+		return false
+	var nos: Array = (snap[0] as Array).filter(func(n): return is_instance_valid(n) and not n.is_queued_for_deletion())
+	if Solids.hits([nos, snap[1]], ret):
+		return true
+	for p in snap[2]:
+		if not is_instance_valid(p):
+			continue
+		var tw: int = p.get("tiles_w") if p.get("tiles_w") != null else 1
+		if ret.intersects(Rect2(p.global_position.x, p.global_position.y - 16.0, 16.0 * tw, 16.0)):
+			return true
+	return false
+
+
+## Ponto livre para um enfeite: tenta o lugar original e depois sobe de 16 em 16 px (ate 3
+## vezes); se ainda bater em algo solido, o enfeite nao aparece nessa celula.
+func _lugar_livre(p: Vector2, ret: Rect2, livre_embaixo: float) -> Variant:
+	for i in 4:
+		var q := p - Vector2(0.0, 16.0 * i)
+		var r := Rect2(q + ret.position, ret.size)
+		r.size.y += livre_embaixo
+		if not _bate(r):
+			return q
+	return null
+
+
+func _enfeites_da_celula(c: int, r: int) -> Array:
+	var chave := Vector2i(c, r)
+	if _enfeites.has(chave):
+		return _enfeites[chave]
+	var bx := c * CELULA.x
+	var by := r * CELULA.y
+	var out := [_lugar_livre(Vector2(bx + 60.0, by + 62.0), RET_JANELA, LIVRE_JANELA),
+		_lugar_livre(Vector2(bx + 140.0, by + 74.0), RET_TOCHA, LIVRE_TOCHA), null]
+	if posmod(c + r, 2) == 0:
+		out[2] = _lugar_livre(Vector2(bx + 96.0, by + 30.0), RET_BANDEIRA, LIVRE_BANDEIRA)
+	# so guarda depois que o terreno da fase existe (o teste e feito uma vez por celula)
+	if not _solidos_fixos().is_empty() and not _solidos[1].is_empty():
+		_enfeites[chave] = out
+	return out
+
+
 ## Janelas e tochas da parede que aparecem na tela: [[centro da janela...], [chama da tocha...],
 ## [canto do estandarte...]], em coordenadas do mundo.
 func _wall_points(vx: float, vy: float, vw: float, vh: float) -> Array:
-	var ox := vx * FUNDO_FATOR
-	var oy := vy * FUNDO_FATOR
+	var ox := vx * ENFEITE_FATOR
+	var oy := vy * ENFEITE_FATOR
 	var janelas: Array[Vector2] = []
 	var tochas: Array[Vector2] = []
 	var bandeiras: Array[Vector2] = []
@@ -233,12 +316,14 @@ func _wall_points(vx: float, vy: float, vw: float, vh: float) -> Array:
 	var r0 := floori((oy - 110.0) / CELULA.y)
 	for r in range(r0, r0 + int(vh / CELULA.y) + 3):
 		for c in range(c0, c0 + int(vw / CELULA.x) + 3):
-			var bx := vx + floorf(c * CELULA.x - ox)
-			var by := vy + floorf(r * CELULA.y - oy)
-			janelas.append(Vector2(bx + 60.0, by + 62.0))
-			tochas.append(Vector2(bx + 140.0, by + 74.0))
-			if posmod(c + r, 2) == 0:
-				bandeiras.append(Vector2(bx + 96.0, by + 30.0))
+			var e := _enfeites_da_celula(c, r)
+			var d := Vector2(vx - ox, vy - oy).floor()
+			if e[0] != null:
+				janelas.append(e[0] + d)
+			if e[1] != null:
+				tochas.append(e[1] + d)
+			if e[2] != null:
+				bandeiras.append(e[2] + d)
 	return [janelas, tochas, bandeiras]
 
 
@@ -262,13 +347,13 @@ func _draw_tower_inside(vx: float, vy: float, vw: float, vh: float) -> void:
 		draw_rect(Rect2(j.x - 12.0, j.y, 24.0, 24.0), _cor(ceu[3]))
 		if hora == 4:
 			for i in 4:
-				draw_rect(Rect2(j.x - 9.0 + i * 5.0, j.y - 16.0 + (i * 7) % 26, 0.5, 0.5), Color(1, 1, 0.9))
+				draw_rect(Rect2(j.x - 9.0 + i * 5.0, j.y - 16.0 + (i * 7) % 26, 1, 1), Color.WHITE)
 		Sprites.draw_art(self, "fundo/janela", j.x - 18.0, j.y - 30.0)
 	for b: Vector2 in pts[2]:
 		Sprites.draw_art(self, "fundo/bandeira", b.x - 10.0, b.y)
 	for t: Vector2 in pts[1]:
-		var quadro := int(now / 130.0 + t.x * 0.37) % 3
-		Sprites.draw_art(self, "fundo/tocha", t.x - 8.0, t.y - 10.0, quadro, 3)
+		var quadro := int(now / 40.0 + t.x * 0.37) % 16
+		Sprites.draw_art(self, "fundo/tocha", t.x - 8.0, t.y - 10.0, quadro, 16)
 	# colunas na frente da parede (andam um pouco mais rapido: dao profundidade)
 	var cx := vx - fposmod(vx * COLUNA_FATOR, COLUNA_PASSO) - COLUNA_PASSO + 100.0
 	var coy := fposmod(vy * COLUNA_FATOR, 64.0)

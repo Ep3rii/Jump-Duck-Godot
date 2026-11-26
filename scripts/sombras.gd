@@ -70,9 +70,8 @@ func _draw_blob(cx: float, gy: float, w: float) -> void:
 	if w < 3.0:
 		return
 	var x := cx - floorf(w * 0.5)
-	draw_rect(Rect2(x + 1.0, gy + 0.5, w - 2.0, 0.5), COR)
 	draw_rect(Rect2(x, gy + 1.0, w, 1.0), COR)
-	draw_rect(Rect2(x + 1.0, gy + 2.0, w - 2.0, 0.5), COR)
+	draw_rect(Rect2(x + 1.0, gy + 2.0, w - 2.0, 1.0), COR)
 
 
 ## Faixa de sombra do cenario deitada no chao (so onde ha chao embaixo), afinando na ponta.
@@ -84,5 +83,5 @@ func _draw_strip(faixa: Rect2) -> void:
 		var w := minf(4.0, fim - x)
 		if Solids.hits(_snap, Rect2(x, y + 1.0, w, 2.0)) and not Solids.hits(_snap, Rect2(x, y - 3.0, w, 2.0)):
 			var ponta := fim - x <= 8.0
-			draw_rect(Rect2(x, y + 0.5, w, 1.0 if ponta else 2.0), COR)
+			draw_rect(Rect2(x, y + 1.0, w, 1.0 if ponta else 2.0), COR)
 		x += 4.0

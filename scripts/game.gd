@@ -10,6 +10,16 @@ extends Node
 const UIScript := preload("res://scripts/ui.gd")
 const Sfx := preload("res://scripts/sfx.gd")
 
+## Tela do jogo: 384x216 pixels do jogo (o mundo visivel), ampliada por um fator INTEIRO
+## (Window.CONTENT_SCALE_STRETCH_INTEGER): 3x com faixas pretas em 1280x720, 5x em 1920x1080,
+## 6x com faixas em 2560x1440, 10x em 4K. Assim cada pixel da arte tem sempre o mesmo numero
+## de pixels da tela (nada de contorno de 3 e 4 px, nem a arte tremendo com a camera), e o HUD
+## tem o mesmo pixel do mundo.
+const TELA := Vector2i(384, 216)
+## Os menus foram desenhados numa grade de 320x180: ficam centrados na tela de 384x216.
+const UI_DESIGN := Vector2(320, 180)
+const UI_OFS := (Vector2(TELA) - UI_DESIGN) / 2.0
+
 ## Ordem das fases do jogo. "id" = caminho da cena a partir de res://scenes/ (sem .tscn);
 ## "name" = nome nas telas. (E "var" so para os testes trocarem pela fase de testes.)
 ## Para adicionar uma fase: crie a cena (ver README) e acrescente uma linha aqui.
@@ -105,7 +115,7 @@ var room := "menu"
 var room_width := 320
 var room_height := 180
 var cam_pos := Vector2.ZERO  # canto superior esquerdo da "view" (camera.gd)
-var view_size := Vector2(320, 180)  # area do mundo que a tela mostra (camera.gd afasta nas fases)
+var view_size := Vector2(TELA)  # area do mundo que a tela mostra (384x216, ver TELA)
 var camera_offset_y := -50.0  # Level.camera_offset_y da fase atual
 ## Faixa de x que a camera pode mostrar (vazio = a sala toda). O chefe trava na arena.
 var camera_limit := Rect2()
@@ -137,8 +147,9 @@ func _ready() -> void:
 
 	var screen := DisplayServer.screen_get_size()
 	DisplayServer.window_set_min_size(Vector2i(mini(960, screen.x), mini(540, screen.y)))
+	_setup_screen()
 
-	# Camada de GUI 320x180 onde menus e HUD sao desenhados.
+	# Camada de GUI onde menus e HUD sao desenhados (menus na grade de 320x180, centrada).
 	var layer := CanvasLayer.new()
 	layer.layer = 10
 	add_child(layer)
@@ -172,6 +183,15 @@ func _ready() -> void:
 		_sfx_players.append(p)
 
 	apply_settings()
+
+
+## Tela de 384x216 ampliada so por fatores inteiros (ver TELA).
+func _setup_screen() -> void:
+	var root := get_tree().root
+	root.content_scale_mode = Window.CONTENT_SCALE_MODE_CANVAS_ITEMS
+	root.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP
+	root.content_scale_size = TELA
+	root.content_scale_stretch = Window.CONTENT_SCALE_STRETCH_INTEGER
 
 
 func _setup_input() -> void:
@@ -643,7 +663,8 @@ func _physics_process(delta: float) -> void:
 	if esc and _handle_back():
 		return
 
-	var mp := get_viewport().get_mouse_position()
+	# o mouse vem em pixels da tela do jogo (384x216); os botoes estao na grade de 320x180
+	var mp := get_viewport().get_mouse_position() - UI_OFS
 	var mouse_moved := mp != _ui_last_mouse
 	_ui_last_mouse = mp
 

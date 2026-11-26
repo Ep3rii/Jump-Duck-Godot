@@ -3,18 +3,19 @@ extends Enemy
 ## - Na superficie, com a cabeca e as costas para fora: pode ser pisado (1 pisao derrota).
 ## - De tempos em tempos mergulha: ai nao pode ser pisado e so pega quem esta mergulhado.
 ## - Encostar nele machuca (mordida); ele abre a boca quando o pato chega perto.
-## Origem = meio da barriga, embaixo. Arte: assets/sprites/arte/jacare.png (4 quadros nadando
-## e 2 de mordida); a mascara continua do tamanho da do pato.
+## Origem = meio da barriga, embaixo. Arte: assets/sprites/arte/jacare.png (16 quadros nadando
+## e 16 de mordida); a mascara continua do tamanho da do pato.
 
 const Solids := preload("res://scripts/solids.gd")
 
 const SURFACE_TIME := 240  # frames na superficie
 const DIVE_TIME := 120  # frames mergulhado
 const DIVE_DEPTH := 14.0  # quanto afunda (px)
-const FLOAT_DEPTH := 9.0  # na superficie fica meio afundado: costas e olhos para fora
+const Z_SUPERFICIE := -475  # absoluto: logo na frente do no Agua (-480)
+const FLOAT_DEPTH := 4.0  # na superficie fica pouco afundado: cabeca, costas e olhos para fora
 const HALF_W := 8.0  # meia largura (16 px, como o pato)
 const Sprites := preload("res://scripts/sprites.gd")
-const QUADROS := 6
+const QUADROS := 32  # nado 0..15, mordida 16..31 (boca abrindo)
 const PIVO := Vector2(16, 11)  # meio da barriga, no quadro (px do jogo)
 const BODY_H := 9.0
 
@@ -50,6 +51,14 @@ func _enemy_ready() -> void:
 		_timer = SURFACE_TIME
 	if water != null:
 		position.y = _target_y()
+	_ajusta_z()
+
+
+func _ajusta_z() -> void:
+	# o no Agua fica em z -480 e as Entidades em -600: com z relativo o jacare ficaria sempre
+	# atras da agua. Na superficie ele vai para a frente da faixa d'agua; mergulhado, volta atras.
+	z_as_relative = state != "surface"
+	z_index = Z_SUPERFICIE if state == "surface" else 0
 
 
 func _target_y() -> float:
@@ -73,6 +82,8 @@ func _physics_process(_delta: float) -> void:
 		state = "dive" if state == "surface" else "surface"
 		_timer = DIVE_TIME if state == "dive" else SURFACE_TIME
 	position.y = move_toward(position.y, _target_y(), 0.5)
+	# na superficie fica na frente da faixa d'agua (nao some atras dela); mergulhado, atras
+	_ajusta_z()
 	stompable = state == "surface" and absf(position.y - _target_y()) < 2.0
 
 	# vai e volta dentro da agua, virando nas bordas e em paredes
@@ -97,11 +108,9 @@ func _physics_process(_delta: float) -> void:
 
 
 func _draw() -> void:
-	# nadando: quadros 0..3; boca abrindo (mordida): 4 e 5. Mergulhado fica meio apagado.
-	var q := int(_anim / 9.0) % 4
-	if _mouth > 0.6:
-		q = 5
-	elif _mouth > 0.2:
-		q = 4
+	# nadando: quadros 0..15; boca abrindo (mordida): 16..31. Mergulhado fica meio apagado.
+	var q := int(_anim * 16.0 / 36.0) % 16
+	if _mouth > 0.05:
+		q = 16 + clampi(int(_mouth * 15.0), 0, 15)
 	var a := 1.0 if state == "surface" else 0.55
 	Sprites.draw_bicho(self, "jacare", q, QUADROS, PIVO, dir < 0, Color(1, 1, 1, a))

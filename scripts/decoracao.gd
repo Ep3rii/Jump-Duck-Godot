@@ -23,8 +23,9 @@ extends Node2D
 
 const Sprites := preload("res://scripts/sprites.gd")
 
-## A ultima linha da arte (contorno de baixo) fica em cima da borda do chao, como o pe do pato.
-const BASE := 0.5
+## A ultima linha da arte (contorno de baixo) fica inteira em cima da borda do chao, como o pe
+## do pato (arte 1:1: 1 pixel do arquivo = 1 pixel do jogo, sem meio pixel).
+const BASE := 0.0
 const MOINHO_CUBO_Y := 26.0  # centro das pas, a partir do topo do corpo (px do jogo)
 ## Comprimento da sombra deitada no chao de cada tipo (0 = sem sombra), em px.
 const SOMBRA := {0: 70.0, 1: 120.0, 3: 64.0, 4: 34.0, 8: 40.0}
@@ -102,16 +103,16 @@ func _r(x: float, y: float, w: float, h: float, c: Color) -> void:
 func _draw_moinho() -> void:
 	var tam := Sprites.art_size("cenario/moinho_corpo")
 	var topo := -tam.y + BASE
-	Sprites.draw_art(self, "cenario/moinho_corpo", -tam.x * 0.5, topo)
-	# pas: 8 quadros desenhados para um quarto de volta (as 4 pas sao iguais), sem girar pixel
-	var quadro := int(_time * 6.0) % 8
-	var pas := Sprites.art_size("cenario/moinho_pas", 8)
-	Sprites.draw_art(self, "cenario/moinho_pas", -pas.x * 0.5, topo + MOINHO_CUBO_Y - pas.y * 0.5, quadro, 8)
+	Sprites.draw_art(self, "cenario/moinho_corpo", -floorf(tam.x * 0.5), topo)
+	# pas: 16 quadros desenhados para um quarto de volta (as 4 pas sao iguais), sem girar pixel
+	var quadro := int(_time * 12.0) % 16
+	var pas := Sprites.art_size("cenario/moinho_pas", 16)
+	Sprites.draw_art(self, "cenario/moinho_pas", -floorf(pas.x * 0.5), topo + MOINHO_CUBO_Y - floorf(pas.y * 0.5), quadro, 16)
 
 
 func _draw_celeiro() -> void:
 	var tam := Sprites.art_size("cenario/celeiro")
-	Sprites.draw_art(self, "cenario/celeiro", -tam.x * 0.5, -tam.y + BASE)
+	Sprites.draw_art(self, "cenario/celeiro", -floorf(tam.x * 0.5), -tam.y + BASE)
 
 
 ## Um mourao por bloco; as pontas fecham as tabuas.
@@ -125,18 +126,18 @@ func _draw_cerca() -> void:
 		Sprites.draw_art(self, "cenario/cerca", i * 16.0, -24.0 + BASE, quadro, 3)
 
 
-## Tronco parado e copa balancando de leve (meio pixel por vez, sempre na grade da arte).
+## Tronco parado e copa balancando de leve (1 pixel por vez, sempre na grade da arte).
 func _draw_arvore(nome: String) -> void:
 	var tam := Sprites.art_size(nome + "_copa")
-	var x := -tam.x * 0.5
+	var x := -floorf(tam.x * 0.5)
 	var y := -tam.y + BASE
 	Sprites.draw_art(self, nome + "_tronco", x, y)
-	Sprites.draw_art(self, nome + "_copa", x + _sway(1.1, 1.0) * 0.5, y)
+	Sprites.draw_art(self, nome + "_copa", x + _sway(1.1, 1.0), y)
 
 
 func _draw_arbusto() -> void:
 	var tam := Sprites.art_size("cenario/arbusto")
-	Sprites.draw_art(self, "cenario/arbusto", -tam.x * 0.5, -tam.y + BASE)
+	Sprites.draw_art(self, "cenario/arbusto", -floorf(tam.x * 0.5), -tam.y + BASE)
 
 
 func _draw_placa_saida() -> void:
@@ -144,9 +145,9 @@ func _draw_placa_saida() -> void:
 
 
 func _draw_junco() -> void:
-	# moita de juncos com taboas, balancando com o vento (junco.png, 2 quadros)
-	var q := 1 if sin(_time * 1.8 + position.x * 0.05) > 0.0 else 0
-	Sprites.draw_art(self, "junco", -8.0, -28.0 + BASE, q, 2)
+	# moita de juncos com taboas, balancando com o vento (junco.png, 16 quadros)
+	var q := int(fposmod(_time * 4.6 + position.x * 0.13, 16.0))
+	Sprites.draw_art(self, "junco", -8.0, -28.0 + BASE, q, 16)
 
 
 ## Pilar de pedra com musgo (cobre os paredoes no meio dos lagos, que no tileset de grama
@@ -164,4 +165,4 @@ func _draw_pilar() -> void:
 				var lado := 0 if i == 0 else (2 if i == tiles_w - 1 else 1)
 				idx = (4 if j == 0 else 12) + lado
 			draw_texture_rect_region(tiles, Rect2(i * 16.0, -h + j * 16.0, 16, 16),
-				Rect2((idx % 4) * 32.0, (idx / 4) * 32.0, 32, 32))
+				Rect2((idx % 4) * 16.0, (idx / 4) * 16.0, 16, 16))

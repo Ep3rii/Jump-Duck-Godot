@@ -3,13 +3,13 @@ extends Node2D
 ## Arte: assets/sprites/arte/brilho.png (5 quadros, tools/arte/objetos.py).
 
 const Sprites := preload("res://scripts/sprites.gd")
-const ANIMS := {"default": ["res://assets/sprites/arte/brilho.png", 5, 12.0, false]}
+const ANIMS := {"default": ["res://assets/sprites/arte/brilho.png", 16, 38.0, false]}
 
 var sprite: AnimatedSprite2D
 
 
 func _ready() -> void:
-	sprite = Sprites.make_art_sprite(Sprites.art_frames(ANIMS), Vector2(16, 16))
+	sprite = Sprites.make_art_sprite(Sprites.art_frames(ANIMS), Vector2(8, 8))
 	sprite.name = "Sprite"
 	add_child(sprite)
 	sprite.animation_finished.connect(queue_free)

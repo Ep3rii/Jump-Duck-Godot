@@ -71,6 +71,11 @@ position = Vector2(768, 304)
 script = ExtResource("4_xcynu")
 tiles_w = 3
 
+[node name="MargemAgua" type="Node2D" parent="Blocos" unique_id=1587342210 instance=ExtResource("3_mcakb")]
+position = Vector2(504, 336)
+script = ExtResource("4_xcynu")
+tiles_h = 2
+
 [node name="Mecanicas" type="Node2D" parent="." unique_id=930735440]
 z_index = -750
 

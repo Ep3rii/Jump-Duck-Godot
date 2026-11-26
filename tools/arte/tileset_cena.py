@@ -66,7 +66,14 @@ def tile_for(cells, x, y, rows):
 
 
 def main():
-    tiles = N.build_full()
+    folha = N.folha_para_salvar()  # folha final 16x16 ampliada 8x (blocos de 128)
+    tiles = {}
+    for ty in range(9):
+        for tx in range(4):
+            b = Canvas(128, 128)
+            for yy in range(128):
+                b.px[yy] = folha.px[ty * 128 + yy][tx * 128:(tx + 1) * 128]
+            tiles[(tx, ty)] = b
     cols, rows = 24, 11
     cells = set()
 

@@ -20,7 +20,7 @@ const TRANSITION_TIME := 100
 
 const VidaScene := preload("res://scenes/vida.tscn")
 const Sprites := preload("res://scripts/sprites.gd")
-const QUADROS := 13  # tira assets/sprites/arte/chefe_gaviao.png (tools/arte/chefes.py)
+const QUADROS := 80  # chefe_gaviao.png: voo, grito, mergulho, investida, atordoado (16 cada)
 const PIVO := Vector2(16, 15)  # centro do corpo no quadro de 64 px (16 px no jogo)
 const Solids := preload("res://scripts/solids.gd")
 
@@ -257,7 +257,14 @@ func _charge_step() -> void:
 		state = "atordoado"
 		_timer = _stun_time()
 		hits_in_stun = 0
-		Particulas.emit(get_tree(), "pedrinha", position + Vector2(dir * 14.0, -6), 10)
+		# pedrinhas da parede e poeira no chao. O no Particulas (z_index -440) desenha NA FRENTE
+		# das Entidades e das portas, entao a poeira so sai atras do corpo caido, a 26 px do
+		# centro (a cauda vai ate ~15 px) e empurrada para longe dele; do lado da parede (porta)
+		# nao sai poeira
+		Particulas.emit(get_tree(), "pedrinha", Vector2(position.x + dir * 18.0, chao - 2.0), 10,
+			Vector2(dir * 1.6, 0.0))
+		Particulas.emit(get_tree(), "pouso", Vector2(position.x - dir * 26.0, chao - 1.0), 4,
+			Vector2(-dir * 1.0, 0.0))
 		Game.play_sfx("thud")
 		Game.play_sfx("crack")
 		return
@@ -294,20 +301,26 @@ func _draw() -> void:
 	var cor := Color.WHITE
 	match state:
 		"mergulho":
-			q = 6 + int(_anim / 6.0) % 2
+			# pose de mergulho em diagonal (cabeca para baixo); se a descida e rasa, o corpo
+			# esticado da investida combina mais com a direcao
+			if absf(_vel.y) < absf(_vel.x) * 0.45:
+				q = 48 + int(_anim / 1.5) % 16
+			else:
+				q = 32 + int(_anim / 1.5) % 16
 		"investida":
-			q = 8 + int(_anim / 6.0) % 2
+			q = 48 + int(_anim / 1.5) % 16
 		"atordoado":
-			q = 10 + int(_anim / 8.0) % 3
+			q = 64 + int(_anim / 2.0) % 16
 		"aviso":
-			q = 4 + int(_anim / 3.0) % 2
+			q = 16 + int(_anim) % 16
 			if int(_anim / 3.0) % 2 == 0:
 				cor = Color(1.5, 1.4, 1.2)  # pisca claro ao gritar
 		"carga_aviso":
-			q = int(_anim / 3.0) % 4
+			# bloco do grito (asas no alto): nada fica pendurado ate o chao parecendo pernas
+			q = 16 + int(_anim) % 16
 			cor = Color(1.5, 1.4, 1.2) if int(_anim / 2.0) % 2 == 0 else Color.WHITE
 		_:
-			q = int(_anim / 6.0) % 4
+			q = int(_anim / 1.5) % 16
 	if stage == 2 and state != "atordoado":
 		cor = Color(1.0, 0.55, 0.45) if int(_anim / 6.0) % 4 == 0 else cor
 	if state == "transicao":
@@ -315,4 +328,39 @@ func _draw() -> void:
 	var tremor := Vector2.ZERO
 	if state == "carga_aviso":
 		tremor.x = 1.0 if int(_anim / 2.0) % 2 == 0 else -1.0
+	elif state == "atordoado":
+		tremor.y = _ajuste_atordoado()  # caido: a ultima linha da arte encosta no chao
 	Sprites.draw_bicho(self, "chefe_gaviao", q, QUADROS, PIVO, f < 0.0, cor, tremor)
+
+
+## Atordoado o corpo fica em chao - 8 (a colisao nao muda). Desloca so o desenho para que a
+## linha opaca mais baixa dos quadros de atordoado (64..79) termine exatamente no chao, em vez
+## de entrar no piso. Lido uma vez da propria arte (vale mesmo se o PNG for refeito).
+static var _ajuste_chao := INF
+
+
+static func _ajuste_atordoado() -> float:
+	if _ajuste_chao == INF:
+		_ajuste_chao = 0.0
+		var t := Sprites.art("chefe_gaviao")
+		var img := t.get_image() if t != null else null
+		if img != null:
+			if img.is_compressed():
+				img.decompress()
+			var fw := img.get_width() / QUADROS
+			var fundo := -1
+			for q in range(64, 80):
+				for y in range(img.get_height() - 1, -1, -1):
+					var achou := false
+					for x in fw:
+						if img.get_pixel(q * fw + x, y).a > 0.5:
+							achou = true
+							break
+					if achou:
+						fundo = maxi(fundo, y)
+						break
+			if fundo >= 0:
+				# linha y do quadro ocupa [chao - 8 - PIVO.y + y, +1): termina no chao com
+				# y = PIVO.y + 7
+				_ajuste_chao = PIVO.y + 7.0 - fundo
+	return _ajuste_chao

@@ -99,7 +99,7 @@ func _draw() -> void:
 		elif i == tiles_w - 1:
 			idx = TILE_DIR
 		draw_texture_rect_region(tiles, Rect2(i * 16.0, -16.0, 16.0, 16.0),
-			Rect2((idx % 4) * 32.0, (idx / 4) * 32.0, 32.0, 32.0))
+			Rect2((idx % 4) * 16.0, (idx / 4) * 16.0, 16.0, 16.0))
 	if Engine.is_editor_hint():
 		# caminho e posicao final
 		var end := deslocamento

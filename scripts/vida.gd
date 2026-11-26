@@ -40,5 +40,5 @@ func _draw() -> void:
 	var beat := fposmod(_time, 1.2)
 	var pulse := 1.0 + (0.12 if beat < 0.1 or (beat > 0.22 and beat < 0.32) else 0.0)
 	var s := 0.5 * pulse
-	var lado := 32.0 * s  # arte de 32 px (1:1), reduzida pelo pulso e centrada no ponto
+	var lado := 32.0 * s  # 16 px no tamanho normal (s = 0,5), crescendo no pulso
 	Sprites.draw_frame(self, "coracao", Rect2(-lado * 0.5, -10.0 + bob - lado * 0.5, lado, lado), 0)

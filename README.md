@@ -80,8 +80,8 @@ existir a arte definitiva.
 
 A arte nova fica em `assets/sprites/arte/`, em PNG **1:1** (dá para editar à mão em qualquer
 editor de pixel art; veja "Editar a arte à mão" no [ROTEIRO_FASES.md](ROTEIRO_FASES.md#arte)).
-A regra é **2 pixels do desenho = 1 pixel do jogo**: blocos e entidades pequenas em **32x32**,
-chefes em **64x64**. No código, `Sprites.make_art_sprite()` e `Sprites.draw_bicho()` ampliam a
+A regra é **pixel art 16x16** (1 pixel do arquivo = 1 pixel do jogo) na paleta **Endesga 32**:
+blocos e entidades pequenas em **16x16**, chefes em **32x32**, e toda animação com 16 quadros. No código, `Sprites.make_art_sprite()` e `Sprites.draw_bicho()` ampliam a
 arte (`Sprites.ART_SCALE`). A janela desenha em alta resolução (`stretch mode` =
 `canvas_items`), então o detalhe aparece na tela mesmo com o jogo em 320x180.
 

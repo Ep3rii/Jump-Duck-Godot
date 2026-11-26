@@ -20,21 +20,21 @@ uniform vec3 luz_pos[32];  // x, y (mundo) e raio
 uniform vec4 luz_cor[32];  // cor e forca
 
 void fragment() {
-	// ponto do mundo, preso a grade da arte (meio pixel do jogo)
-	vec2 p = cam + (floor(UV * vista * 2.0) + 0.5) / 2.0;
-	float forca = 0.0;
-	vec3 cor = vec3(1.0);
+	// ponto do mundo, preso a grade da arte (1 pixel do jogo)
+	vec2 p = cam + floor(UV * vista) + 0.5;
+	// cada luz devolve a clareira a cor da propria arte, com so um leve tom da luz (a pedra
+	// azul nao vira cinza/caqui e o pato branco nao fica creme); as luzes se juntam pelo
+	// maximo de cada canal, entao a luz branca do pato vence a tocha em cima dele
+	vec3 res = ambiente;
 	for (int i = 0; i < n; i++) {
 		float d = distance(p, luz_pos[i].xy) / luz_pos[i].z;
 		// tres faixas chapadas: miolo, meio e borda
 		float k = d < 0.45 ? 1.0 : (d < 0.75 ? 0.62 : (d < 1.0 ? 0.3 : 0.0));
 		k *= luz_cor[i].a;
-		if (k > forca) {
-			forca = k;
-			cor = luz_cor[i].rgb;
-		}
+		vec3 tom = mix(vec3(1.0), luz_cor[i].rgb, 0.3);
+		res = max(res, mix(ambiente, tom, k));
 	}
-	COLOR = vec4(mix(ambiente, cor, forca), 1.0);
+	COLOR = vec4(res, 1.0);
 }
 """
 

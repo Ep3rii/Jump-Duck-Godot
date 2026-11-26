@@ -20,7 +20,9 @@ extends Node2D
 		queue_redraw()
 
 const Sprites := preload("res://scripts/sprites.gd")
-const COL_WATER_DEEP := Color8(20, 70, 150)
+## Fundo da agua e os tracinhos dele: cores da ENDESGA 32 (a paleta da arte).
+const COL_WATER_DEEP := Color("#124e89")
+const COL_WATER_LINE := Color("#0099db")
 
 var _time := 0.0
 
@@ -44,9 +46,18 @@ func _draw() -> void:
 	if aparencia == 1:
 		var h := 16.0 * tiles_h
 		draw_rect(Rect2(0, -h, 16.0 * tiles_w, h), COL_WATER_DEEP)
-		var frame := int(_time * 4.0)
+		# tracinhos horizontais parados no fundo (presos ao tile), para nao ficar chapado
+		var linha := 0
+		var y := -h + 22.0
+		while y < -1.0:
+			for i in tiles_w:
+				var x := float((i * 7 + linha * 3) % 13)
+				draw_rect(Rect2(i * 16.0 + x, y, 3.0, 1.0), COL_WATER_LINE)
+			y += 8.0
+			linha += 1
+		var frame := int(_time * 16.0)
 		for i in tiles_w:
-			Sprites.draw_frame(self, "agua", Rect2(i * 16.0, -h, 16.0, 16.0), posmod(frame, 4))
+			Sprites.draw_frame(self, "agua", Rect2(i * 16.0, -h, 16.0, 16.0), posmod(frame, 16))
 		return
 	if Engine.is_editor_hint():
 		var r := Rect2(0.0, -16.0 * tiles_h, 16.0 * tiles_w, 16.0 * tiles_h)

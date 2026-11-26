@@ -60,24 +60,24 @@ func _build_level() -> void:
 	pass
 
 
-## Preenche a camada com blocos da arte nova (blocos de 32 px em 1:1, mostrados em 16 px).
+## Preenche a camada com blocos da arte (blocos de 16 px).
 ## Cada celula de 'cells' e [coluna, linha, indice]; indice -> atlas (indice % colunas,
 ## indice / colunas). Com 'fixo' >= 0, toda celula usa esse bloco.
 func fill_layer_art(layer: TileMapLayer, art_name: String, cells: Array, fixo := -1) -> void:
 	var tex := Sprites.art(art_name)
-	var cols := int(tex.get_width() / 32)
-	var rows := int(tex.get_height() / 32)
+	var cols := int(tex.get_width() / 16)
+	var rows := int(tex.get_height() / 16)
 	var source := TileSetAtlasSource.new()
 	source.texture = tex
-	source.texture_region_size = Vector2i(32, 32)
+	source.texture_region_size = Vector2i(16, 16)
 	for ty in rows:
 		for tx in cols:
 			source.create_tile(Vector2i(tx, ty))
 	var tile_set := TileSet.new()
-	tile_set.tile_size = Vector2i(32, 32)
+	tile_set.tile_size = Vector2i(16, 16)
 	tile_set.add_source(source, 0)
 	layer.tile_set = tile_set
-	layer.scale = Vector2(0.5, 0.5)
+	layer.scale = Vector2(1, 1)
 	for cell: Array in cells:
 		var index: int = fixo if fixo >= 0 else cell[2]
 		layer.set_cell(Vector2i(cell[0], cell[1]), 0, Vector2i(index % cols, index / cols))
@@ -99,8 +99,8 @@ func _retile_grass() -> void:
 	for layer: TileMapLayer in get_tree().get_nodes_in_group("solid_tiles"):
 		if not is_ancestor_of(layer) or layer.tile_set == null:
 			continue
-		if layer.tile_set.tile_size != Vector2i(32, 32):
-			continue  # so os tilesets novos (grama e pedra, blocos de 32 em 1:1)
+		if layer.tile_set.tile_size != Vector2i(16, 16):
+			continue  # so os tilesets novos (grama e pedra, blocos de 16)
 		var cells := {}
 		for c in layer.get_used_cells():
 			if layer.get_cell_atlas_coords(c).y != GRASS_PLATFORM_ROW:

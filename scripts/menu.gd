@@ -15,6 +15,10 @@ const WALK_MAX := 244.0
 const WALK_SPEED := 0.6  # px por frame (passeando)
 const GRAVITY := 0.25
 const HOP_SPEED := -3.0
+## A tela tem 384x216 (Game.TELA) e a sala do menu 320x180: a camera mostra a sala centrada na
+## horizontal e encostada embaixo (o que sobra vira ceu em cima), como as fases mais baixas que
+## a tela. Os menus (ui.gd) ficam centrados por cima.
+const CAM_POS := Vector2(-32, -36)
 
 var _duck: AnimatedSprite2D
 var _x := 120.0
@@ -31,12 +35,18 @@ func _enter_tree() -> void:
 	Game.room = "menu"
 	Game.room_width = 320
 	Game.room_height = 180
-	Game.cam_pos = Vector2.ZERO
-	Game.view_size = Vector2(320, 180)
+	Game.cam_pos = CAM_POS
+	Game.view_size = Vector2(Game.TELA)
 	Game.camera_offset_y = -50.0
 
 
 func _ready() -> void:
+	var cam := Camera2D.new()
+	cam.name = "Camera"
+	cam.anchor_mode = Camera2D.ANCHOR_MODE_FIXED_TOP_LEFT
+	cam.position = CAM_POS
+	add_child(cam)
+	cam.make_current()
 	_build_ground()
 	_add_deco(0, Vector2(26, GROUND_Y))   # moinho
 	_add_deco(3, Vector2(292, GROUND_Y))  # arvore
@@ -62,13 +72,13 @@ func _build_ground() -> void:
 	var layer := TileMapLayer.new()
 	layer.name = "Chao"
 	layer.tile_set = GrassTiles
-	layer.scale = Vector2(0.5, 0.5)
+	layer.scale = Vector2(1, 1)
 	layer.position = Vector2(0, GROUND_Y - 160.0)
 	layer.z_index = -800
 	layer.add_to_group("solid_tiles")  # o ambiente poe tufos de grama e florzinhas em cima
 	add_child(layer)
 	var cells := {}
-	for cx in range(-1, 21):
+	for cx in range(-3, 24):
 		cells[Vector2i(cx, 10)] = true
 		cells[Vector2i(cx, 11)] = true
 	for c: Vector2i in cells:

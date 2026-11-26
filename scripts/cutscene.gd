@@ -14,12 +14,17 @@ const FLOOR_Y := 140.0
 const DUCK_STOP_X := 150.0
 const PATA_START_X := 262.0
 const PATA_STOP_X := 168.0
-const PATA_PIVO := Vector2(8, 15.5)  # pes da Pata no quadro de 32 px (como o pato)
+const PATA_PIVO := Vector2(8, 15)  # pes da Pata no quadro de 16 px (como o pato)
 
 const SKY_TOP_DAY := Color8(250, 150, 96)
 const SKY_TOP_NIGHT := Color8(54, 36, 88)
 const SKY_LOW_DAY := Color8(255, 206, 120)
 const SKY_LOW_NIGHT := Color8(196, 88, 96)
+## A tela tem 384x216 (Game.TELA) e a cena foi montada em 320x180: a camera mostra a cena
+## centrada na horizontal e encostada embaixo; ceu, montanhas e torre cobrem a tela toda.
+const CAM_POS := Vector2(-32, -36)
+const ESQ := -32.0  # borda esquerda da tela, no mundo
+const DIR := 352.0  # borda direita
 
 var t := 0.0
 var _done := false
@@ -34,12 +39,18 @@ func _enter_tree() -> void:
 	Game.room = "cutscene_final"
 	Game.room_width = 320
 	Game.room_height = 180
-	Game.cam_pos = Vector2.ZERO
+	Game.cam_pos = CAM_POS
+	Game.view_size = Vector2(Game.TELA)
 
 
 func _ready() -> void:
 	if Game.game_state != "cutscene":
 		Game.game_state = "cutscene"
+	var cam := Camera2D.new()
+	cam.anchor_mode = Camera2D.ANCHOR_MODE_FIXED_TOP_LEFT
+	cam.position = CAM_POS
+	add_child(cam)
+	cam.make_current()
 	# o pato com a arte nova (as mesmas animacoes do jogador)
 	_duck = Sprites.make_art_sprite(Sprites.art_frames(PlayerScript.ART_ANIMS), PlayerScript.ART_ORIGIN)
 	_duck.position = Vector2(-16, FLOOR_Y)
@@ -74,6 +85,7 @@ func _process(delta: float) -> void:
 		return
 	t += delta
 	_duck.position.x = floorf(duck_x())
+	_duck.modulate = _tinta_bicho(sunset())
 	_duck.play("run" if t > 0.5 and t < 4.0 else "idle")
 	if t >= 4.5 and not _sfx_heart:
 		_sfx_heart = true
@@ -104,13 +116,21 @@ func _draw() -> void:
 	_draw_stars(k)
 	_draw_sun(k)
 	var dusk := Color(lerpf(0.75, 0.35, k), lerpf(0.5, 0.25, k), lerpf(0.7, 0.45, k))
-	Sprites.draw_art(self, "fundo/montanhas", 0.0, 24.0, 0, 1, dusk)
-	var clouds := Color(1.0, lerpf(0.75, 0.45, k), lerpf(0.8, 0.6, k), 0.8)
+	Sprites.draw_art(self, "fundo/montanhas", -96.0, 24.0, 0, 1, dusk)
+	# nuvens opacas (so o tom muda): nada do ceu ou das estrelas aparece atraves delas
+	var clouds := Color(1.0, lerpf(0.68, 0.42, k), lerpf(0.75, 0.58, k), 1.0)
 	Sprites.draw_art(self, "fundo/nuvem_grande", floorf(-40.0 + t * 2.0), 14.0, 0, 1, clouds)
 	Sprites.draw_art(self, "fundo/nuvem_media", floorf(150.0 + t * 1.2), 38.0, 0, 1, clouds)
 	_draw_tower_top(k)
-	_draw_nest()
-	_draw_pata()
+	_draw_nest(k)
+	_draw_pata(k)
+
+
+## Tom do casal (e do pato) no por do sol: escurece menos que o cenario (ate 0.8, as pedras
+## vao ate 0.55) com um leve rosado no fim, para os dois nao parecerem colados por cima.
+static func _tinta_bicho(k: float) -> Color:
+	var s := lerpf(1.0, 0.8, k)
+	return Color(s, s * lerpf(1.0, 0.88, k), s * lerpf(1.0, 0.95, k))
 
 
 func _draw_sky(k: float) -> void:
@@ -118,7 +138,7 @@ func _draw_sky(k: float) -> void:
 	var top := SKY_TOP_DAY.lerp(SKY_TOP_NIGHT, k)
 	var low := SKY_LOW_DAY.lerp(SKY_LOW_NIGHT, k)
 	for i in 6:
-		draw_rect(Rect2(0, i * 30, 320, 30), top.lerp(low, i / 5.0))
+		draw_rect(Rect2(ESQ, CAM_POS.y + i * 36, DIR - ESQ, 36), top.lerp(low, i / 5.0))
 
 
 func _draw_stars(k: float) -> void:
@@ -126,17 +146,22 @@ func _draw_stars(k: float) -> void:
 	if a <= 0.0:
 		return
 	for i in 24:
-		var x := fposmod(i * 67.0 + 13.0, 320.0)
-		var y := fposmod(i * 29.0 + 7.0, 90.0)
+		var x := ESQ + fposmod(i * 67.0 + 13.0, DIR - ESQ)
+		var y := CAM_POS.y + fposmod(i * 29.0 + 7.0, 90.0 - CAM_POS.y)
 		var tw := 0.6 + 0.4 * sin(t * 3.0 + i)
-		draw_rect(Rect2(floorf(x), floorf(y), 1, 1), Color(1, 1, 0.9, a * tw))
+		draw_rect(Rect2(floorf(x), floorf(y), 1, 1), Color(1, 1, 1, a * tw))
 
 
-## Sol da arte dos fundos (2 quadros), descendo e ficando laranja.
+## Sol da arte dos fundos (16 quadros), descendo. Nada de tingir por um lerp de cor qualquer:
+## ate k = 0.6 fica com as cores do proprio sprite; no fim do por do sol passa de uma vez para
+## o laranja da paleta (#feae34, Endesga 32).
+const SOL_POENTE := Color("#feae34")
+
+
 func _draw_sun(k: float) -> void:
 	var c := Vector2(252, floorf(lerpf(62.0, 132.0, k)))
-	var cor := Color.WHITE.lerp(Color(1.0, 0.62, 0.4), k)
-	Sprites.draw_art(self, "fundo/sol", c.x - 24.0, c.y - 24.0, int(t * 1.2) % 2, 2, cor)
+	var cor := SOL_POENTE if k > 0.6 else Color.WHITE
+	Sprites.draw_art(self, "fundo/sol", c.x - 24.0, c.y - 24.0, int(t * 4.5) % 16, 16, cor)
 
 
 ## Topo da torre com o tileset de pedra das fases: muro baixo com ameias ao fundo (mais
@@ -146,42 +171,49 @@ func _draw_tower_top(k: float) -> void:
 	var claro := Color(shade, shade, shade)
 	var fundo := Color(shade * 0.62, shade * 0.62, shade * 0.7)
 	var tiles := Sprites.art("tileset_pedra")
-	for i in 20:
+	for i in range(-2, 22):
 		var x := i * 16.0
-		_bloco_pedra(tiles, 13, x, FLOOR_Y - 16.0, fundo)  # muro
-		if i % 2 == 0:
-			_bloco_pedra(tiles, 7, x, FLOOR_Y - 32.0, fundo)  # ameia
+		if posmod(i, 2) == 0:
+			# ameia: continua o muro (tile de miolo embaixo) e tem contorno em cima e dos
+			# lados, sem linha na base (tile 25, topo de coluna)
+			_bloco_pedra(tiles, 13, x, FLOOR_Y - 16.0, fundo)
+			_bloco_pedra(tiles, 25, x, FLOOR_Y - 32.0, fundo)
+		else:
+			# vao entre ameias: o muro tem a capa de cima (tile 5)
+			_bloco_pedra(tiles, 5, x, FLOOR_Y - 16.0, fundo)
 		_bloco_pedra(tiles, 5, x, FLOOR_Y, claro)  # laje do piso
 		_bloco_pedra(tiles, 13, x, FLOOR_Y + 16.0, claro)
 		_bloco_pedra(tiles, 13, x, FLOOR_Y + 32.0, claro)
 
 
 func _bloco_pedra(tiles: Texture2D, idx: int, x: float, y: float, cor: Color) -> void:
-	draw_texture_rect_region(tiles, Rect2(x, y, 16, 16), Rect2((idx % 4) * 32.0, (idx / 4) * 32.0, 32, 32), cor)
+	draw_texture_rect_region(tiles, Rect2(x, y, 16, 16), Rect2((idx % 4) * 16.0, (idx / 4) * 16.0, 16, 16), cor)
 
 
-func _draw_nest() -> void:
-	# ninho de 20x8, apoiado no piso
-	Sprites.draw_art(self, "ninho", 260.0, FLOOR_Y - 8.0)
+func _draw_nest(k: float) -> void:
+	# ninho de 20x8, apoiado no piso (escurece com o piso)
+	var shade := lerpf(1.0, 0.7, k)
+	Sprites.draw_art(self, "ninho", 260.0, FLOOR_Y - 8.0, 0, 1, Color(shade, shade, shade))
 
 
-## A Pata (assets/sprites/arte/pata.png: o pato aprovado com laco, cilios e bochecha):
-## parada, andando (8 quadros) e feliz batendo a asa (2). Pula quando ve o pato.
-func _draw_pata() -> void:
+## A Pata (assets/sprites/arte/pata.png: o pato com laco, cilios e bochecha): parada,
+## andando e feliz batendo a asa, 16 quadros cada. Pula quando ve o pato.
+func _draw_pata(k: float) -> void:
 	var x := floorf(pata_x())
 	var walking := t > 5.0 and t < 7.0
 	var happy := t > 7.0 and t < 9.5
 	var hop := 0.0
 	if t > 4.2 and t < 4.8:
 		hop = -floorf(sin(_phase(4.2, 4.8) * PI) * 8.0)
-	var q := 0
+	# pata.png: 0..15 parada, 16..31 andando, 32..47 feliz (16 quadros por animacao)
+	var q := int(t * 8.0) % 16
 	if walking:
-		q = 1 + int(t * 10.0) % 8
+		q = 16 + int(t * 20.0) % 16
 	elif happy:
-		q = 9 + int(t * 12.0) % 2
+		q = 32 + int(t * 24.0) % 16
 	var face := -1.0 if t < 9.0 else 1.0  # olha para o pato; depois para o sol
 	# draw_bicho poe o pivo (os pes) no ponto do deslocamento
-	Sprites.draw_bicho(self, "pata", q, 11, PATA_PIVO, face < 0.0, Color.WHITE, Vector2(x, FLOOR_Y + hop))
+	Sprites.draw_bicho(self, "pata", q, 48, PATA_PIVO, face < 0.0, _tinta_bicho(k), Vector2(x, FLOOR_Y + hop))
 
 
 # --------------------------------------------------------- textos e coracoes
@@ -189,19 +221,34 @@ func _draw_overlay() -> void:
 	# coracaozinho quando ela ve o pato e coracao grande quando se encontram
 	if t > 4.5 and t < 6.5:
 		var p := _phase(4.5, 6.5)
-		_heart(_overlay, Vector2(pata_x(), FLOOR_Y - 30 - p * 14.0), 1.0, 1.0 - p)
+		_heart(_overlay, Vector2(pata_x(), FLOOR_Y - 30 - p * 14.0), 1.0 - p)
 	if t > 7.0:
 		var p := _phase(7.0, 9.0)
 		var mid := (DUCK_STOP_X + PATA_STOP_X) * 0.5
 		var a := 1.0 if t < 16.0 else 1.0 - _phase(16.0, 18.0)
-		_heart(_overlay, Vector2(mid, FLOOR_Y - 34 - p * 10.0), 1.0 + p, a)
+		_big_heart(_overlay, Vector2(mid, FLOOR_Y - 34 - p * 10.0), p, a)
 	if t > 11.0:
 		var a := _phase(11.0, 12.5) * (1.0 - _phase(17.0, 18.0))
 		_fading_text(Vector2(160, 164), "JUNTOS, ENFIM.", Color.WHITE, a, 1.0)
 	if t > 18.5:
 		_fading_text(Vector2(160, 92), "FIM", Color(1, 0.86, 0.3), _phase(18.5, 19.5), 3.0)
 	if t > 1.0:
-		PixelFont.draw_plain(_overlay, 316, 174, "ENTER: PULAR", Color(1, 1, 1, 0.5), PixelFont.RIGHT)
+		_dica_pular()
+
+
+## "ENTER: PULAR" no canto de baixo: sobre as lajes claras do piso o texto sumia, entao vai
+## numa faixa escura (#181425, Endesga 32) encostada no canto, em branco opaco com sombra.
+const DICA := "ENTER: PULAR"
+const DICA_FUNDO := Color(0.094, 0.078, 0.145, 0.7)
+const DICA_SOMBRA := Color("#181425")
+
+
+func _dica_pular() -> void:
+	var w := PixelFont.width(DICA)
+	var x := DIR - 4.0
+	_overlay.draw_rect(Rect2(floorf(x - w - 3.0), 168.0, DIR - floorf(x - w - 3.0), 180.0 - 168.0), DICA_FUNDO)
+	PixelFont.draw_plain(_overlay, x + 1.0, 175.0, DICA, DICA_SOMBRA, PixelFont.RIGHT)
+	PixelFont.draw_plain(_overlay, x, 174.0, DICA, Color.WHITE, PixelFont.RIGHT)
 
 
 ## Texto centralizado com sombra que tambem desbota (a sombra da fonte e opaca).
@@ -213,9 +260,16 @@ func _fading_text(at: Vector2, text: String, col: Color, alpha: float, scale: fl
 	PixelFont.draw_plain(_overlay, at.x, at.y, text, Color(col, alpha), PixelFont.CENTER, scale)
 
 
-## Coracao (a mesma arte do HUD, 16 px vezes a escala) centrado em c.
-static func _heart(ci: CanvasItem, c: Vector2, scale: float, alpha: float) -> void:
-	var s := maxf(1.0, floorf(scale))
-	var lado := 16.0 * s
-	Sprites.draw_frame(ci, "coracao", Rect2(floorf(c.x - lado * 0.5), floorf(c.y - lado * 0.5), lado, lado), 0,
+## Coracaozinho (a mesma arte do HUD, 16x16, 1:1) centrado em c.
+static func _heart(ci: CanvasItem, c: Vector2, alpha: float) -> void:
+	Sprites.draw_frame(ci, "coracao", Rect2(floorf(c.x - 8.0), floorf(c.y - 8.0), 16, 16), 0,
 		Color(1, 1, 1, alpha))
+
+
+## Coracao grande crescendo (p de 0 a 1): o sprite coracao_grande (16 quadros de 32x32,
+## sempre 1:1), quadro = p * 15. Sem o PNG ainda, usa o coracaozinho do HUD.
+static func _big_heart(ci: CanvasItem, c: Vector2, p: float, alpha: float) -> void:
+	if not Sprites.has_art(Sprites.CORACAO_GRANDE):
+		_heart(ci, c, alpha)
+		return
+	Sprites.draw_coracao_grande(ci, c.floor(), clampi(int(p * 15.0), 0, 15), Color(1, 1, 1, alpha))

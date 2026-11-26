@@ -5,12 +5,13 @@ extends Camera2D
 ## A posicao do canto superior esquerdo da view vai para Game.cam_pos e o tamanho da area
 ## mostrada para Game.view_size (paralaxe).
 ##
-## ZOOM < 1 afasta a camera: com 5/6 a tela mostra 384x216 do mundo (20% a mais que os
-## 320x180 do original). 5/6 mantem cada pixel do jogo com um numero inteiro de pixels da
-## tela em 1080p (5 px) e em 4K (10 px), sem serrilhar a arte atual.
+## A tela do jogo ja tem 384x216 pixels (Game.TELA: 20% a mais que os 320x180 do original) e
+## e ampliada so por fatores inteiros, entao a camera nao afasta (ZOOM 1): cada pixel do jogo
+## vira sempre um quadrado inteiro de pixels da tela em qualquer resolucao (3x em 720p, 5x em
+## 1080p, 6x em 1440p). A posicao fica em pixels inteiros para a arte nao tremer.
 
-const ZOOM := 5.0 / 6.0
-const BASE := Vector2(320, 180)
+const ZOOM := 1.0
+const BASE := Vector2(384, 216)
 const OFF_X := 2.0
 
 

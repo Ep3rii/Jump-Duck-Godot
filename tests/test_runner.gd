@@ -469,8 +469,8 @@ func _test_levels() -> void:
 			"fundo/torre_longe", "fundo/torre_media", "fundo/torre_perto", "fundo/parede",
 			"fundo/janela", "fundo/tocha", "fundo/coluna", "fundo/sol", "fundo/lua"]:
 		var tex: Texture2D = spr.art(peca)
-		check(tex != null and tex.get_width() % 2 == 0 and tex.get_height() % 2 == 0,
-			"%s existe e tem tamanho par (nada de meio pixel)" % peca)
+		check(tex != null and tex.get_width() > 0 and tex.get_height() > 0,
+			"%s existe (16x16, 1 pixel do arquivo = 1 pixel do jogo)" % peca)
 	# o pato e pequeno e o cenario e grande: alturas em "patos" (16 px)
 	check(spr.art_size("cenario/arvore_copa").y >= 16.0 * 6.0, "arvore tem 6 patos ou mais de altura")
 	check(spr.art_size("cenario/celeiro").y >= 16.0 * 6.0, "celeiro tem 6 patos ou mais de altura")

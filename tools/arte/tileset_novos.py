@@ -269,7 +269,308 @@ def preview_new(tiles):
     cv.save(os.path.join(T.OUT, "tileset_novos.png"))
 
 
+# ============================================================== versao final 16x16 (Endesga 32)
+# O original do GameMaker (spr_tileSetGrama01.png) saiu do projeto, entao as funcoes acima nao
+# rodam mais. A folha APROVADA bloco a bloco pelo dono (64x144, 1 px = 1 px do jogo) fica aqui
+# em texto, pixel a pixel (editavel a mao), e corrige_grama() aplica por cima so as correcoes
+# da revisao de 26/11/2026 (terra menos saturada, sem fresta lateral, contorno de 1 px na cor
+# da terra, florzinhas brancas, pedrinhas cinza, corda da ponte pendurada).
+LEGENDA_GRAMA = {
+    ".": None,
+    "a": "265c42",  # contorno verde-escuro (grama)
+    "b": "3e2731",  # contorno da madeira (tronco/ponte)
+    "c": "3e8948",  # grama sombra
+    "d": "63c74d",  # grama
+    "e": "733e39",  # contorno da pedrinha / cabo do cogumelo / riscos do tronco
+    "f": "a22633",  # cogumelo sombra
+    "g": "b86f50",  # terra escura (antiga) / madeira
+    "h": "c0cbdc",  # petala (antiga) / xadrez do bloco 0
+    "i": "c28569",  # aneis do tronco
+    "j": "d77643",  # terra sombra (antiga) / miolo da flor
+    "k": "e43b44",  # cogumelo
+    "l": "e8b796",  # pedrinha (antiga) / tronco
+    "m": "ead4aa",  # petala ou luz da pedrinha (antigas)
+    "n": "feae34",  # terra (antiga, laranja saturado demais)
+    "o": "fee761",  # florzinha amarela
+    "p": "ffffff",  # branco
+}
+GRAMA16 = """
+hhhhhhhhpppppppp.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.
+hhhhhhhhppppppppacddddddddddddddddddddddddddddddddddddddddddddca
+hhhhhhhhppppppppacdddhddddddcmcddddddhddddhddddddcmcddddddhdddca
+hhhhhhhhppppppppaccdmjmddddcmjmcddddmjmcdmjmddddcmjmcddddmjmdcca
+hhhhhhhhppppppppacdcchdddcddcmcddcdddhcdcchdddcddcmcddcdddhccdca
+hhhhhhhhppppppppacddccdcccddccdddcccdccddccdcccddccdddcccdccddca
+hhhhhhhhpppppppp.acdcgcccncdccjdcncccgccdcgcccncdccjdcncccgcdca.
+hhhhhhhhpppppppp.agcjnjjnnncnnncnnnjjnjgcjnjjnnncnnncnnnjjnjcga.
+pppppppphhhhhhhh.ajjnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.
+pppppppphhhhhhhh.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.
+pppppppphhhhhhhh.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.
+pppppppphhhhhhhh.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.
+pppppppphhhhhhhh.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.
+pppppppphhhhhhhh.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.
+pppppppphhhhhhhh.agjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjja.
+pppppppphhhhhhhh..aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..
+.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa..aaaaaaaaaaaaaaa
+acddddddddddddddddddddddddddddddddddddddddddddcaacddddddddddddda
+acdddhddddddcmcddddddhddddhddddddcmcddddddhdddcaacdddhddddddcmca
+accdmjmddddcmjmcddddmjmcdmjmddddcmjmcddddmjmdccaaccdmjmddddcmjma
+acdcchdddcddcmcddcdddhcdcchdddcddcmcddcdddhccdcaacdcchdddcddcmca
+acddccdcccddccdddcccdccddccdcccddccdddcccdccddcaacddccdcccddccda
+.acdcgcccncdccjdcncccgccdcgcccncdccjdcncccgcdca..acdcgcccjcdcca.
+.agcjnjjnnncnnncnnnjjnjgcjnjjnnncnnncnnnjjnjcga..agcjnjjnnjcjga.
+.ajjnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..agjnnnnnnnnjga.
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..agnnnnnnnnnnga.
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..agjnnnnnnnnjga.
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja...agjnnnnnnjga..
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja...aggjjjjjjgga..
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja....aaggggggaa...
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja......aaaaaa.....
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.................
+.aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.ajjnnnnnnnnnnnnn
+acddddddddddddddddddddddddddddddddddddddddddddcadcjnnnnnnnnnnnnn
+acdddhddddddcmcddddddhddddhddddddcmcddddddhdddcadcjnnnnnnnnnnnnn
+accdmjmddddcmjmcddddmjmcdmjmddddcmjmcddddmjmdccaccgnnnnnnnnnnnnn
+acdcchdddcddcmcddcdddhcdcchdddcddcmcddcdddhccdcadcgnnnnnnnnnnnnn
+acddccdcccddccdddcccdccddccdcccddccdddcccdccddcadcgnnnnnnnnnnnnn
+.acdcgcccncdccjdcncccgccdcgcccncdccjdcncccgcdca.cgnnnnnnnnnnnnnn
+.agcjnjjnnncnnncnnnjjnjgcjnjjnnncnnncnnnjjnjcga.gnnnnnnnnnnnnnnn
+.agjnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.nnnnnnnnnnnnnnnn
+.agnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.nnnnnnnnnnnnnnnn
+.agjnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnjga.nnnnnnnnnnnnnnnn
+..agjnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnjga..nnnnnnnnnnnnnnnn
+..aggjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjgga..nnnnnnnnnnnnnnnn
+...aaggggggggggggggggggggggggggggggggggggggaa...nnnnnnnnnnnnnnnn
+.....aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.....nnnnnnnnnnnnnnnn
+................................................nnnnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnnnn
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaadafaaaaaaaaa
+ddddddddddddddddddddddddddddddddddddddddddddddddddddfpkkfddddddd
+dddddddddddddddddddddoddddoddddddddddddddemedddddddddkkpfddddddd
+dddddddcddddddddddddojocdojodddddddddddcellleddddddddfffdddddddd
+dcddddcdccddddcddcdddocdccodddcddcddddcdceeeddcddcdddepeccddddcd
+dcccdccddccdcccddcccdccddccdcccddcccdccddccdcccddcccdceddccdcccd
+cncccgccdcgcccnccncccgccdcgcccnccncccgccdcgcccnccncccgccdcgcccnc
+nnnjjnjgcjnjjnnnnnnjjnjgcjnjjnnnnnnjjnjgcjnjjnnnnnnjjnjgcjnjjnnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnngnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnngnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnngnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnngnnnnnnnnnnnnnnnnnnnnnnnnnnnjnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnnggnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnngnnnnnnnnnnnnnnnnnnngnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nngllnnnnnnnnnnnnnnnnngnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnggnnnnnnnnnnnnnnnnngnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnjjjjjjjjjjjjjjjjnnnnnnnnnnnnnnnn
+nnnnnnnnnnmgnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnngllgnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnggnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnjnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnjnnnnnnnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnjnnnnnnn
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn
+nnnnnnnnnnnnnjja.aaaaaaaaaaaaaa..ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnnjcdacddddddddddddca.ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnnjcdacdddhddddhdddca.ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnngccaccdmjmddmjmdcca.ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnngcdacdcchddddhccdca.ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnngcdacddccdccdccddca.ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnnngc.acdcgccccgcdca..ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnnnng.agcjnjjjjnjcga..ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnnnnn.ajjnnnnnnnnnja..ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnnnnn.ajnnnnnnnnnnja..ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnnnnn.ajnnnnnnnnnnja..ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnnnnn.ajnnnnnnnnnnja..ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnnnnn.ajnnnnnnnnnnja..ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnnnnn.ajnnnnnnnnnnja..ajnnnnnnnnnnja..ajnnnnnnnnnnja.
+nnnnnnnnnnnnnnnn.ajnnnnnnnnnnja..ajnnnnnnnnnnja..agjjjjjjjjjjja.
+nnnnnnnnnnnnnnnn.ajnnnnnnnnnnja..ajnnnnnnnnnnja...aaaaaaaaaaaa..
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..aaaaaaaaaaaaaa.
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.acddddddddddddca
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.acdddhddddhdddca
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.accdmjmddmjmdcca
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.acdcchddddhccdca
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja.acddccdccdccddca
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..acdcgccccgcdca.
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..agcjnjjjjnjcga.
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajjnnnnnnnnnja.
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnja.
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnja.
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnja.
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnja.
+.ajnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnja..ajnnnnnnnnnnja.
+.agjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjja..agjjjjjjjjjjja.
+..aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa....aaaaaaaaaaaa..
+..bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb..bjbbbjbbbjbbbjbb
+bbiljjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjjllbbgggbgggbgggbgggb
+biiiiggggggggeeggggggggggggggeeggggggggggggiiiibgggbgggbgggbgggb
+bleligggggggggggggeeegggggggggggggeeeggggggilelbgggbgggbgggbgggb
+biiiiggggeeeeggggggggggggeeeeggggggggggggeeiiiibbbbbbbbbbbbbbbbb
+bbileeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeellbb................
+..bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb..gggggggggggggggg
+................................................................
+................................................................
+................................................................
+................................................................
+................................................................
+................................................................
+................................................................
+................................................................
+................................................................
+""".split()
+
+# cores novas da terra (ja da Endesga 32, a paleta nao mexe nelas)
+TERRA16 = "b86f50"         # miolo da terra
+TERRA16_SOMBRA = "733e39"  # sombra embaixo da grama, riscos, raiz, faixa do fundo
+TERRA16_BORDA = "3e2731"   # contorno de 1 px da terra (a grama continua com 265c42)
+PEDRA16 = ("5a6988", "8b9bb4", "c0cbdc", "3a4466")  # contorno, corpo, luz, contorno na grama
+
+
+def _vizinhos8(g, x0, y0, x, y):
+    for dy in (-1, 0, 1):
+        for dx in (-1, 0, 1):
+            if dx or dy:
+                xx, yy = x + dx, y + dy
+                if x0 <= xx < x0 + 16 and y0 <= yy < y0 + 16:
+                    yield g[yy][xx]
+
+
+def corrige_grama(linhas):
+    """Aplica as correcoes da revisao na folha aprovada; devolve {(x, y): 'rrggbb' ou None}."""
+    g = [list(r) for r in linhas]
+    for ty in range(8):           # linha 8 (tronco e ponte) e colocada a mao: nao mexe no formato
+        for tx in range(4):
+            if (tx, ty) == (0, 0):  # bloco 0 (xadrez) nao e usado
+                continue
+            x0, y0 = tx * 16, ty * 16
+            t = [g[y0 + y][x0:x0 + 16] for y in range(16)]
+            # 1) base: se a ultima linha esta vazia, desce o fundo 1 px (repete a linha 11)
+            if all(c == "." for c in t[15]) and any(c != "." for c in t[14]):
+                for y in range(15, 11, -1):
+                    t[y] = t[y - 1][:]
+            # 2) laterais: o contorno encosta na borda do bloco (sem fresta de 1 px)
+            novo = [r[:] for r in t]
+            for y in range(16):
+                cheios = [x for x in range(16) if t[y][x] != "."]
+                if not cheios:
+                    continue
+                prox = [x for x in range(16) if y + 1 < 16 and t[y + 1][x] != "."]
+                topo = y == 0 or not any(c != "." for c in t[y - 1])
+                xl, xr = cheios[0], cheios[-1]
+                if xl > 0 and not (topo and prox and prox[0] < xl):
+                    for k in range(xl - 1, 8):
+                        novo[y][k] = t[y][k + 1]
+                if xr < 15 and not (topo and prox and prox[-1] > xr):
+                    for k in range(xr + 1, 7, -1):
+                        novo[y][k] = t[y][k - 1]
+            t = novo
+            # 3) tira a faixa de sombra colada no contorno lateral (era o "contorno duplo")
+            for y in range(16):
+                r = t[y]
+                cheios = [x for x in range(16) if r[x] != "."]
+                if not cheios:
+                    continue
+                for xs, passo in ((cheios[0], 1), (cheios[-1], -1)):
+                    if r[xs] != "a" or any(t[yy][xx] in "cd" for yy in (y - 1, y, y + 1)
+                                           for xx in (xs - 1, xs, xs + 1)
+                                           if 0 <= yy < 16 and 0 <= xx < 16):
+                        continue  # contorno da grama (ex.: curva do canto interno): fica
+                    run = []
+                    x = xs + passo
+                    while 0 <= x < 16 and r[x] in "jg" and len(run) < 2:
+                        run.append(x)
+                        x += passo
+                    if run and 0 <= x < 16 and r[x] == "n":
+                        for k in run:
+                            r[k] = "n"
+            for y in range(16):
+                g[y0 + y][x0:x0 + 16] = t[y]
+    cor = {}
+    for ty in range(9):
+        for tx in range(4):
+            x0, y0 = tx * 16, ty * 16
+            idx = ty * 4 + tx
+            for y in range(y0, y0 + 16):
+                for x in range(x0, x0 + 16):
+                    c = g[y][x]
+                    nova = LEGENDA_GRAMA[c]
+                    if idx == 0 or ty == 8 or c == ".":
+                        pass
+                    elif idx == 18 and c in "elm":      # pedrinha em cima da grama: cinza
+                        nova = {"e": PEDRA16[3], "l": PEDRA16[1], "m": PEDRA16[2]}[c]
+                    elif idx == 20 and c in "glm":      # pedrinhas na terra: cinza
+                        nova = {"g": PEDRA16[0], "l": PEDRA16[1], "m": PEDRA16[2]}[c]
+                    elif c in "hm":                      # petalas: branco
+                        nova = "ffffff"
+                    elif c == "j" and any(v in "hm" for v in _vizinhos8(g, x0, y0, x, y)):
+                        nova = "feae34"                  # miolo da florzinha branca
+                    elif c == "j" and any(v == "o" for v in _vizinhos8(g, x0, y0, x, y)):
+                        pass                             # miolo da florzinha amarela
+                    elif c == "n":
+                        nova = TERRA16
+                    elif c in "jg":
+                        nova = TERRA16_SOMBRA
+                    elif c == "a" and not any(v in "cdhmp" for v in _vizinhos8(g, x0, y0, x, y)):
+                        nova = TERRA16_BORDA             # contorno que so encosta em terra
+                    cor[(x, y)] = nova
+    # ponte (bloco 35): contorno de cima liso e corda pendurada, presa nas pontas
+    x0, y0 = 48, 128
+    for x in range(x0, x0 + 16):
+        cor[(x, y0)] = "3e2731"
+        cor[(x, y0 + 6)] = None
+    for dx in range(16):
+        dy = 5 if dx in (0, 15) else (6 if dx in (1, 2, 13, 14) else 7)
+        cor[(x0 + dx, y0 + dy)] = TERRA16_SOMBRA
+    return cor
+
+
+def folha16():
+    """Folha final 64x144 (Canvas em pixels do jogo, ja na Endesga 32)."""
+    cor = corrige_grama(GRAMA16)
+    cv = Canvas(len(GRAMA16[0]), len(GRAMA16))
+    for (x, y), c in cor.items():
+        if c is not None:
+            cv.px[y][x] = (int(c[0:2], 16), int(c[2:4], 16), int(c[4:6], 16), 255)
+    return cv
+
+
+def folha_para_salvar():
+    """A folha 16x16 ampliada 8x (4x da grade de 32), que e o que o Canvas.save() espera para
+    tileset_grama: ele reduz 4x, o reduz2 so amostra (blocos 2x2 de uma cor) e a paleta nao
+    muda nada (cores ja da Endesga 32) -> grava exatamente folha16()."""
+    f = folha16()
+    big = Canvas(f.w * 8, f.h * 8)
+    big.blit(f, 0, 0, 8)
+    return big
+
+
 if __name__ == "__main__":
-    tl = build_full()
-    preview_new(tl)
-    print("ok", len(tl))
+    if "--salvar" in sys.argv:
+        folha_para_salvar().save(os.path.join(T.ARTE, "tileset_grama.png"))
+        print("salvo em assets/sprites/arte/tileset_grama.png")
+    else:
+        big = folha_para_salvar()
+        big.save(os.path.join(T.OUT, "tileset_grama16.png"))
+        print("previa em tools/arte/saida/tileset_grama16.png")
