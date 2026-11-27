@@ -306,16 +306,12 @@ func _draw_menus(state: String, now: int) -> void:
 		"controls":
 			_panel(30, 6, 290, 176)
 			_title_banner(10, "CONTROLES")
-			var rows := [["ANDAR", "SETAS OU A E D"], ["PULAR", "ESPAÇO"],
-				["PULO DUPLO", "ESPAÇO NO AR"], ["PEGAR E JOGAR A CAIXA", "X OU J"],
-				["SOLTAR A CAIXA", "BAIXO + X"], ["SUBIR NO CIPÓ", "CIMA E BAIXO"],
-				["MERGULHAR", "BAIXO NA ÁGUA"], ["VENCER UM INIMIGO", "PULE EM CIMA"],
-				["PAUSAR", "ESC"]]
-			for i in rows.size():
-				var y := 42 + i * 11
-				_text(52, y, rows[i][0], Color.WHITE, LEFT)
-				_text(268, y, rows[i][1], COL_YELLOW, RIGHT)
-			_text_plain(cx, 143, "NOS MENUS: SETAS, ENTER OU MOUSE", COL_HINT, CENTER)
+			_draw_teclas(layout, sel, now)
+			generic_from = Game.TECLAS_ACOES.size()
+			var dica := "ENTER TROCA   < > COLUNA   ESC VOLTA"
+			if not Game.tecla_esperando.is_empty():
+				dica = "APERTE A NOVA TECLA   ESC CANCELA"
+			_text_plain(cx, 165, dica, COL_HINT, CENTER)
 
 		"settings":
 			_panel(30, 6, 290, 176)
@@ -394,6 +390,31 @@ func _draw_hud(w: int, h: int) -> void:
 	_text(w - 71, 10, "FLORES %d/%d" % [Game.current_collectibles, Game.total_collectibles],
 		Color.WHITE, LEFT)
 	_text(w - 71, 22, "TEMPO %d:%s" % [sec / 60, sec_text], COL_YELLOW, LEFT)
+
+
+## CONTROLES: uma linha por acao com as 2 teclas dela (Game.teclas); a coluna escolhida fica
+## destacada e, esperando a tecla nova, pisca "...".
+func _draw_teclas(layout: Array, sel: int, now: int) -> void:
+	for i in Game.TECLAS_ACOES.size():
+		var r: Dictionary = layout[i]
+		var on := sel == i
+		var ty: float = (r["y1"] + r["y2"]) / 2.0
+		_button(r, on, now)
+		_text_plain(r["x1"] + 7, ty + 1, r["label"], COL_YELLOW_DARK if on else Color.WHITE, LEFT)
+		var acao: String = r["tecla"]
+		for c in 2:
+			var bx1 := 149.0 + c * 65.0
+			var bx2 := bx1 + 61.0
+			var escolhida := on and Game.tecla_coluna == c
+			var esperando := escolhida and Game.tecla_esperando == acao
+			_fill(bx1, r["y1"] + 2, bx2, r["y2"] - 2, COL_DARK)
+			if escolhida:
+				_outline(bx1, r["y1"] + 2, bx2, r["y2"] - 2, Color.WHITE)
+			var nome: String = Game.nome_tecla(Game.teclas[acao][c])
+			if esperando:
+				nome = "..." if (now / 250) % 2 == 0 else ""
+			var cor := COL_YELLOW if escolhida else COL_HINT
+			_text_plain((bx1 + bx2) / 2.0, ty + 1, nome, cor, CENTER)
 
 
 ## Linhas ajustaveis das configuracoes: TELA, JANELA (texto) e MUSICA, EFEITOS (barras).

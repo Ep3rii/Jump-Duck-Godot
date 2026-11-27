@@ -41,6 +41,7 @@ z_index = -990
 script = ExtResource("2_ekvi1")
 mostrar_torre = true
 hora = 1
+mostrar_celeiro = false
 
 [node name="Moldura" type="Node2D" parent="." unique_id=363326828]
 z_index = -800

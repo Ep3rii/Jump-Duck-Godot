@@ -24,6 +24,9 @@ const Sprites := preload("res://scripts/sprites.gd")
 ## Celeiro ao fundo (ceu aberto): uma peca so por fase, na camada mais perto da tela, que passa
 ## uma vez enquanto o pato anda (nao se repete como as tiras de morro). Fases com celeiro no
 ## plano do jogo (Decoracao "Celeiro") nao ganham outro ao fundo.
+## So na fazenda (tutorial, A FAZENDA, em chao plano ao lado da cerca). Nas outras fases de ceu
+## aberto mostrar_celeiro = false: na fase 1 o chao do comeco acaba num buraco logo depois da
+## cerca (o pe dele passaria flutuando) e no lago e no pantano do jacare ele boiaria atras da agua.
 @export var mostrar_celeiro := true
 ## X da camera (canto esquerdo) em que o celeiro fica no meio da tela. Negativo = escolhe
 ## sozinho um trecho de chao firme sem itens, placas e decoracao na frente (_escolhe_celeiro).
@@ -297,6 +300,8 @@ func _draw_celeiro(vx: float, vy: float, vw: float, vh: float, cor: Color) -> vo
 
 ## Lugar do celeiro desta fase ([] = nenhum). Escolhido uma vez, quando o terreno ja existe.
 func celeiro_lugar() -> Array:
+	if not mostrar_celeiro:
+		return []
 	if _celeiro == null:
 		_celeiro = _escolhe_celeiro()
 	return _celeiro if _celeiro != null else []

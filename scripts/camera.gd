@@ -73,7 +73,7 @@ static func preso(pos: Vector2, lim: Rect2, view: Vector2) -> Vector2:
 func _alvo_livre(player: Node2D, view: Vector2) -> Vector2:
 	var t := Vector2(
 		(player.position.x + OFF_X) - view.x / 2.0,
-		(player.position.y + Game.camera_offset_y) - view.y / 2.0)
+		(player.position.y + Game.camera_offset_y + Game.camera_olhar) - view.y / 2.0)
 	t.x = _fit(t.x, 0.0, Game.room_width, view.x)
 	# sala mais baixa que a view: encosta embaixo (o que sobra aparece acima do teto)
 	t.y = _fit(t.y, 0.0, Game.room_height, view.y, true)

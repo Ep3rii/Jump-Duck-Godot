@@ -20,7 +20,7 @@ _AQUI = os.path.dirname(os.path.abspath(__file__))
 _RAIZ = os.path.dirname(os.path.dirname(_AQUI))
 ARTE_DIR = os.path.normcase(os.path.join(_RAIZ, "assets", "sprites", "arte"))
 MANIFESTO = os.path.join(_AQUI, "gerados.json")
-AMPLIADOS_4X = {"pato_parado", "pato_mergulhando", "pato_correndo", "pato_pulando", "pato_apice", "pato_caindo", "pato_dano",
+AMPLIADOS_4X = {"pato_parado", "pato_mergulhando", "pato_olhando_cima", "pato_olhando_baixo", "pato_correndo", "pato_pulando", "pato_apice", "pato_caindo", "pato_dano",
                 "pato_morte", "tileset_grama", "tileset_pedra", "flor", "estrela", "chave", "caixa", "feno",
                 "raposa", "jacare", "gaviaozinho", "aguia"}
 FORCAR = "--forcar" in sys.argv
@@ -34,7 +34,7 @@ SEM_REDUCAO = {"fonte"}  # a fonte ja e desenhada em pixels do jogo
 # largura e altura de cada quadro NA GRADE DE 32 (para reduzir quadro a quadro); sem entrada = 1 quadro
 QUADRO_32 = {
     "tileset_grama": (32, 32), "tileset_pedra": (32, 32),
-    "pato_parado": 32, "pato_mergulhando": 32, "pato_correndo": 32, "pato_pulando": 32, "pato_apice": 32, "pato_caindo": 32,
+    "pato_parado": 32, "pato_mergulhando": 32, "pato_olhando_cima": 32, "pato_olhando_baixo": 32, "pato_correndo": 32, "pato_pulando": 32, "pato_apice": 32, "pato_caindo": 32,
     "pato_dano": 32, "pato_morte": 32, "flor": 32, "estrela": 32, "chave": 32, "caixa": 32, "feno": 32,
     "coracao": 32, "agua": 32, "bloco": 32, "pata": 32, "porta": 32, "placa": 32, "cipo": 32,
     "pedra_cai": 32, "brilho": 32, "junco": 32,

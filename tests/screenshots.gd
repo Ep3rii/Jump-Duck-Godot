@@ -70,6 +70,11 @@ func _run() -> void:
 	Game.game_state = "controls"
 	Game.ui_selection = 0
 	await shot("06_controles")
+	Game.ui_selection = 4
+	Game.tecla_coluna = 1
+	Game.tecla_esperando = "jump"
+	await shot("06b_controles_esperando_tecla")
+	Game.tecla_esperando = ""
 
 	Game.game_state = "main"
 	Game.start_new_game()
@@ -77,6 +82,24 @@ func _run() -> void:
 	await frames(30)
 	await shot("07_tutorial_inicio")
 	var p := get_tree().get_first_node_in_group("player")
+	# olhar para cima e para baixo (segurando a tecla: a camera vai junto)
+	p.position = Vector2(200, 304)
+	await frames(30)
+	Input.action_press("up")
+	await frames(70)
+	await shot("07b_olhando_cima")
+	Input.action_release("up")
+	Input.action_press("down")
+	await frames(70)
+	await shot("07c_olhando_baixo")
+	Input.action_release("down")
+	await frames(40)
+	# celeiro de fundo (so na fazenda)
+	var cel: Array = get_tree().current_scene.get_node("Parallax").celeiro_lugar()
+	if not cel.is_empty():
+		p.position = Vector2(cel[0] + 192.0, 260)
+		await frames(60)
+		await shot("07d_tutorial_celeiro_fundo")
 	for spot in [[Vector2(360, 304), "08_tutorial_pulo_duplo"], [Vector2(740, 176), "09_tutorial_penhasco_cipo"],
 			[Vector2(880, 304), "10_tutorial_feno"], [Vector2(1180, 224), "11_tutorial_raposa"],
 			[Vector2(1660, 272), "12_tutorial_saida"]]:
@@ -157,6 +180,10 @@ func _run() -> void:
 	await frames(30)
 	await shot("22g_fase3_inicio")
 	p = get_tree().get_first_node_in_group("player")
+	p.position = Vector2(838, 304)  # entra: a arena fecha e a tela inteira e a arena
+	for i in 60:  # espera o deslize da camera (quadros de fisica)
+		await get_tree().physics_frame
+	await shot("22g2_fase3_arena_fechada")
 	var boss := get_tree().current_scene.get_node("Entidades/JacareGigante")
 	Game.debug_invincible = true
 	p.position = Vector2(1072, 256)
@@ -171,8 +198,8 @@ func _run() -> void:
 	boss._start_leap(p)
 	await frames(14)
 	await shot("22i_fase3_salto")
-	p.position = Vector2(944, 256)
-	boss.position.x = 1010.0
+	p.position = Vector2(904, 256)
+	boss.position.x = 950.0
 	boss.dir = -1
 	boss.force_state("mordida_aviso", 999)
 	await frames(50)

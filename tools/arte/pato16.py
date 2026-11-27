@@ -427,8 +427,81 @@ def mergulhando():
     return [copia(poses[c]) for c in MERGULHO_SEQ]
 
 
+# olhando para cima / para baixo: o corpo do pato parado e a cabeca redesenhada em 16 (mesmas
+# pecas: contorno #262b44, olho #181425 cercado de branco, bico laranja com contorno #be4a2f).
+# Cada tira: 2 quadros de virada (meio caminho), a pose segurada, uma piscada e de novo a pose;
+# toca uma vez e para no ultimo quadro enquanto o jogador segura CIMA/BAIXO.
+OLHAR_CABECA = {
+    "cima_meio": [
+        "........AAAA....",
+        ".......ABBBBA...",
+        ".......ABBBBADD.",
+        ".......ABBCBHHHD",
+        ".......ABBBBIIID",
+        ".......ABBBBADD.",
+        "AAAAAAABBBGA....",
+    ],
+    "cima": [
+        "........AAAADD..",
+        ".......ABBBBHHD.",
+        ".......ABBCBHID.",
+        ".......ABBBBIDD.",
+        ".......ABBBBA...",
+        ".......ABBBBA...",
+        "AAAAAAABBBGA....",
+    ],
+    "baixo_meio": [
+        "........AAAA....",
+        ".......ABBBBA...",
+        ".......ABBBBA...",
+        ".......ABBBBA...",
+        ".......ABBCBADD.",
+        ".......ABBBBHHHD",
+        "AAAAAAABBBGAIIID",
+        "ABBBBBBBBBGADD..",
+    ],
+    "baixo": [
+        "................",
+        "........AAAA....",
+        ".......ABBBBA...",
+        ".......ABBBBA...",
+        ".......ABBBBA...",
+        ".......ABBCBADD.",
+        "AAAAAAABBBGAHHD.",
+        "ABBBBBBBBBGAHID.",
+        "ABBBBBBBBBBAIID.",
+        "ABBBBBBBBBBADD..",
+    ],
+}
+OLHAR_SEQ = "mmpppppppfpppppp"  # m = virando, p = pose, f = piscada
+
+
+def _olhar_pose(nome):
+    base = base_parado()
+    cv = copia(base)
+    for y, linha in enumerate(OLHAR_CABECA[nome]):
+        for x, ch in enumerate(linha):
+            # so a coluna da cabeca/bico (x >= 7) e as linhas do corpo que a cabeca cobre
+            if x < 7 and y < 6:
+                cv.px[y][x] = None if ch == "." else MERGULHO_COR[ch]
+            elif ch == ".":
+                if x >= 7:
+                    cv.px[y][x] = None
+            else:
+                cv.px[y][x] = MERGULHO_COR[ch]
+    return cv
+
+
+def olhando(lado):
+    meio, pose = _olhar_pose(lado + "_meio"), _olhar_pose(lado)
+    pisc = piscando(pose)
+    return [copia({"m": meio, "p": pose, "f": pisc}[c]) for c in OLHAR_SEQ]
+
+
 def pecas():
     return {
+        "pato_olhando_cima": olhando("cima"),
+        "pato_olhando_baixo": olhando("baixo"),
         "pato_parado": parado(),
         "pato_correndo": correndo(),
         "pato_pulando": no_ar(P.JUMP3, False),

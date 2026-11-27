@@ -397,6 +397,8 @@ func _run() -> void:
 	await _test_mechanics()
 	await _test_arena()
 	await _test_toque()
+	await _test_olhar()
+	await _test_teclas()
 
 	print("-- menus")
 	Game.go_to_menu()
@@ -835,6 +837,8 @@ func _test_fase3() -> void:
 	print("-- fase 3 (mini-chefe jacare)")
 	check(Game.current_level_name == "fase3" and Game.total_collectibles == 4, "fase 3 carregada com 4 flores")
 	check(node("Parallax").hora == 3 and node("Parallax").torre_distancia == 2, "fase 3: entardecer, torre perto")
+	check(not node("Parallax").mostrar_celeiro and node("Parallax").celeiro_lugar().is_empty(),
+		"pantano do jacare sem celeiro de fundo (ele boiaria atras da agua)")
 	check(node("Luz").ambiente() != Color.WHITE and node("Luz").get_child(0).visible,
 		"entardecer: a cena ganha o tom da hora")
 	var boss: Node2D = node("Entidades/JacareGigante")
@@ -847,6 +851,12 @@ func _test_fase3() -> void:
 		"arena do jacare com portoes de barranco na entrada e na saida")
 	check(arena.retangulo.size.x >= 384.0 and arena.retangulo.size.y >= 216.0
 		and arena.retangulo.end.y == 416.0, "arena do tamanho da tela, encostada no fundo da sala")
+	# como a do gaviao: a arena inteira cabe numa tela so (camera parada) e e simetrica
+	var meio: float = arena.retangulo.get_center().x
+	check(arena.retangulo.size.x == 384.0, "arena do jacare cabe inteira na tela (camera parada)")
+	check(is_equal_approx(arena.portoes_entrada[0].x + 8.0 - meio, meio - (arena.portoes_saida[0].x + 8.0))
+		and is_equal_approx(boss.water.get_rect().get_center().x, meio),
+		"portoes e lago espelhados em volta do meio da arena")
 	check(not arena.retangulo.grow(64.0).has_point(node("Itens/Checkpoint1").position),
 		"checkpoint antes da arena, com folga da margem de deteccao (o pato reaparece fora dela)")
 	check(boss.state == "espera" and arena.estado == "aberta" and not Game.camera_limit.has_area(),
@@ -861,7 +871,7 @@ func _test_fase3() -> void:
 	# barranco de terra suspenso (2 tiles do terreno, borda de baixo) sobre cada portao: ninguem
 	# pula por cima, e a entrada/saida parece uma boca de barranco, nao uma coluna solta
 	var terreno: TileMapLayer = node("Terreno")
-	for col in [50, 51, 81, 82]:
+	for col in [50, 51, 72, 73]:
 		check(terreno.get_cell_source_id(Vector2i(col, 0)) != -1 and terreno.get_cell_source_id(Vector2i(col, 15)) != -1
 			and terreno.get_cell_source_id(Vector2i(col, 16)) == -1
 			and terreno.get_cell_atlas_coords(Vector2i(col, 15)).y == 7,
@@ -884,7 +894,7 @@ func _test_fase3() -> void:
 
 	# ciclo completo sozinho (pato invencivel numa plataforma)
 	Game.debug_invincible = true
-	reset_player(Vector2(1072, 256))
+	reset_player(Vector2(1080, 256))
 	var seen := {}
 	for i in 1200:
 		await frames(1)
@@ -896,17 +906,17 @@ func _test_fase3() -> void:
 		and seen.has("dor"), "ciclo: bolhas, salto, mordida e dor de dente (%s)" % [seen.keys()])
 
 	# salto acerta quem esta na plataforma
-	reset_player(Vector2(944, 256))
-	boss.position = Vector2(944, boss.position.y)
-	boss._target_x = 944.0
+	reset_player(Vector2(904, 256))
+	boss.position = Vector2(904, boss.position.y)
+	boss._target_x = 904.0
 	boss.leaps_left = 1
 	boss.force_state("aviso", 1)
 	await frames(80)
 	check(Game.player_lives == Game.max_lives - 1, "salto do chefe acerta o pato na plataforma")
 
 	# fora da dor de dente, pular nele machuca o pato
-	reset_player(Vector2(1000, 230))
-	boss.position = Vector2(1000, boss.position.y)
+	reset_player(Vector2(1040, 230))
+	boss.position = Vector2(1040, boss.position.y)
 	boss.force_state("mordida_aviso", 999)
 	await frames(1)
 	player().spdv = 3.0
@@ -914,18 +924,18 @@ func _test_fase3() -> void:
 	check(Game.player_lives == Game.max_lives - 1 and boss.hp == 5, "pisar fora da dor de dente machuca o pato")
 
 	# mordida pega quem nada perto
-	reset_player(Vector2(1180, 310))
-	boss.position = Vector2(1150, boss.position.y)
+	reset_player(Vector2(1110, 310))
+	boss.position = Vector2(1080, boss.position.y)
 	boss.dir = 1
 	boss.force_state("mordida_aviso", 5)
 	await frames(30)
 	check(Game.player_lives == Game.max_lives - 1, "mordida pega quem esta perto")
 
 	# 1 pisao deixa marca; reaparecer no checkpoint reabre tudo e o chefe volta inteiro
-	boss.position = Vector2(1000, boss.position.y)
+	boss.position = Vector2(1040, boss.position.y)
 	boss.force_state("dor", 999)
 	await frames(2)
-	reset_player(Vector2(1000, 260))
+	reset_player(Vector2(1040, 260))
 	player().spdv = 3.0
 	await frames(12)
 	check(boss.hp == 4 and boss.dano() == 1, "golpe deixa marca de dano (estagio %d)" % boss.dano())
@@ -942,10 +952,10 @@ func _test_fase3() -> void:
 	for k in 5:
 		if not is_instance_valid(boss) or boss.is_queued_for_deletion():
 			break
-		boss.position = Vector2(1000, boss.position.y)
+		boss.position = Vector2(1040, boss.position.y)
 		boss.force_state("dor", 999)
 		await frames(2)
-		reset_player(Vector2(1000, 260))
+		reset_player(Vector2(1040, 260))
 		player().spdv = 3.0
 		await frames(12)
 		if k == 0:
@@ -968,7 +978,7 @@ func _test_fase3() -> void:
 		and not Game.camera_limit.has_area() and not Game.boss_visible,
 		"saida abre e a camera solta para mostrar a continuacao")
 
-	player().position = Vector2(1480, 304)
+	player().position = Vector2(1320, 304)
 	await frames(3)
 	check(Game.game_state == "complete" and Game.best.has("fase3"), "saida conclui a fase 3 e salva")
 	check(Game.ui_layout()[0]["label"] == "PRÓXIMA FASE", "fase 3 leva a fase 4")
@@ -2121,3 +2131,101 @@ func _test_toque() -> void:
 	tq.forcar = false
 	tq.usando_toque = false
 	tq.soltar_tudo()
+
+
+func _test_olhar() -> void:
+	print("-- olhar para cima e para baixo")
+	Game.game_state = "playing"
+	Game.room_goto("tutorial")
+	await wait_level()
+	for e in get_tree().get_nodes_in_group("enemy"):
+		e.set_physics_process(false)
+		e.position = Vector2(-500, -500)
+	reset_player(Vector2(200, 304))
+	await frames(40)
+	var p := player()
+	var y0 := Game.cam_pos.y
+	var pos0 := p.position
+	Input.action_press("up")
+	await frames(6)
+	check(p._art.animation == "look_up" and Game.camera_olhar == 0.0, "segurar CIMA parado: o pato olha para cima")
+	await frames(60)
+	check(Game.camera_olhar < 0.0 and Game.cam_pos.y < y0 - 20.0,
+		"segurando um pouco, a camera sobe (%.0f -> %.0f)" % [y0, Game.cam_pos.y])
+	check(p.position == pos0, "olhar nao mexe o pato (%s -> %s)" % [pos0, p.position])
+	Input.action_release("up")
+	await frames(60)
+	check(Game.camera_olhar == 0.0 and absf(Game.cam_pos.y - y0) < 2.0, "soltar: a camera volta")
+	Input.action_press("down")
+	await frames(70)
+	# no fundo da sala a camera ja esta no limite de baixo: ela desce so ate onde a sala deixa
+	var limite_baixo := float(Game.room_height) - Game.view_size.y
+	check(p._art.animation == "look_down" and Game.camera_olhar > 0.0
+		and (Game.cam_pos.y > y0 or absf(Game.cam_pos.y - limite_baixo) <= 1.0) and p.position == pos0,
+		"segurar BAIXO: olha para baixo e a camera desce (%s, %.0f, %.0f -> %.0f, %s)"
+		% [p._art.animation, Game.camera_olhar, y0, Game.cam_pos.y, p.position])
+	Input.action_press("right")
+	await frames(3)
+	check(Game.camera_olhar == 0.0 and p._art.animation != "look_down", "andando nao olha")
+	Input.action_release("right")
+	Input.action_release("down")
+	await frames(30)
+	check(p._art.sprite_frames.get_frame_count("look_up") == 16
+		and p._art.sprite_frames.get_frame_count("look_down") == 16, "olhar: 16 quadros cada")
+
+
+func _test_teclas() -> void:
+	print("-- trocar teclas (CONTROLES)")
+	var tem := func(acao: String, k: int) -> bool:
+		return InputMap.action_get_events(acao).any(func(e): return e is InputEventKey and e.physical_keycode == k)
+	Game.teclas_padrao()
+	check(tem.call("jump", KEY_SPACE) and tem.call("pause", KEY_ESCAPE) and tem.call("confirm", KEY_ENTER),
+		"teclas padrao no InputMap")
+	Game.definir_tecla("jump", 0, KEY_Z)
+	check(tem.call("jump", KEY_Z) and not tem.call("jump", KEY_SPACE) and tem.call("confirm", KEY_Z),
+		"PULAR trocado para Z (e Z confirma nos menus)")
+	Game.definir_tecla("jump", 0, KEY_X)
+	check(Game.teclas["jump"][0] == KEY_X and Game.teclas["grab"][0] == KEY_Z and tem.call("grab", KEY_Z)
+		and not tem.call("grab", KEY_X), "tecla de outra acao: as duas trocam de lugar")
+	var cfg := ConfigFile.new()
+	cfg.load(Game.settings_path)
+	check(cfg.get_value("teclas", "jump", []) == [KEY_X, KEY_K], "teclas salvas nas configuracoes")
+	Game.teclas_padrao()
+	Game._load_settings()
+	check(Game.teclas["jump"][0] == KEY_X, "teclas voltam ao abrir o jogo")
+
+	Game.go_to_menu()
+	await wait_room("menu")
+	Game.game_state = "controls"
+	var labels := Game.ui_layout().map(func(r): return r["label"])
+	check(labels.size() == 9 and labels[4] == "PULAR" and labels[-2] == "PADRÃO" and labels[-1] == "VOLTAR",
+		"CONTROLES: 7 acoes, PADRÃO e VOLTAR (%s)" % [labels])
+	Game.ui_selection = 4
+	Game.tecla_coluna = 0
+	await press_key(KEY_RIGHT)
+	await frames(2)
+	check(Game.tecla_coluna == 1, "direita escolhe a segunda coluna")
+	await press_key(KEY_ENTER)
+	await frames(2)
+	check(Game.tecla_esperando == "jump", "ENTER: espera a tecla nova")
+	await press_key(KEY_L)
+	await frames(4)
+	check(Game.tecla_esperando.is_empty() and Game.teclas["jump"][1] == KEY_L and tem.call("jump", KEY_L),
+		"apertar L: PULAR ganha L na segunda coluna")
+	check(Game.game_state == "controls" and Game.ui_selection == 4, "a tecla nova nao mexe no menu")
+	await press_key(KEY_ENTER)
+	await frames(2)
+	await press_key(KEY_ESCAPE)
+	await frames(4)
+	check(Game.tecla_esperando.is_empty() and Game.teclas["jump"][1] == KEY_L and Game.game_state == "controls",
+		"ESC cancela a troca sem sair da tela")
+	Game.ui_selection = 7
+	await press_key(KEY_ENTER)
+	await frames(2)
+	check(Game.teclas["jump"] == [KEY_SPACE, KEY_K] and tem.call("jump", KEY_SPACE), "PADRÃO volta as teclas de fabrica")
+	await press_key(KEY_ESCAPE)
+	await frames(2)
+	check(Game.game_state == "settings", "ESC em CONTROLES volta as opcoes")
+	check(Game.nome_tecla(KEY_SPACE) == "ESPAÇO" and Game.nome_tecla(KEY_A) == "A" and Game.nome_tecla(KEY_LEFT) == "SETA <",
+		"nomes das teclas na tela")
+	Game.game_state = "main"

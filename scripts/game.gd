@@ -57,6 +57,17 @@ const ACTIONS := {
 	"confirm": [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE],
 	"pause": [KEY_ESCAPE],
 }
+## Teclas que o jogador pode trocar (CONTROLES): 2 por acao, na ordem da tela. 0 = vazio.
+## O padrao vem de ACTIONS (a pausa troca ESC, que e fixo, pela tecla P).
+const TECLAS_ACOES := ["left", "right", "up", "down", "jump", "grab", "pause"]
+const TECLAS_NOMES := {"left": "ESQUERDA", "right": "DIREITA", "up": "CIMA / OLHAR",
+	"down": "BAIXO / OLHAR", "jump": "PULAR", "grab": "PEGAR CAIXA", "pause": "PAUSAR"}
+const TECLAS_PADRAO := {"left": [KEY_LEFT, KEY_A], "right": [KEY_RIGHT, KEY_D],
+	"up": [KEY_UP, KEY_W], "down": [KEY_DOWN, KEY_S], "jump": [KEY_SPACE, KEY_K],
+	"grab": [KEY_X, KEY_J], "pause": [KEY_P, 0]}
+## Fixas (nao aparecem para trocar): ESC pausa e volta nos menus; ENTER confirma (com as teclas
+## de pular).
+const TECLAS_FIXAS := {"pause": [KEY_ESCAPE], "confirm": [KEY_ENTER, KEY_KP_ENTER]}
 ## Controle (gamepad): botoes de cada acao e eixo do analogico esquerdo [eixo, sentido].
 const JOY_BOTOES := {
 	"left": [JOY_BUTTON_DPAD_LEFT],
@@ -136,6 +147,8 @@ var room_width := 320
 var room_height := 180
 var cam_pos := Vector2.ZERO  # canto superior esquerdo da "view" (camera.gd)
 var view_size := Vector2(TELA)  # area do mundo que a tela mostra (384x216, ver TELA)
+## Px a mais que a camera mostra acima (<0) ou abaixo (>0) com o pato olhando (player.gd).
+var camera_olhar := 0.0
 var camera_offset_y := -50.0  # Level.camera_offset_y da fase atual
 ## Retangulo da sala que a camera pode mostrar (vazio = a sala toda). A arena do chefe
 ## (arena_chefe.gd) prende a camera nele: nada fora dele aparece, em x e em y.
@@ -153,6 +166,12 @@ var current_level_name := ""
 var has_checkpoint := false
 var checkpoint_pos := Vector2.ZERO
 var transitioning := false
+## Teclas escolhidas: acao -> [tecla 1, tecla 2] (physical keycode; 0 = vazio).
+var teclas := {}
+## CONTROLES: acao esperando a tecla nova ("" = nenhuma) e qual das 2 colunas (0 ou 1).
+var tecla_esperando := ""
+var tecla_coluna := 0
+var _tecla_ate_quadro := -1  # ignora o menu ate este quadro (a tecla nova nao vale como comando)
 var toque: Node2D = null  # controles de toque na tela (toque.gd)
 
 var pending_resize := false
@@ -237,10 +256,6 @@ func _setup_input() -> void:
 	for action: String in ACTIONS:
 		if not InputMap.has_action(action):
 			InputMap.add_action(action, 0.5)
-		for key: int in ACTIONS[action]:
-			var ev := InputEventKey.new()
-			ev.physical_keycode = key as Key
-			InputMap.action_add_event(action, ev)
 		for b: int in JOY_BOTOES.get(action, []):
 			var jb := InputEventJoypadButton.new()
 			jb.button_index = b as JoyButton
@@ -250,6 +265,107 @@ func _setup_input() -> void:
 			jm.axis = JOY_EIXOS[action][0] as JoyAxis
 			jm.axis_value = JOY_EIXOS[action][1]
 			InputMap.action_add_event(action, jm)
+	teclas_padrao()
+
+
+# ------------------------------------------------------------ teclas (CONTROLES)
+func teclas_padrao() -> void:
+	teclas = {}
+	for a: String in TECLAS_ACOES:
+		teclas[a] = (TECLAS_PADRAO[a] as Array).duplicate()
+	aplicar_teclas()
+
+
+## Poe as teclas escolhidas (e as fixas) no InputMap; os eventos do controle ficam como estao.
+func aplicar_teclas() -> void:
+	for action: String in ACTIONS:
+		for ev in InputMap.action_get_events(action):
+			if ev is InputEventKey:
+				InputMap.action_erase_event(action, ev)
+		var lista: Array = (TECLAS_FIXAS.get(action, []) as Array).duplicate()
+		lista.append_array(teclas.get(action, []))
+		if action == "confirm":
+			lista.append_array(teclas.get("jump", []))
+		for k: int in lista:
+			if k == 0:
+				continue
+			var ev := InputEventKey.new()
+			ev.physical_keycode = k as Key
+			InputMap.action_add_event(action, ev)
+
+
+## Troca a tecla da coluna 'col' de 'action' por 'key'. Se a tecla ja era de outra acao (ou da
+## outra coluna), as duas trocam de lugar: nenhuma tecla faz duas coisas.
+func definir_tecla(action: String, col: int, key: int) -> void:
+	var antiga: int = teclas[action][col]
+	for a: String in TECLAS_ACOES:
+		for c in 2:
+			if teclas[a][c] == key and not (a == action and c == col):
+				teclas[a][c] = antiga
+	teclas[action][col] = key
+	aplicar_teclas()
+	save_settings()
+
+
+## Tecla fixa ou proibida de escolher (ESC cancela a escolha).
+static func tecla_reservada(key: int) -> bool:
+	return key == KEY_ESCAPE or key == KEY_NONE
+
+
+## Nome curto da tecla para a tela (so letras que a fonte tem).
+static func nome_tecla(key: int) -> String:
+	match key:
+		0:
+			return "-"
+		KEY_LEFT:
+			return "SETA <"
+		KEY_RIGHT:
+			return "SETA >"
+		KEY_UP:
+			return "SETA CIMA"
+		KEY_DOWN:
+			return "SETA BAIXO"
+		KEY_SPACE:
+			return "ESPAÇO"
+		KEY_ENTER, KEY_KP_ENTER:
+			return "ENTER"
+		KEY_SHIFT:
+			return "SHIFT"
+		KEY_CTRL:
+			return "CTRL"
+		KEY_ALT:
+			return "ALT"
+		KEY_TAB:
+			return "TAB"
+		KEY_BACKSPACE:
+			return "APAGAR"
+	var nome := OS.get_keycode_string(key as Key).to_upper()
+	var ok := ""
+	for ch in nome:
+		ok += ch if PixelFont_tem(ch) else ""
+	return ok if not ok.is_empty() else "TECLA %d" % key
+
+
+static func PixelFont_tem(ch: String) -> bool:
+	return ch == " " or (ch >= "A" and ch <= "Z") or (ch >= "0" and ch <= "9") or ch in ".,-+/*"
+
+
+func _input_tecla(event: InputEvent) -> bool:
+	if tecla_esperando.is_empty():
+		return false
+	var key := event as InputEventKey
+	if key == null or not key.pressed or key.echo:
+		return event is InputEventKey
+	var code := int(key.physical_keycode)
+	if code == KEY_ESCAPE:
+		play_sfx("denied")
+	elif not tecla_reservada(code):
+		definir_tecla(tecla_esperando, tecla_coluna, code)
+		play_sfx("confirm")
+	tecla_esperando = ""
+	_tecla_ate_quadro = Engine.get_physics_frames() + 2
+	get_viewport().set_input_as_handled()
+	return true
 
 
 func _setup_buses() -> void:
@@ -413,6 +529,7 @@ func begin_level(level: Level) -> void:
 	boss_visible = false
 	keys = 0
 	camera_limit = Rect2()
+	camera_olhar = 0.0
 	camera_soltar_quadros = 0
 	camera_fechar_quadros = 0
 	arena_chefe = null
@@ -542,6 +659,11 @@ func _load_settings() -> void:
 		sfx_volume = clampi(int(cfg.get_value("audio", "sfx", old_volume)), 0, 10)
 		screen_mode = str(cfg.get_value("display", "mode", screen_mode))
 		resolution_index = clampi(int(cfg.get_value("display", "resolution", 2)), 0, 2)
+		for a: String in TECLAS_ACOES:
+			var v: Variant = cfg.get_value("teclas", a) if cfg.has_section_key("teclas", a) else null
+			if v is Array and (v as Array).size() == 2:
+				teclas[a] = [int(v[0]), int(v[1])]
+		aplicar_teclas()
 
 
 func save_settings() -> void:
@@ -550,6 +672,8 @@ func save_settings() -> void:
 	cfg.set_value("audio", "sfx", sfx_volume)
 	cfg.set_value("display", "mode", screen_mode)
 	cfg.set_value("display", "resolution", resolution_index)
+	for a: String in TECLAS_ACOES:
+		cfg.set_value("teclas", a, teclas[a])
 	cfg.save(settings_path)
 
 
@@ -636,8 +760,16 @@ func ui_layout() -> Array:
 					{"room": LAB_LEVEL}))
 			out.append(ui_rect(169, 120, 12, "VOLTAR"))
 			return out
-		"credits", "controls":
+		"credits":
 			return [ui_rect(158, 120, 16, "VOLTAR")]
+		"controls":
+			var linhas := []
+			for i in TECLAS_ACOES.size():
+				linhas.append(ui_rect(38 + i * 13, 236, 12, TECLAS_NOMES[TECLAS_ACOES[i]],
+					{"tecla": TECLAS_ACOES[i]}))
+			linhas.append(ui_rect(134, 110, 12, "PADRÃO"))
+			linhas.append(ui_rect(150, 110, 12, "VOLTAR"))
+			return linhas
 		"settings":
 			return [ui_rect(46, 220, 14, "TELA"),
 				ui_rect(62, 220, 14, "TAMANHO"),
@@ -670,6 +802,8 @@ func ui_layout() -> Array:
 
 # ----------------------------------------------------------- teclas de debug
 func _input(event: InputEvent) -> void:
+	if _input_tecla(event):
+		return
 	if not OS.is_debug_build() or not in_level or transitioning:
 		return
 	var key := event as InputEventKey
@@ -698,6 +832,11 @@ func _physics_process(delta: float) -> void:
 		pending_resize = false
 
 	if transitioning:
+		return
+
+	# CONTROLES esperando a tecla nova (ou a tecla acabou de chegar): o menu nao reage a ela
+	if not tecla_esperando.is_empty() or Engine.get_physics_frames() <= _tecla_ate_quadro:
+		_mouse_prev = Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT)
 		return
 
 	if in_level and level_started and game_state == "playing":
@@ -748,6 +887,8 @@ func _physics_process(delta: float) -> void:
 					ui_selection = i
 				if mouse_pressed:
 					action = i
+					if r.has("tecla"):  # coluna da tecla clicada (as caixas comecam em x 149 e 214)
+						tecla_coluna = 0 if mp.x < 212.0 else 1
 					# Nas linhas de ajuste, clicar na metade esquerda diminui e na direita aumenta.
 					if adjusting and i < SETTINGS_ADJUST_ROWS:
 						if mp.x < (r["x1"] + r["x2"]) / 2.0:
@@ -768,12 +909,21 @@ func _physics_process(delta: float) -> void:
 	_prev_state = game_state
 	_prev_selection = ui_selection
 
+	if game_state == "controls" and (left or right) and ui_selection < TECLAS_ACOES.size():
+		if tecla_coluna != (1 if right else 0):
+			tecla_coluna = 1 if right else 0
+			play_sfx("select")
+
 	if adjusting and (left or right) and ui_selection < SETTINGS_ADJUST_ROWS:
 		_adjust_setting(ui_selection, 1 if right else -1)
 
 	if action < 0:
 		return
 	var chosen: Dictionary = layout[action]
+	if chosen.has("tecla"):
+		play_sfx("confirm")
+		tecla_esperando = chosen["tecla"]
+		return
 	if chosen.has("room"):
 		play_sfx("confirm")
 		_reset_run()
@@ -867,7 +1017,11 @@ func _run_menu_action(label: String) -> void:
 			game_state = "settings"
 		"CONTROLES":
 			ui_selection = 0
+			tecla_coluna = 0
 			game_state = "controls"
+		"PADRÃO":
+			teclas_padrao()
+			save_settings()
 		"SAIR":
 			get_tree().quit()
 		"VOLTAR":

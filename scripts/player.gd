@@ -24,7 +24,14 @@ const ART_ANIMS := {
 	"fall": ["res://assets/sprites/arte/pato_caindo.png", 16, 21.0],
 	"hurt": ["res://assets/sprites/arte/pato_dano.png", 16, 48.0],
 	"dead": ["res://assets/sprites/arte/pato_morte.png", 16, 14.0],
+	# olhar para cima / para baixo: vira a cabeca, segura a pose e pisca; para no ultimo quadro
+	"look_up": ["res://assets/sprites/arte/pato_olhando_cima.png", 16, 16.0, false],
+	"look_down": ["res://assets/sprites/arte/pato_olhando_baixo.png", 16, 16.0, false],
 }
+## Olhar: quadros segurando CIMA/BAIXO parado no chao antes de a camera deslizar, e quantos px
+## ela mostra a mais acima/abaixo (camera.gd soma Game.camera_olhar ao enquadramento).
+const OLHAR_ESPERA := 24
+const OLHAR_PX := 64.0
 ## Mergulhado: pato deitado, pes batendo (laco de 1 s). Fica fora de ART_ANIMS porque o menu e a
 ## cutscene montam o pato com ART_ANIMS e nao precisam dela; so entra se a tira ja foi importada
 ## (sem ela o pato mergulhado volta a usar a queda).
@@ -38,6 +45,10 @@ const APEX_SPEED := 0.8
 const ART_ORIGIN := Vector2(8, 15)
 
 const HURT_TIME := 30  # frames parado no estado "hurt"
+
+## Olhando: -1 cima, 1 baixo, 0 nao; e ha quantos quadros segura a mesma direcao.
+var olhar_dir := 0
+var olhar_quadros := 0
 const DEATH_TIME := 60  # frames da animacao de morte ate a tela de fim de jogo
 const INVULN_TIME := 120  # frames de invulnerabilidade depois do dano
 const FALL_DAMAGE_HEIGHT := 96.0  # queda (px) que causa dano ao pousar
@@ -511,6 +522,9 @@ func _check_out_of_bounds() -> void:
 func _update_sprite() -> void:
 	_art.flip_h = xscale < 0
 	if player_state != "alive":
+		olhar_dir = 0
+		olhar_quadros = 0
+		Game.camera_olhar = 0.0
 		_art.scale = Vector2.ONE * Sprites.ART_SCALE
 		_art.visible = true
 		_art.speed_scale = 1.0
@@ -535,6 +549,19 @@ func _update_sprite() -> void:
 		next_anim = "fall"
 	elif spdv != 0.0 and not _place_meeting(position.x, position.y + 1.0):
 		next_anim = "apex"  # no alto do pulo: a asa bate e os pes comecam a descer
+
+	# parado no chao segurando CIMA ou BAIXO: olha (e, segurando um pouco, a camera vai junto)
+	var olhar := 0
+	if next_anim == "idle" and swim == "none" and not climbing and spdv == 0.0 			and _place_meeting(position.x, position.y + 1.0):
+		var up := Input.is_action_pressed("up")
+		var down := Input.is_action_pressed("down")
+		if up != down:
+			olhar = -1 if up else 1
+	if olhar != 0:
+		next_anim = "look_up" if olhar < 0 else "look_down"
+	olhar_quadros = olhar_quadros + 1 if olhar != 0 and olhar == olhar_dir else (1 if olhar != 0 else 0)
+	olhar_dir = olhar
+	Game.camera_olhar = OLHAR_PX * olhar if olhar_quadros >= OLHAR_ESPERA else 0.0
 
 	_set_anim(next_anim)
 	if climbing and spdv == 0.0:
