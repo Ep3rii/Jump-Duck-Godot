@@ -79,15 +79,15 @@ position = Vector2(440, 112)
 script = ExtResource("9_ho3ux")
 
 [node name="Flor1" type="Node2D" parent="Itens" unique_id=1780854643 instance=ExtResource("10_0ecyv")]
-position = Vector2(152, 128)
+position = Vector2(152, 160)
 script = ExtResource("11_45o2d")
 
 [node name="Flor2" type="Node2D" parent="Itens" unique_id=1982516408 instance=ExtResource("10_0ecyv")]
-position = Vector2(248, 80)
+position = Vector2(248, 112)
 script = ExtResource("11_45o2d")
 
 [node name="Flor3" type="Node2D" parent="Itens" unique_id=602527413 instance=ExtResource("10_0ecyv")]
-position = Vector2(456, 80)
+position = Vector2(456, 112)
 script = ExtResource("11_45o2d")
 
 [node name="Vida1" type="Node2D" parent="Itens" unique_id=1008884601 instance=ExtResource("12_rco26")]
@@ -113,13 +113,7 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=333240983 instance=ExtResource("18_smvnm")]
 position = Vector2(56, 160)
 script = ExtResource("19_rvwe0")
-texto = "O NINHO DO GAVIÃO!|A PATA ESTÁ PRESA LÁ EM CIMA"
-
-[node name="Dica2" type="Node2D" parent="Dicas" unique_id=1570722762 instance=ExtResource("18_smvnm")]
-position = Vector2(168, 160)
-script = ExtResource("19_rvwe0")
-texto = "QUANDO ELE BATER NA|PAREDE, É A SUA VEZ!"
-alcance = 40.0
+texto = "O NINHO DO REI GAVIÃO.|AGORA OU NUNCA!"
 
 [node name="Jogador" type="Node2D" parent="." unique_id=1204646368]
 z_index = -500

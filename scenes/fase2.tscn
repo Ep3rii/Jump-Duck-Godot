@@ -147,7 +147,7 @@ position = Vector2(936, 240)
 script = ExtResource("11_gtsbl")
 
 [node name="Flor3" type="Node2D" parent="Itens" unique_id=738212107 instance=ExtResource("10_bundg")]
-position = Vector2(1104, 380)
+position = Vector2(1104, 384)
 script = ExtResource("11_gtsbl")
 
 [node name="Flor4" type="Node2D" parent="Itens" unique_id=1549195635 instance=ExtResource("10_bundg")]
@@ -196,23 +196,7 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=1976246446 instance=ExtResource("24_tok42")]
 position = Vector2(120, 304)
 script = ExtResource("25_uy4op")
-texto = "NA ÁGUA, BAIXO MERGULHA|E ESPAÇO PULA PARA FORA"
-
-[node name="Dica2" type="Node2D" parent="Dicas" unique_id=1796700801 instance=ExtResource("24_tok42")]
-position = Vector2(472, 304)
-script = ExtResource("25_uy4op")
-texto = "CAIXAS BOIAM!|EMPURRE PELA ÁGUA"
-
-[node name="Dica3" type="Node2D" parent="Dicas" unique_id=2006695749 instance=ExtResource("24_tok42")]
-position = Vector2(904, 240)
-script = ExtResource("25_uy4op")
-texto = "OLHO NAS BOLHAS: SEM AR,|VOCÊ SE MACHUCA"
-
-[node name="Dica4" type="Node2D" parent="Dicas" unique_id=1029241856 instance=ExtResource("24_tok42")]
-position = Vector2(1376, 304)
-script = ExtResource("25_uy4op")
-texto = "JACARÉ COM A CABEÇA|DE FORA? PULE NELE!"
-alcance = 40.0
+texto = "A PATA ADORAVA NADAR|NESTE LAGO..."
 
 [node name="Jogador" type="Node2D" parent="." unique_id=1694286427]
 z_index = -500

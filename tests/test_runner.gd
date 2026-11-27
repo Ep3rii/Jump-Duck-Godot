@@ -166,10 +166,23 @@ func _run() -> void:
 	check(labels == ["JOGAR", "FASES", "OPÇÕES", "SAIR"],
 		"menu principal: %s" % [labels])
 
-	print("-- inicio do jogo com fade")
+	print("-- jogo novo: cutscene inicial e depois a primeira fase")
 	Game.start_new_game()
 	await frames(3)
 	check(Game.transitioning and get_tree().paused, "fade: tudo pausado durante a troca")
+	await wait_room("cutscene_inicial")
+	await frames(5)
+	var intro: Node2D = get_tree().current_scene
+	check(Game.game_state == "cutscene" and not Game.in_level and intro.t > 0.0, "jogo novo abre a cutscene inicial")
+	intro.t = 6.9
+	await frames(2)
+	check(intro.pata_pos().distance_to(intro.gaviao_pos() + intro.GARRAS) < 1.0 and intro.duck_anim() == "look_up",
+		"o Rei Gaviao agarra a Pata e o pato leva um susto")
+	intro.t = 12.0
+	await frames(2)
+	check(intro.duck_anim() == "coragem" and intro._duck.sprite_frames.get_frame_count("coragem") == 16,
+		"o pato toma coragem (animacao de 16 quadros)")
+	await press_key(KEY_ENTER)
 	await wait_level()
 	check(Game.in_level and not Game.transitioning, "fase ativa depois do fade")
 	check(Game.current_level_name == FIXTURE, "nome da fase vem da cena")
@@ -398,7 +411,9 @@ func _run() -> void:
 	await _test_arena()
 	await _test_toque()
 	await _test_olhar()
+	await _test_fazenda()
 	await _test_teclas()
+	await _test_flores_no_chao()
 
 	print("-- menus")
 	Game.go_to_menu()
@@ -483,7 +498,11 @@ func _test_levels() -> void:
 	await wait_level()
 	check(Game.current_level_name == "tutorial", "JOGAR comeca pelo tutorial")
 	check(Game.total_collectibles == 3, "tutorial tem 3 flores (veio %d)" % Game.total_collectibles)
-	check(get_tree().get_nodes_in_group("dica").size() >= 7, "placas de dica no tutorial")
+	var placas := get_tree().get_nodes_in_group("dica")
+	check(placas.size() >= 1 and placas.size() <= 3, "poucas placas no tutorial (%d)" % placas.size())
+	var de_controle := placas.filter(func(d): return ["ESPAÇO", "SETAS", "APERTE", "PULE", "X OU J"].any(
+		func(w): return w in d.texto))
+	check(de_controle.is_empty(), "placas contam a historia, nao os controles")
 
 	print("-- cenario na escala do pato, parallax e luz (ceu aberto)")
 	var spr = load("res://scripts/sprites.gd")
@@ -568,7 +587,7 @@ func _test_levels() -> void:
 	reset_player(Vector2(150, 304))
 	reset_player(Vector2(150, 304))
 	await frames(2)
-	var dica2: Node = node("Dicas/Dica2")
+	var dica2: Node = node("Dicas/Dica1")
 	await frames(20)
 	check(dica2.is_showing(), "placa mostra a dica com o pato perto")
 
@@ -1713,6 +1732,11 @@ func _test_cutscene() -> void:
 	await frames(2)
 	check(scene.pata_x() == scene.PATA_STOP_X and scene.duck_x() == scene.DUCK_STOP_X,
 		"o pato e a Pata se encontram")
+	var fl := Game.flores_colhidas()
+	check(scene.buque == Game.buque_nivel(fl.x, fl.y), "buque pelas flores colhidas (%d de %d -> %d)" % [fl.x, fl.y, scene.buque])
+	check(Game.buque_nivel(0, 40) == 0 and Game.buque_nivel(5, 40) == 1 and Game.buque_nivel(20, 40) == 2
+		and Game.buque_nivel(39, 40) == 2 and Game.buque_nivel(40, 40) == 3,
+		"nenhuma flor, uma flor, buque pequeno (metade) e buque grande (todas)")
 	check(scene.sunset() > 0.2 and scene.sunset() < 1.0, "o sol esta se pondo")
 	scene.t = 21.95
 	await wait_room("menu")
@@ -2229,3 +2253,62 @@ func _test_teclas() -> void:
 	check(Game.nome_tecla(KEY_SPACE) == "ESPAÇO" and Game.nome_tecla(KEY_A) == "A" and Game.nome_tecla(KEY_LEFT) == "SETA <",
 		"nomes das teclas na tela")
 	Game.game_state = "main"
+
+
+func _test_flores_no_chao() -> void:
+	print("-- flores sempre no chao (nenhuma flutuando)")
+	var Solids = load("res://scripts/solids.gd")
+	var no_ar := []
+	var reais: Array = Game.levels
+	for lv in ["tutorial", "fase1", "fase2", "fase3", "fase4", "fase5", "fase6", "fase7", "fase8",
+			"fase_final", Game.LAB_LEVEL]:
+		Game.game_state = "playing"
+		Game.room_goto(lv)
+		await wait_level()
+		var snap = Solids.snapshot(get_tree())
+		for fl in get_tree().get_nodes_in_group("flor"):
+			var p: Vector2 = fl.position
+			if not Solids.hits(snap, Rect2(p.x - 2.0, p.y, 4.0, 1.0)):
+				no_ar.append("%s/%s" % [lv, fl.name])
+			if fl.sprite.position.y != 0.0:
+				no_ar.append("%s/%s balanca" % [lv, fl.name])
+	check(no_ar.is_empty(), "todas as flores plantadas no chao %s" % [no_ar])
+
+
+func _test_fazenda() -> void:
+	print("-- fazenda: animais que conversam, plantacoes e porteira")
+	Game.game_state = "playing"
+	Game.room_goto("tutorial")
+	await wait_level()
+	for e in get_tree().get_nodes_in_group("enemy"):
+		e.set_physics_process(false)
+		e.position = Vector2(-500, -500)
+	var bichos := get_tree().get_nodes_in_group("falante")
+	check(bichos.size() == 4 and bichos.all(func(b): return b.falas.size() >= 2),
+		"tutorial com 4 animais, cada um com falas (%d)" % bichos.size())
+	var plantas := get_tree().get_nodes_in_group("sombra_cenario").size()
+	check(node("Decoracao/Repolho1") != null and node("Decoracao/Espantalho1") != null, "plantacoes e espantalho na fazenda")
+	var vaca: Node2D = node("Animais/Vaca")
+	reset_player(vaca.position + Vector2(-20, 0))
+	await frames(5)
+	check(vaca.perto and vaca.fala_atual == -1 and not vaca.is_showing(), "perto da vaca: ela espera a conversa")
+	await press_key(KEY_UP)
+	await frames(15)
+	check(vaca.fala_atual == 0 and vaca.is_showing() and vaca._lines()[0].begins_with("MUUU"),
+		"CIMA conversa: primeira fala no balao")
+	check(player()._art.animation != "look_up", "perto do animal CIMA nao vira olhar")
+	await press_key(KEY_UP)
+	await frames(5)
+	check(vaca.fala_atual == 1, "CIMA de novo: proxima fala")
+	reset_player(vaca.position + Vector2(-120, 0))
+	await frames(20)
+	check(not vaca.perto and vaca.fala_atual == -1 and not vaca.is_showing(), "afastou: a conversa recomeca")
+
+	Game.room_goto("fase1")
+	await wait_level()
+	var porta: Node2D = node("Mecanicas/Porta1")
+	check(porta.estilo_cerca and porta.is_in_group("solid") and porta._cerca_q == 0.0, "fase 1: porteira de cerca fechada")
+	porta.set_active(true)
+	await frames(30)
+	check(porta.is_open and not porta.is_in_group("solid") and porta._cerca_q == 15.0, "o botao abre a porteira (ela afunda no chao)")
+	check(get_tree().get_nodes_in_group("falante").size() >= 2, "animais na parte da fazenda da fase 1")

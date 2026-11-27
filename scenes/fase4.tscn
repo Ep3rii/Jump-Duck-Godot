@@ -178,18 +178,7 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=665726215 instance=ExtResource("26_jey47")]
 position = Vector2(88, 768)
 script = ExtResource("27_003o0")
-texto = "A TORRE DO GAVIÃO!|A PATA ESTÁ LÁ NO TOPO"
-
-[node name="Dica2" type="Node2D" parent="Dicas" unique_id=912413482 instance=ExtResource("26_jey47")]
-position = Vector2(232, 768)
-script = ExtResource("27_003o0")
-texto = "COM A CHAVE, É SÓ|ENCOSTAR NA PORTA"
-
-[node name="Dica3" type="Node2D" parent="Dicas" unique_id=1755349849 instance=ExtResource("26_jey47")]
-position = Vector2(552, 768)
-script = ExtResource("27_003o0")
-texto = "O GAVIÃO GRITA ANTES|DE ATACAR: CORRA!"
-alcance = 40.0
+texto = "A TORRE DO REI GAVIÃO!|A PATA ESTÁ LÁ NO TOPO"
 
 [node name="Jogador" type="Node2D" parent="." unique_id=649752978]
 z_index = -500

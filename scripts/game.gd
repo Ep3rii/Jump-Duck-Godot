@@ -43,6 +43,8 @@ const LAB_LEVEL := "laboratorio"
 ## Ultima fase do jogo: a tela de fase concluida dela leva a cutscene final.
 const FINAL_LEVEL := "fase_final"
 const ENDING_SCENE := "cutscene_final"
+## Cutscene do comeco (o Rei Gaviao leva a Pata): abre o jogo novo e termina no tutorial.
+const INTRO_SCENE := "cutscene_inicial"
 
 const FADE_TIME := 0.2
 const SETTINGS_ADJUST_ROWS := 4  # TELA, JANELA, MUSICA, EFEITOS (ajustaveis com esq/dir)
@@ -445,6 +447,14 @@ func _reset_run() -> void:
 
 
 func start_new_game() -> void:
+	_reset_run()
+	game_state = "cutscene"
+	ui_selection = 0
+	room_goto(INTRO_SCENE)
+
+
+## Fim da cutscene inicial (ou pulou): comeca o tutorial.
+func finish_intro() -> void:
 	play_level(0)
 
 
@@ -610,6 +620,29 @@ static func stars_for(score: int) -> int:
 	return 1
 
 
+## Flores colhidas (o melhor de cada fase) e o total das fases ja jogadas: [colhidas, total].
+func flores_colhidas() -> Vector2i:
+	var out := Vector2i.ZERO
+	for lv: Dictionary in levels:
+		var reg: Dictionary = best.get(lv["id"], {})
+		out.x += int(reg.get("flores", 0))
+		out.y += int(reg.get("flores_total", 0))
+	return out
+
+
+## O que o pato entrega a Pata na cutscene final, pelas flores colhidas na aventura:
+## 0 = nenhuma flor, 1 = uma flor so (poucas), 2 = buque pequeno (metade ou mais),
+## 3 = buque grande (todas).
+static func buque_nivel(colhidas: int, total: int) -> int:
+	if colhidas <= 0 or total <= 0:
+		return 0
+	if colhidas >= total:
+		return 3
+	if colhidas * 2 >= total:
+		return 2
+	return 1
+
+
 # ------------------------------------------------------------ progresso salvo
 func _record_progress(score: int) -> void:
 	if level_index(current_level_name) < 0:
@@ -623,6 +656,11 @@ func _record_progress(score: int) -> void:
 			"stars": stars_for(score),
 			"time": level_elapsed_seconds,
 		}
+	# flores: o melhor de cada fase fica guardado a parte (vale para o buque da cutscene final)
+	var reg: Dictionary = best.get(current_level_name, {})
+	reg["flores"] = maxi(int(prev.get("flores", 0)), current_collectibles)
+	reg["flores_total"] = total_collectibles
+	best[current_level_name] = reg
 	var i := level_index(current_level_name)
 	if i >= 0:
 		unlocked_count = clampi(maxi(unlocked_count, i + 2), 1, levels.size())

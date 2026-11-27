@@ -14,7 +14,9 @@ var xscale := 1  # image_xscale: 1 = olhando p/ esquerda (como o sprite original
 
 const Sprites := preload("res://scripts/sprites.gd")
 const QUADROS := 16
-const PIVO := Vector2(12, 17)  # pes da raposa, no quadro (px do jogo)
+## Pes da raposa no quadro (px do jogo): a ultima linha (o contorno das patas) fica SOBRE a
+## borda do chao, como o pato (Player.ART_ORIGIN); com y = 17 ela parecia flutuar 1 px.
+const PIVO := Vector2(12, 16)
 
 var _t := 0.0
 

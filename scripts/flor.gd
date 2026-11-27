@@ -7,8 +7,8 @@ const Sprites := preload("res://scripts/sprites.gd")
 ## A rosa original com o dobro de detalhe (assets/sprites/arte/flor.png, 4 quadros).
 const ART_ANIMS := {"default": ["res://assets/sprites/arte/flor.png", 16, 20.0]}
 const ART_ORIGIN := Vector2(8, 14)  # o mesmo ponto do original, em px
-## Brilho de item (Endesga 32 #fee761 e #ffffff): a flor balanca e pisca como a chave, para
-## ler como coletavel mesmo quando fica no ar (sem parecer planta solta da terra).
+## Brilho de item (Endesga 32 #fee761 e #ffffff): a flor pisca como a chave, para ler como
+## coletavel. Ela fica sempre plantada no chao (as fases so poem flor sobre chao firme).
 const COL_BRILHO := Color8(254, 231, 97)
 const COL_BRILHO_MEIO := Color8(255, 255, 255)
 ## Pontos (px do jogo, relativos a origem) onde a estrelinha aparece, um de cada vez.
@@ -27,16 +27,13 @@ func _ready() -> void:
 	sprite.name = "Sprite"
 	add_child(sprite)
 	sprite.play("default")
-	# cada flor balanca num tempo proprio (nao sobem e descem todas juntas)
+	# cada flor pisca num tempo proprio (nao brilham todas juntas)
 	_fase = fposmod(position.x * 0.071 + position.y * 0.037, TAU)
 
 
 func _process(delta: float) -> void:
 	_time += delta
-	# sobe e desce ate 2 px (nunca abaixo da posicao original: nao afunda na grama)
-	var bob := floorf((sin(_time * 2.6 + _fase) - 1.0) * 1.2)
-	if sprite != null and sprite.position.y != bob:
-		sprite.position.y = bob
+	# a flor fica plantada no chao (pedido do dono: nunca flutuando); so o brilho pisca
 	queue_redraw()
 
 

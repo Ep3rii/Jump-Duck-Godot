@@ -150,11 +150,11 @@ encosto_x = -7
 z_index = -700
 
 [node name="Flor1" type="Node2D" parent="Itens" unique_id=1893212513 instance=ExtResource("12_jke5j")]
-position = Vector2(304, 744)
+position = Vector2(304, 768)
 script = ExtResource("13_xs6yd")
 
 [node name="Flor2" type="Node2D" parent="Itens" unique_id=174021628 instance=ExtResource("12_jke5j")]
-position = Vector2(264, 568)
+position = Vector2(264, 592)
 script = ExtResource("13_xs6yd")
 
 [node name="Flor3" type="Node2D" parent="Itens" unique_id=1771865349 instance=ExtResource("12_jke5j")]
@@ -162,7 +162,7 @@ position = Vector2(304, 368)
 script = ExtResource("13_xs6yd")
 
 [node name="Flor4" type="Node2D" parent="Itens" unique_id=195195906 instance=ExtResource("12_jke5j")]
-position = Vector2(296, 216)
+position = Vector2(296, 240)
 script = ExtResource("13_xs6yd")
 
 [node name="Vida1" type="Node2D" parent="Itens" unique_id=1445806730 instance=ExtResource("14_q4kdn")]
@@ -204,17 +204,7 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=27335184 instance=ExtResource("22_7sdy2")]
 position = Vector2(88, 768)
 script = ExtResource("23_4lxo1")
-texto = "PEDRA RACHADA CAI|LOGO DEPOIS DO PISÃO"
-
-[node name="Dica2" type="Node2D" parent="Dicas" unique_id=82942048 instance=ExtResource("22_7sdy2")]
-position = Vector2(392, 768)
-script = ExtResource("23_4lxo1")
-texto = "VENTO FORTE!|ESPERE ELE ACALMAR"
-
-[node name="Dica3" type="Node2D" parent="Dicas" unique_id=1852182804 instance=ExtResource("22_7sdy2")]
-position = Vector2(504, 768)
-script = ExtResource("23_4lxo1")
-texto = "ESTE VENTO SOPRA|PARA CIMA: ENTRE NELE!"
+texto = "O VENTO UIVA NA TORRE,|MAS O PATO NÃO DESISTE"
 
 [node name="Jogador" type="Node2D" parent="." unique_id=1824691677]
 z_index = -500

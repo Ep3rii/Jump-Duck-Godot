@@ -121,7 +121,7 @@ position = Vector2(272, 336)
 script = ExtResource("16_0txsn")
 
 [node name="Flor1" type="Node2D" parent="Itens" unique_id=684910004 instance=ExtResource("17_2hvj6")]
-position = Vector2(616, 260)
+position = Vector2(616, 336)
 script = ExtResource("18_vgic5")
 
 [node name="Flor2" type="Node2D" parent="Itens" unique_id=1901885726 instance=ExtResource("17_2hvj6")]

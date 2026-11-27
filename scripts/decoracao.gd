@@ -6,7 +6,7 @@ extends Node2D
 ## Nao colide com nada. Origem = base, no chao (centro para moinho/celeiro/arvore/arbusto,
 ## canto esquerdo para a cerca). Nao use 'scale': a arte so fica nitida no tamanho dela.
 
-@export_enum("Moinho", "Celeiro", "Cerca", "Árvore", "Arbusto", "Placa de saída", "Junco", "Pilar de pedra", "Árvore jovem") var tipo := 0:
+@export_enum("Moinho", "Celeiro", "Cerca", "Árvore", "Arbusto", "Placa de saída", "Junco", "Pilar de pedra", "Árvore jovem", "Milho", "Repolho", "Cenoura", "Espantalho") var tipo := 0:
 	set(v):
 		tipo = v
 		queue_redraw()
@@ -52,7 +52,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if tipo in [0, 3, 6, 8]:  # moinho gira; arvores e junco balancam com o vento
+	if tipo in [0, 3, 6, 8, 9, 10, 11, 12]:  # moinho gira; arvores, junco e plantacoes balancam
 		_time += delta
 		queue_redraw()
 
@@ -82,6 +82,25 @@ func _draw() -> void:
 			_draw_junco()
 		7:
 			_draw_pilar()
+		9, 10, 11, 12:
+			_draw_plantacao()
+
+
+## Plantacoes e espantalho da fazenda (tools/arte/fazenda.py): 16 quadros de vento, centradas
+## na origem, com o pe na borda do chao. Cada peca balanca num tempo proprio.
+const PLANTACOES := {9: "cenario/plantacao_milho", 10: "cenario/plantacao_repolho",
+	11: "cenario/plantacao_cenoura", 12: "cenario/espantalho"}
+
+
+func _draw_plantacao() -> void:
+	var arte: String = PLANTACOES[tipo]
+	if not Sprites.has_art(arte):
+		return
+	var tam := Sprites.art_size(arte, 16)
+	var q := int(_time * 8.0 + position.x * 0.13) % 16
+	for i in maxi(1, tiles_w if tipo != 12 else 1):
+		var x := -floorf(tam.x * 0.5) + i * tam.x
+		Sprites.draw_art(self, arte, x, -tam.y + BASE, (q + i * 5) % 16, 16)
 
 
 ## Faixa de sombra no chao (sombras.gd): comeca embaixo da peca e se estende para a direita,

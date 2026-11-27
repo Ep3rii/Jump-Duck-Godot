@@ -165,19 +165,19 @@ position = Vector2(216, 336)
 script = ExtResource("13_8h0gn")
 
 [node name="Flor1" type="Node2D" parent="Itens" unique_id=1046693247 instance=ExtResource("14_ssfde")]
-position = Vector2(592, 552)
+position = Vector2(592, 576)
 script = ExtResource("15_kgab0")
 
 [node name="Flor2" type="Node2D" parent="Itens" unique_id=1861422726 instance=ExtResource("14_ssfde")]
-position = Vector2(328, 360)
+position = Vector2(328, 384)
 script = ExtResource("15_kgab0")
 
 [node name="Flor3" type="Node2D" parent="Itens" unique_id=222685023 instance=ExtResource("14_ssfde")]
-position = Vector2(392, 168)
+position = Vector2(392, 192)
 script = ExtResource("15_kgab0")
 
 [node name="Flor4" type="Node2D" parent="Itens" unique_id=1682674209 instance=ExtResource("14_ssfde")]
-position = Vector2(488, 140)
+position = Vector2(488, 192)
 script = ExtResource("15_kgab0")
 
 [node name="Vida1" type="Node2D" parent="Itens" unique_id=1430961338 instance=ExtResource("16_ywky4")]
@@ -223,7 +223,7 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=1437164367 instance=ExtResource("26_hjowg")]
 position = Vector2(88, 576)
 script = ExtResource("27_v34rc")
-texto = "FALTA POUCO! O NINHO|DO GAVIÃO É LOGO ACIMA"
+texto = "LÁ DO ALTO, A PATA|CHAMA POR SOCORRO!"
 
 [node name="Jogador" type="Node2D" parent="." unique_id=1077252124]
 z_index = -500

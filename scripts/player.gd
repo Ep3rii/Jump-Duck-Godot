@@ -513,6 +513,13 @@ func _step_hurt_or_dead() -> void:
 		queue_free()
 
 
+func _perto_de_falante() -> bool:
+	for n in get_tree().get_nodes_in_group("falante"):
+		if n.perto:
+			return true
+	return false
+
+
 ## Rede de seguranca caso o jogador saia do mapa (buraco sem fundo): volta ao checkpoint.
 func _check_out_of_bounds() -> void:
 	if position.y > Game.room_height + 96 or position.x < -64 or position.x > Game.room_width + 64:
@@ -555,6 +562,8 @@ func _update_sprite() -> void:
 	if next_anim == "idle" and swim == "none" and not climbing and spdv == 0.0 			and _place_meeting(position.x, position.y + 1.0):
 		var up := Input.is_action_pressed("up")
 		var down := Input.is_action_pressed("down")
+		if up and _perto_de_falante():
+			up = false  # perto de um animal, CIMA conversa (animal.gd) em vez de olhar
 		if up != down:
 			olhar = -1 if up else 1
 	if olhar != 0:

@@ -347,49 +347,38 @@ func _draw_menus(state: String, now: int) -> void:
 
 
 func _draw_hud(w: int, h: int) -> void:
-	var hud_bg := COL_DARK  # opaco: o cenario nao aparece atras do texto
-	var hearts_x2 := 5 + Game.max_lives * 18
-	_fill(2, 2, hearts_x2, 21, hud_bg)
-	_fill(w - 76, 2, w - 2, 29, hud_bg)
-	_outline(2, 2, hearts_x2, 21, COL_MID)
-	_outline(w - 76, 2, w - 2, 29, COL_MID)
-
+	# HUD limpo (pedido do dono): sem caixas nem tempo na tela; so os coracoes (vida) no canto
+	# esquerdo e as flores coletadas no direito. O contorno escuro da arte e a sombra do texto
+	# bastam para ler contra o cenario.
 	if Game.debug_invincible:
 		_text(4, h - 8, "TESTE: INVENCÍVEL", COL_YELLOW, LEFT)
 
-	# Sem barra de vida nem nome do chefe no HUD (pedido do dono): o dano acumulado aparece so
-	# no proprio chefe. Game.boss_hp / boss_max / boss_visible continuam existindo para os
-	# chefes e a arena (arena_chefe.gd), mas nada daqui os desenha.
+	# Sem barra de vida nem nome do chefe no HUD: o dano acumulado aparece so no proprio chefe.
 
-	var row_y := 23.0  # proxima linha livre embaixo dos coracoes
+	for heart in Game.max_lives:
+		var cheio := heart < Game.player_lives
+		Sprites.draw_frame(self, "coracao", Rect2(4 + heart * 17, 3, 16, 16), 0 if cheio else 1)
+
+	# flores: a flor do jogo (parada no 1o quadro) e "coletadas/total"
+	var txt := "%d/%d" % [Game.current_collectibles, Game.total_collectibles]
+	var tw := PixelFont.width(txt)
+	var tx := float(w) - 5.0 - tw
+	Sprites.draw_frame(self, "flor", Rect2(floorf(tx - 17.0), 3, 16, 16), 0)
+	_text(tx, 11, txt, COL_YELLOW if Game.current_collectibles >= Game.total_collectibles else Color.WHITE, LEFT)
+
+	var row_y := 21.0  # proxima linha livre embaixo dos coracoes
 	if Game.keys > 0:
 		# chaves no bolso: uma chave desenhada por unidade (cabem 4)
-		_fill(2, row_y, 55, row_y + 11, hud_bg)
-		_outline(2, row_y, 55, row_y + 11, COL_MID)
 		for i in mini(Game.keys, 4):
 			Chave.draw_key(self, Vector2(10 + i * 13, row_y + 5.5))
 		row_y += 13.0
 
 	if Game.show_air:
 		# folego: 5 bolhas que somem conforme o ar acaba (piscam no fim)
-		_fill(2, row_y, 55, row_y + 11, hud_bg)
-		_outline(2, row_y, 55, row_y + 11, COL_MID)
 		var left := ceili(Game.air_ratio * 5.0 - 0.001)
 		var blink := Game.air_ratio < 0.25 and (Time.get_ticks_msec() / 150) % 2 == 0
 		for i in 5:
 			_air_bubble(6.0 + i * 10.0, row_y + 2.0, i < left and not blink)
-
-	for heart in Game.max_lives:
-		var cheio := heart < Game.player_lives
-		Sprites.draw_frame(self, "coracao", Rect2(5 + heart * 18, 5, 16, 16), 0 if cheio else 1)
-
-	var sec := floori(Game.level_elapsed_seconds)
-	var sec_text := str(sec % 60)
-	if sec % 60 < 10:
-		sec_text = "0" + sec_text
-	_text(w - 71, 10, "FLORES %d/%d" % [Game.current_collectibles, Game.total_collectibles],
-		Color.WHITE, LEFT)
-	_text(w - 71, 22, "TEMPO %d:%s" % [sec / 60, sec_text], COL_YELLOW, LEFT)
 
 
 ## CONTROLES: uma linha por acao com as 2 teclas dela (Game.teclas); a coluna escolhida fica

@@ -78,6 +78,17 @@ func _run() -> void:
 
 	Game.game_state = "main"
 	Game.start_new_game()
+	for i in 300:
+		await frames(1)
+		if not Game.transitioning and Game.room == "cutscene_inicial":
+			break
+	await frames(10)
+	var intro := get_tree().current_scene
+	for momento in [[2.5, "06c_intro_passeio"], [6.0, "06d_intro_mergulho"], [7.6, "06e_intro_sequestro"],
+			[9.5, "06f_intro_torre"], [13.0, "06g_intro_coragem"]]:
+		intro.t = momento[0]
+		await shot(momento[1])
+	intro._finish()
 	await wait_ready()
 	await frames(30)
 	await shot("07_tutorial_inicio")

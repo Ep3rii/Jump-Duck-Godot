@@ -498,8 +498,46 @@ def olhando(lado):
     return [copia({"m": meio, "p": pose, "f": pisc}[c]) for c in OLHAR_SEQ]
 
 
+# coragem (fim da cutscene inicial): agacha, estica o peito, olha para o alto, ergue a asa e
+# franze a sobrancelha (2 px de contorno acima do olho). Toca uma vez e segura a pose final.
+CORAGEM_ASA = {  # asa erguida sobre as costas (linha: (x0, pixels)); a linha 6 vira o encaixe
+    "alta": {2: (3, "AA"), 3: (2, "ABBA"), 4: (2, "ABBBA"), 5: (2, "ABBBA"), 6: (3, "BBB")},
+    "baixa": {3: (3, "AA"), 4: (2, "ABBA"), 5: (2, "ABBBA"), 6: (3, "BBB")},
+}
+CORAGEM_SEQ = "bbcccTTWTTWTTTTT"
+
+
+def _sobrancelha(cv):
+    out = copia(cv)
+    olho = olhos16(cv)
+    if olho:
+        x, y = olho[0]
+        for xx in (x - 1, x):
+            if out.px[y - 1][xx] == BRANCO:
+                out.px[y - 1][xx] = CONT
+    return out
+
+
+def _com_asa(cv, tipo):
+    out = copia(cv)
+    for y, (x0, linha) in CORAGEM_ASA[tipo].items():
+        for i, ch in enumerate(linha):
+            out.px[y][x0 + i] = MERGULHO_COR[ch]
+    return out
+
+
+def coragem():
+    base = _sobrancelha(base_parado())
+    agacha = move(base, 0, 16, 0, 12, 0, 1)
+    tapa_furos(agacha)
+    alto = _sobrancelha(_olhar_pose("cima_meio"))
+    poses = {"b": base, "c": agacha, "T": _com_asa(alto, "baixa"), "W": _com_asa(alto, "alta")}
+    return [copia(poses[c]) for c in CORAGEM_SEQ]
+
+
 def pecas():
     return {
+        "pato_coragem": coragem(),
         "pato_olhando_cima": olhando("cima"),
         "pato_olhando_baixo": olhando("baixo"),
         "pato_parado": parado(),

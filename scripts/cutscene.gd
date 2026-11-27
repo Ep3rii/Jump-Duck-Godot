@@ -35,6 +35,13 @@ var _duck: AnimatedSprite2D
 var _overlay: Node2D
 var _sfx_heart := false
 var _sfx_love := false
+## O que o pato traz para a Pata (Game.buque_nivel, pelas flores colhidas): 0 nada, 1 uma flor,
+## 2 buque pequeno, 3 buque grande.
+var buque := 0
+const BUQUE_ARTE := ["", "flor_unica", "buque_pequeno", "buque_grande"]
+const BUQUE_TEXTO := ["SEM FLORES... MAS COM AMOR", "UMA FLOR PARA A PATA",
+	"UM BUQUÊ PARA A PATA", "UM GRANDE BUQUÊ PARA A PATA!"]
+const BUQUE_PIVO := Vector2(8, 15)
 
 
 func _enter_tree() -> void:
@@ -49,6 +56,8 @@ func _enter_tree() -> void:
 func _ready() -> void:
 	if Game.game_state != "cutscene":
 		Game.game_state = "cutscene"
+	var fl := Game.flores_colhidas()
+	buque = Game.buque_nivel(fl.x, fl.y)
 	var cam := Camera2D.new()
 	cam.anchor_mode = Camera2D.ANCHOR_MODE_FIXED_TOP_LEFT
 	cam.position = CAM_POS
@@ -135,6 +144,27 @@ func _draw() -> void:
 	_draw_tower_top(k)
 	_draw_nest(k)
 	_draw_pata(k)
+	_draw_buque(k)
+
+
+## Onde fica o buque: na frente do pato ate ele entregar (7,4 s a 8,2 s), depois com a Pata
+## (na frente dela: olhando para o pato ate 9 s, depois para o sol). x, y = pivo (pe do cabo).
+func buque_pos() -> Vector2:
+	var com_pato := Vector2(floorf(duck_x()) + 7.0, FLOOR_Y - 2.0)
+	var frente := -7.0 if t < 9.0 else 7.0
+	var com_pata := Vector2(floorf(pata_x()) + frente, FLOOR_Y - 2.0)
+	return com_pato.lerp(com_pata, _phase(7.4, 8.2)).floor()
+
+
+func _draw_buque(k: float) -> void:
+	if buque <= 0 or t < 0.5:
+		return
+	var arte: String = BUQUE_ARTE[buque]
+	if not Sprites.has_art(arte):
+		return
+	var q := int(t * 12.0) % 16
+	var olha_esq := t >= 8.2 and t < 9.0  # com a Pata, virado para o lado dela
+	Sprites.draw_bicho(self, arte, q, 16, BUQUE_PIVO, olha_esq, _tinta_bicho(k), buque_pos())
 
 
 ## Tom do casal (e do pato) no por do sol: escurece menos que o cenario (ate 0.8, as pedras
@@ -245,6 +275,9 @@ func _draw_overlay() -> void:
 		var mid := (DUCK_STOP_X + PATA_STOP_X) * 0.5
 		var a := 1.0 if t < 16.0 else 1.0 - _phase(16.0, 18.0)
 		_big_heart(_overlay, Vector2(mid, FLOOR_Y - 34 - p * 10.0), p, a)
+	if t > 8.3 and t < 11.0:
+		var ab := _phase(8.3, 8.9) * (1.0 - _phase(10.3, 10.9))
+		_fading_text(Vector2(160, 164), BUQUE_TEXTO[buque], Color.WHITE, ab, 1.0)
 	if t > 11.0:
 		var a := _phase(11.0, 12.5) * (1.0 - _phase(17.0, 18.0))
 		_fading_text(Vector2(160, 164), "JUNTOS, ENFIM.", Color.WHITE, a, 1.0)

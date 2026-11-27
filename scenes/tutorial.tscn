@@ -25,6 +25,7 @@
 [ext_resource type="Script" path="res://scripts/player.gd" id="23_edwa4"]
 [ext_resource type="Script" path="res://scripts/camera.gd" id="24_7artv"]
 
+[ext_resource type="PackedScene" path="res://scenes/animal.tscn" id="90_animal"]
 [node name="Level" type="Node2D" unique_id=1683359808]
 script = ExtResource("1_feaue")
 level_id = "tutorial"
@@ -106,6 +107,30 @@ position = Vector2(1680, 272)
 script = ExtResource("7_06rsu")
 tipo = 5
 
+[node name="Repolho1" type="Node2D" parent="Decoracao" instance=ExtResource("6_sbw1o")]
+position = Vector2(392, 304)
+script = ExtResource("7_06rsu")
+tipo = 10
+tiles_w = 2
+
+[node name="Espantalho1" type="Node2D" parent="Decoracao" instance=ExtResource("6_sbw1o")]
+position = Vector2(512, 256)
+script = ExtResource("7_06rsu")
+tipo = 12
+tiles_w = 1
+
+[node name="Cenoura1" type="Node2D" parent="Decoracao" instance=ExtResource("6_sbw1o")]
+position = Vector2(952, 304)
+script = ExtResource("7_06rsu")
+tipo = 11
+tiles_w = 1
+
+[node name="Milho1" type="Node2D" parent="Decoracao" instance=ExtResource("6_sbw1o")]
+position = Vector2(1620, 272)
+script = ExtResource("7_06rsu")
+tipo = 9
+tiles_w = 2
+
 [node name="Mecanicas" type="Node2D" parent="." unique_id=170990692]
 z_index = -750
 
@@ -156,44 +181,39 @@ z_index = -450
 [node name="Dica1" type="Node2D" parent="Dicas" unique_id=1113923924 instance=ExtResource("20_x6vwi")]
 position = Vector2(120, 304)
 script = ExtResource("21_coeiu")
-texto = "ANDE COM AS SETAS|OU COM A E D"
-
-[node name="Dica2" type="Node2D" parent="Dicas" unique_id=600534903 instance=ExtResource("20_x6vwi")]
-position = Vector2(176, 304)
-script = ExtResource("21_coeiu")
-texto = "ESPAÇO PULA!"
-alcance = 40.0
-
-[node name="Dica3" type="Node2D" parent="Dicas" unique_id=975199095 instance=ExtResource("20_x6vwi")]
-position = Vector2(280, 304)
-script = ExtResource("21_coeiu")
-texto = "PEGUE AS FLORES!|ELAS VALEM PONTOS"
-
-[node name="Dica4" type="Node2D" parent="Dicas" unique_id=1109372130 instance=ExtResource("20_x6vwi")]
-position = Vector2(376, 304)
-script = ExtResource("21_coeiu")
-texto = "NO AR, ESPAÇO DE NOVO:|PULO DUPLO!"
-
-[node name="Dica5" type="Node2D" parent="Dicas" unique_id=1442400280 instance=ExtResource("20_x6vwi")]
-position = Vector2(728, 176)
-script = ExtResource("21_coeiu")
-texto = "CAIR DO ALTO MACHUCA!|DESÇA O CIPÓ COM BAIXO"
+texto = "A FAZENDA DO PATO|E DA PATA"
 
 [node name="Dica6" type="Node2D" parent="Dicas" unique_id=1313174915 instance=ExtResource("20_x6vwi")]
 position = Vector2(808, 304)
 script = ExtResource("21_coeiu")
-texto = "EMPURRE O FENO ATÉ|A PAREDE E SUBA NELE"
+texto = "O REI GAVIÃO LEVOU A PATA|PARA O TOPO DA TORRE!"
 
-[node name="Dica7" type="Node2D" parent="Dicas" unique_id=906545920 instance=ExtResource("20_x6vwi")]
-position = Vector2(1056, 224)
-script = ExtResource("21_coeiu")
-texto = "A BANDEIRA GUARDA|ONDE VOCÊ CHEGOU"
-alcance = 40.0
+[node name="Animais" type="Node2D" parent="."]
+z_index = -450
 
-[node name="Dica8" type="Node2D" parent="Dicas" unique_id=544312883 instance=ExtResource("20_x6vwi")]
+[node name="Galinha" parent="Animais" instance=ExtResource("90_animal")]
+position = Vector2(280, 304)
+bicho = "galinha"
+olha_esquerda = false
+falas = PackedStringArray("CÓ CÓ! EU VI TUDO|DO GALINHEIRO!", "O REI GAVIÃO VOOU COM|A PATA PARA A TORRE!")
+
+[node name="Vaca" parent="Animais" instance=ExtResource("90_animal")]
+position = Vector2(470, 256)
+bicho = "vaca"
+olha_esquerda = false
+falas = PackedStringArray("MUUU... A PATA SEMPRE|PASSEAVA AQUI COM VOCÊ", "A TORRE FICA DEPOIS|DO CAMINHO E DO LAGO")
+
+[node name="Porco" parent="Animais" instance=ExtResource("90_animal")]
 position = Vector2(1176, 224)
-script = ExtResource("21_coeiu")
-texto = "PULE NA CABEÇA|DOS INIMIGOS!"
+bicho = "porco"
+olha_esquerda = true
+falas = PackedStringArray("OINC! NUNCA VI O REI|GAVIÃO TÃO BRAVO!", "TRAGA A PATA DE VOLTA!|A FAZENDA ESPERA, OINC!")
+
+[node name="Ovelha" parent="Animais" instance=ExtResource("90_animal")]
+position = Vector2(1290, 272)
+bicho = "ovelha"
+olha_esquerda = false
+falas = PackedStringArray("BÉÉÉ... A PATA ADORA|FLORES, SABIA?", "COLHA AS FLORES DO CAMINHO|PARA ENTREGAR A ELA!")
 
 [node name="Jogador" type="Node2D" parent="." unique_id=2110047458]
 z_index = -500
