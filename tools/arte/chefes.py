@@ -1,9 +1,9 @@
 """Chefes na pixel art quadradinha (lote 2): jacare gigante (Fase 3) e gaviao chefe (Fase final).
-Tamanho: 64x64 por quadro na grade (32x32 no jogo); o jacare gigante tem 96x64 (48x32 no jogo:
-como todo quadro dele e uma ampliacao 2x, o reduz2 so amostra e o QUADRO_32 de 64 do pixelkit
-nao atrapalha). O jacare e o atordoado do gaviao sao desenhados
-direto em 32x32 e ampliados 2x; as poses de voo do gaviao vem de inimigos.ave(), sao reduzidas aqui
-mesmo e ganham os acabamentos do chefe (cores Endesga, contorno #181425, olho, bico, cauda).
+Tamanho: 64x64 por quadro na grade (32x32 no jogo); o jacare gigante tem 144x64 (72x32 no jogo,
+bem comprido) e a tira dele tem 5 linhas, uma por estagio de dano (como todo quadro dele e uma
+ampliacao 2x, o reduz2 so amostra e o QUADRO_32 do pixelkit nao atrapalha). O
+gaviao chefe segue a mesma ideia: 96x96 na grade (48x48 no jogo, gordo), todas as poses desenhadas direto em
+pixel do jogo e ampliadas 2x, e a tira tem 5 linhas de dano (G_NIVEIS).
 Estilo: formas simples em blocos (retangulos de cantos arredondados), contorno de 1 px na cor
 escura do material, cor so para detalhe (olho, dente, bochecha, estrelas).
 Uso: python tools/arte/chefes.py [--salvar]   (previas em tools/arte/saida/)"""
@@ -35,7 +35,10 @@ CURATIVO, CURATIVO_ESC, CURATIVO_CONT = hexc("e4a672"), hexc("b86f50"), hexc("3e
 CONT_ESTRELA = hexc("181425")
 PINGO, PINGO_LUZ = hexc("2ce8f5"), hexc("ffffff")
 JG_BARRIGA = 28  # linha da barriga no quadro de 32 (PIVO.y em scripts/jacare_chefe.gd)
-JG_W = 48  # largura do quadro do jacare gigante em px do jogo (grade de 96; PIVO.x = JG_W / 2)
+JG_W = 72  # largura do quadro do jacare gigante em px do jogo (grade de 144; PIVO.x = JG_W / 2)
+JG_H = 32  # altura de cada linha (estagio de dano) da tira, em px do jogo
+JG_ESTAGIOS = 5  # linhas da tira: 0 = inteiro, 1..4 = golpes levados (dano acumulado, sem barra)
+OLHO_ROXO, OLHO_ROXO_L = hexc("68386c"), hexc("b55088")
 
 
 def _amplia2(cv):
@@ -75,47 +78,59 @@ def _laco(cv, x0, y0, linhas, cores, contorno):
                 cv.px[y + ey][x + ex] = contorno
 
 
-def jacare_gigante(q):
+def jacare_gigante(q, dano=0):
     """64 quadros, 16 por estado: 0..15 nadando (cauda ondula, pernas remam); 16..31 saltando
     (16..23 subindo com o focinho para cima, 24..31 descendo com o focinho para baixo; boca
     aberta, patas esticadas e pingos caindo); 32..47 mordida (a boca abre aos poucos; o jogo
     escolhe pela abertura; a cabeca sobe ate 3 px junto, para a mandibula e os dentes de baixo
     ficarem acima da linha d'agua); 48..63 dor de dente (bochecha inchada com contorno, faixa de
     curativo amarrada no alto da cabeca e estrelas girando).
-    Desenhado em JG_W x 32 (pixels do jogo; 48 de largura, 1,5x o jacare comum de 32) usando o
-    quadro inteiro: cauda e focinho vao ate as bordas, o corpo tem ~20 px de altura (o comum
-    tem 11), cabeca grande, cristas de 2 px nas costas, dentes de 2 px.
+    Desenhado em JG_W x 32 (pixels do jogo; 72 de largura, bem mais comprido que o jacare comum
+    de 32) usando o quadro inteiro: cauda longa em 4 degraus e focinho vao ate as bordas, o corpo
+    tem ~20 px de altura (o comum tem 11), cabeca grande, 8 cristas de 2 px nas costas, dentes
+    de 2 px.
     A barriga fica na linha B = 28 (PIVO de jacare_chefe.gd); no salto o desenho inteiro e
-    inclinado em degraus de 1 px (cada coluna desce/sobe, sem girar nem borrar)."""
+    inclinado em degraus de 1 px (cada coluna desce/sobe, sem girar nem borrar).
+    dano (0..4) = golpes ja levados; as marcas se somam e ficam ate o fim da luta (no lugar da
+    barra de vida): 1 curativo em X no lombo; 2 + um dente a menos, rachadura e crista lascada na
+    cauda; 3 + olho roxo, esparadrapo na cauda e o lombo sem brilho; 4 + mais dois dentes a
+    menos, cristas quebradas, o corpo todo apagado e gotas de suor na cabeca."""
     bloco, i = divmod(q, 16)
     nado, salto, mordida, dor = bloco == 0, bloco == 1, bloco == 2, bloco == 3
     subindo = salto and i < 8
     fase = 2 * math.pi * (i % 8 if salto else i) / (8.0 if salto else 16.0)
-    d = Desenho(JG_W, 32)
+    d = Desenho(JG_W, JG_H)
     B = JG_BARRIGA
-    H = 29  # x onde comeca a cabeca
-    # cauda grossa e comprida que afina em degraus; so a ponta ondula 1 px
+    H = JG_W - 19  # x onde comeca a cabeca (cabeca de 19 px, como antes)
+    # cauda grossa e longa que afina em 4 degraus; so a ponta ondula 1 px
     o = int(round(math.sin(fase))) if (nado or salto) else 0
-    d.rect(0, B - 7 + o, 6, 4, VERDE, "corpo")
-    d.rect(4, B - 9, 7, 7, VERDE, "corpo")
-    d.rect(9, B - 11, 8, 10, VERDE, "corpo")
-    # corpo alto; cristas de 3x2 com o bico de 1 px (o miolo verde fica a mostra)
-    d.rect(14, B - 13, 18, 13, VERDE, "corpo")
-    d.apaga([(14, B - 13), (14, B - 1)])
-    for cx in (5, 10, 15, 20, 25):
-        y0 = B - 11 if cx == 5 else (B - 13 if cx == 10 else B - 15)
+    d.rect(0, B - 6 + o, 7, 3, VERDE, "corpo")
+    d.rect(5, B - 8, 8, 6, VERDE, "corpo")
+    d.rect(11, B - 10, 8, 9, VERDE, "corpo")
+    d.rect(17, B - 12, 8, 11, VERDE, "corpo")
+    # corpo alto e comprido; cristas de 3x2 com o bico de 1 px (o miolo verde fica a mostra)
+    d.rect(22, B - 13, H + 3 - 22, 13, VERDE, "corpo")
+    d.apaga([(22, B - 13), (22, B - 1)])
+    cristas = (6, 12, 18, 24, 30, 36, 42, 48)
+    quebradas = (24, 36) if dano >= 4 else ()
+    for cx in cristas:
+        y0 = {6: B - 10, 12: B - 12, 18: B - 14}.get(cx, B - 15)
+        if cx == 12 and dano >= 2:  # crista lascada: so o toco de 1 px
+            d.rect(cx, y0 + 1, 2, 1, VERDE, "corpo")
+            continue
         d.rect(cx, y0, 3, 2, VERDE, "corpo")
-        d.rect(cx + 1, y0 - 1, 1, 1, VERDE, "corpo")
+        if cx not in quebradas:
+            d.rect(cx + 1, y0 - 1, 1, 1, VERDE, "corpo")
     # patas (miolo verde): nadando remam; no salto esticadas (frente para a frente, tras para
     # tras); na mordida e na dor paradas
     passo = int(round(math.cos(fase)))
     if salto:
-        d.rect(8, B - 3, 7, 3, VERDE, "pata")      # pata de tras esticada para tras
-        d.rect(28, B - 2, 7, 3, VERDE, "pata")     # pata da frente esticada para a frente
+        d.rect(16, B - 3, 7, 3, VERDE, "pata")     # pata de tras esticada para tras
+        d.rect(H - 1, B - 2, 7, 3, VERDE, "pata")  # pata da frente esticada para a frente
     else:
         p = passo if nado else 0
-        d.rect(15 - p, B - 2, 6, 4, VERDE, "pata")
-        d.rect(26 + p, B - 2, 6, 4, VERDE, "pata")
+        d.rect(24 - p, B - 2, 6, 4, VERDE, "pata")
+        d.rect(H - 7 + p, B - 2, 6, 4, VERDE, "pata")
     # cabeca: cranio alto com a bossa do olho, focinho comprido ate a borda; a maxila sobe k px
     # quando a boca abre, a mandibula fica parada e a nuca liga as duas
     k = int(round(7 * i / 15.0)) if mordida else (4 if salto else 0)
@@ -129,9 +144,9 @@ def jacare_gigante(q):
     d.rect(JG_W - 5, Bh - 13 - k, 3, 1, VERDE, "cabeca")          # narina
     d.rect(H, Bh - 8 - k, 4, k + 2, VERDE, "cabeca")              # nuca / dobradica
     d.rect(H, Bh - 7, JG_W - H, 6 + B - Bh, VERDE, "cabeca")      # mandibula (Bh-7 .. B-2)
-    if k:  # boca aberta: vermelho da base da maxila ao topo da mandibula
-        d.rect(H + 4, Bh - 7 - k, JG_W - H - 4, k, BOCA, "boca")
-    d.rect(15, B - 4, 15, 3, BARRIGA, None, so=["corpo"])
+    # boca aberta: o vao entre maxila e mandibula fica vazio aqui (o contorno vira labio dos
+    # dois lados) e e preenchido em degraus por _boca_aberta depois do contorno
+    d.rect(23, B - 4, H + 1 - 23, 3, BARRIGA, None, so=["corpo"])
     d.rect(H + 1, B - 4, JG_W - H - 2, 2, BARRIGA, None, so=["cabeca"])
     d.luz("corpo", VERDE_L, dx=0, dy=2)
     d.luz("cabeca", VERDE_L, dx=0, dy=2)
@@ -153,10 +168,16 @@ def jacare_gigante(q):
             for y in (Bh - 6, Bh - 5):
                 if cv.px[y][x] == VERDE_L:
                     cv.px[y][x] = VERDE
-    for x in range(16, 30, 3):  # escamas mais escuras no lombo
+    for x in range(24, H + 1, 3):  # escamas mais escuras no lombo
         for y in (B - 11, B - 12):
             if cv.px[y][x] == VERDE_L:
                 cv.px[y][x] = ESCAMA
+    # dano acumulado (1): o brilho some do lombo e da cauda (3+) e do corpo todo (4)
+    if dano >= 3:
+        for y in range(JG_H):
+            for x in range(JG_W if dano >= 4 else H):
+                if cv.px[y][x] == VERDE_L:
+                    cv.px[y][x] = VERDE
     # olho de 2x2: iris amarela atras, pupila escura na frente; sobrancelha brava em cima
     ox = H + 3
     for y in (Bh - 15 - k, Bh - 14 - k):
@@ -164,8 +185,18 @@ def jacare_gigante(q):
         cv.set(ox + 1, y, PUPILA)
     cv.set(ox, Bh - 16 - k, VERDE_ESC)
     cv.set(ox + 1, Bh - 16 - k, VERDE_ESC)
-    dentes_cima = (H + 5, H + 8, H + 11, H + 14, H + 17)
-    dentes_baixo = (H + 6, H + 9, H + 12, H + 15)
+    if dano >= 3:  # olho roxo: anel de 1 px em volta do olho (sem cobrir a sobrancelha)
+        for x, y, c in ((ox - 1, Bh - 15 - k, OLHO_ROXO), (ox - 1, Bh - 14 - k, OLHO_ROXO),
+                        (ox + 2, Bh - 15 - k, OLHO_ROXO), (ox + 2, Bh - 14 - k, OLHO_ROXO),
+                        (ox - 1, Bh - 13 - k, OLHO_ROXO), (ox + 2, Bh - 13 - k, OLHO_ROXO),
+                        (ox, Bh - 13 - k, OLHO_ROXO_L), (ox + 1, Bh - 13 - k, OLHO_ROXO_L)):
+            cv.set(x, y, c)
+    # dano acumulado (2): dentes que caem (1 no 2o golpe, mais 2 no 4o), dos dois jeitos da boca
+    sem_dente = (H + 11,) if dano >= 2 else ()
+    if dano >= 4:
+        sem_dente += (H + 5, H + 17, H + 12)
+    dentes_cima = tuple(x for x in (H + 5, H + 8, H + 11, H + 14, H + 17) if x not in sem_dente)
+    dentes_baixo = tuple(x for x in (H + 6, H + 9, H + 12, H + 15) if x not in sem_dente)
     if k == 0:  # boca fechada: linha da boca e presas de 2 px saindo dela
         for x in range(H + 7 if dor else H + 4, JG_W - 1):
             cv.px[B - 8][x] = VERDE_ESC
@@ -173,15 +204,8 @@ def jacare_gigante(q):
             for x in dentes_cima:
                 cv.set(x, B - 7, DENTE)
                 cv.set(x, B - 6, DENTE)
-    else:  # presas de cima penduradas na maxila e de baixo na mandibula, alternadas
-        for x in dentes_cima:
-            cv.set(x, Bh - 7 - k, DENTE)
-            if k >= 6:
-                cv.set(x, Bh - 6 - k, DENTE)
-        for x in dentes_baixo:
-            cv.set(x, Bh - 8, DENTE)
-            if k >= 6:
-                cv.set(x, Bh - 9, DENTE)
+    else:  # bocarra em degraus com presas de 1 px separadas (cima na maxila, baixo na mandibula)
+        _boca_aberta(cv, H, Bh, k, dentes_cima, dentes_baixo)
     if dor:
         # brilho de 1 px no alto da bochecha
         cv.set(bx0 + 2, by0 + 2, DENTE)
@@ -197,16 +221,158 @@ def jacare_gigante(q):
             a = fase + e * 2.094
             _estrela(cv, H + 8 + int(round(9 * math.cos(a))), 4 + int(round(2 * math.sin(a))),
                      contorno=CONT_ESTRELA)
+    _marcas_dano(cv, dano, H, Bh, k, i)
     if salto:
         # pingos de agua caindo da cauda e da barriga (2-3 px, ciano com brilho branco)
-        for j, (px0, py0) in enumerate(((3, B - 2), (12, B), (21, B + 1))):
+        for j, (px0, py0) in enumerate(((3, B - 2), (14, B), (28, B + 1), (40, B + 1))):
             y = py0 + (i % 8 + j * 3) % 6
-            if 0 <= y < 31 and cv.px[y][px0] is None and cv.px[y + 1][px0] is None:
+            if 0 <= y < JG_H - 1 and cv.px[y][px0] is None and cv.px[y + 1][px0] is None:
                 cv.set(px0, y, PINGO_LUZ)
                 cv.set(px0, y + 1, PINGO)
-        # inclina em degraus de 1 px: subindo o focinho fica alto, descendo fica baixo
-        cv = _inclina(cv, -0.16 if subindo else 0.12, JG_W // 2)
+        # inclina em degraus de 1 px: subindo o focinho fica alto, descendo fica baixo (inclinacao
+        # menor que a do jacare curto: as pontas sobem/descem os mesmos ~4 px)
+        cv = _inclina(cv, -0.11 if subindo else 0.08, JG_W // 2)
+    if dano >= 4:  # depois da inclinacao: as gotas medem o espaco no quadro ja pronto
+        _suor(cv, H, i)
     return _amplia2(cv)
+
+
+def _boca_aberta(cv, H, Bh, k, dentes_cima, dentes_baixo):
+    """Preenche o vao da boca aberta (vazio entre o labio de cima e o de baixo, ja contornados)
+    em degraus: perto da dobradica a maxila desce em escada de 1 px (verde, com o labio escuro
+    embaixo de cada degrau) e o vermelho vai abrindo ate o focinho; garganta mais escura no
+    fundo; a ponta fica aberta (sem tampa); presas brancas de 1 px, uma a cada 3 colunas,
+    alternadas entre cima e baixo (1 px, ou 2 px com a boca bem aberta)."""
+    x0 = H + 4
+    for x in range(x0, JG_W):
+        vao = [y for y in range(Bh - 8 - k, Bh - 7) if cv.px[y][x] is None]
+        if not vao:
+            continue
+        n = len(vao)
+        if x == JG_W - 1:  # ponta do focinho: boca aberta para fora, so os labios
+            continue
+        o = min(n, 1 + (x - x0))  # linhas de vermelho (abre 1 px por coluna)
+        cunha = n - o
+        if cunha:
+            acima = vao[0] - 1
+            if cv.px[acima][x] == VERDE_ESC:  # o labio antigo vira miolo da maxila
+                cv.px[acima][x] = VERDE
+            for y in vao[:cunha - 1]:
+                cv.px[y][x] = VERDE
+            cv.px[vao[cunha - 1]][x] = VERDE_ESC
+        for y in vao[cunha:]:
+            cv.px[y][x] = BOCA_ESC if x == x0 else BOCA
+        if o < 2:
+            continue
+        comp = 2 if o >= 5 else 1
+        if x in dentes_cima:
+            for j in range(comp):
+                cv.px[vao[cunha + j]][x] = DENTE
+        if x in dentes_baixo:
+            for j in range(comp):
+                cv.px[vao[n - 1 - j]][x] = DENTE
+
+
+def _suor(cv, H, i):
+    """2 gotas de suor (dano 4) que pulam 1 px na nuca e na frente da cabeca, sempre inteiras
+    dentro do quadro: medem o topo do desenho embaixo delas e, sem espaco, param de pular e
+    encostam no contorno (nunca saem pela borda de cima). Na dor de dente as estrelas giram por
+    ali: a gota anda ate 4 px para o lado para nao ficar cortada por uma estrela."""
+    sob = (i // 4) % 2
+    estrela = (ESTRELA, DENTE, CONT_ESTRELA)
+
+    def gota(x, y):
+        return {(x, y): PINGO, (x, y + 1): PINGO_LUZ, (x + 1, y + 1): PINGO,
+                (x, y + 2): PINGO, (x + 1, y + 2): PINGO}
+
+    def livre(pts):
+        for (x, y) in pts:
+            if not cv.inside(x, y) or cv.px[y][x] is not None:
+                return False
+            for ex, ey in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                if cv.inside(x + ex, y + ey) and cv.px[y + ey][x + ex] in estrela:
+                    return False
+        return True
+
+    for n, gx0 in enumerate((H - 6, H + 15)):  # a de tras fica antes do galo da nuca
+        pulo = sob if n == 0 else 1 - sob
+        escolha = None
+        for dx in (0, -2, 2, -3, 3, -4, 4):
+            gx = gx0 + dx
+            cols = [x for x in (gx - 1, gx, gx + 1, gx + 2) if 0 <= x < cv.w]
+            topo = min([y for x in cols for y in range(cv.h)
+                        if cv.px[y][x] is not None and cv.px[y][x] not in estrela] or [cv.h])
+            gy = topo - 6 + pulo if topo - 6 >= 1 else max(1, topo - 5)
+            if escolha is None:
+                escolha = gota(gx, gy)
+            if livre(gota(gx, gy)):
+                escolha = gota(gx, gy)
+                break
+        _remendo(cv, escolha, SUOR_CONT, por_cima=False)
+
+
+SUOR_CONT = hexc("124e89")
+
+
+def _remendo(cv, pts, contorno, por_cima=True):
+    """Pinta pts = {(x, y): cor} e poe contorno de 1 px (vizinhos em cruz) em volta. por_cima:
+    o contorno cobre o que ja esta desenhado (curativo sobre o corpo, mas so dentro da silhueta);
+    senao so ocupa casas vazias (gota no ar)."""
+    for (x, y), c in pts.items():
+        for ex, ey in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+            nx, ny = x + ex, y + ey
+            if (nx, ny) in pts or not cv.inside(nx, ny):
+                continue
+            if (por_cima and cv.px[ny][nx] is not None) or (not por_cima and cv.px[ny][nx] is None):
+                cv.px[ny][nx] = contorno
+    for (x, y), c in pts.items():
+        if cv.inside(x, y) and (por_cima or cv.px[y][x] is None):
+            cv.px[y][x] = c
+
+
+def _marcas_dano(cv, dano, H, Bh, k, i):
+    """Marcas do dano acumulado do jacare gigante (somam-se a cada golpe; ver jacare_gigante)."""
+    B = JG_BARRIGA
+    if dano >= 1:  # curativo em cruz no lombo, com almofada escura no meio
+        cx, cy = 33, B - 10
+        pts = {}
+        for dx in range(-3, 5):
+            for dy in (0, 1):
+                pts[(cx + dx, cy + dy)] = CURATIVO
+        for dy in range(-2, 4):
+            for dx in (0, 1):
+                pts[(cx + dx, cy + dy)] = CURATIVO
+        for dx in (0, 1):
+            for dy in (0, 1):
+                pts[(cx + dx, cy + dy)] = CURATIVO_ESC
+        _remendo(cv, pts, CURATIVO_CONT)
+    if dano >= 2:
+        # galo rosa na nuca (atras da bossa do olho): a marca nova que se ve de longe, porque a
+        # cabeca e o que fica fora d'agua; 3 linhas no maximo para caber com a boca toda aberta
+        r0 = Bh - 17 - k
+        galo = {(H - 1, r0): BOCHECHA, (H, r0): BOCHECHA}
+        for x in range(H - 2, H + 2):
+            galo[(x, r0 + 1)] = BOCHECHA
+            galo[(x, r0 + 2)] = BOCHECHA
+        galo[(H - 1, r0 + 1)] = DENTE  # brilho
+        for (x, y) in list(galo):
+            for ex, ey in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                nx, ny = x + ex, y + ey
+                if (nx, ny) not in galo and cv.inside(nx, ny):
+                    cv.px[ny][nx] = BOCHECHA_ESC
+        for (x, y), c in galo.items():
+            if cv.inside(x, y):
+                cv.px[y][x] = c
+        # rachadura em zigue-zague nas escamas da cauda
+        for x, y in ((12, B - 10), (13, B - 9), (13, B - 8), (14, B - 7), (14, B - 6), (15, B - 5),
+                     (15, B - 4)):
+            if cv.px[y][x] is not None:
+                cv.px[y][x] = VERDE_ESC
+    if dano >= 3:  # esparadrapo atravessado na cauda
+        pts = {(x, y): CURATIVO for x in range(6, 12) for y in (B - 7, B - 6)}
+        pts[(8, B - 7)] = pts[(9, B - 6)] = CURATIVO_ESC
+        _remendo(cv, pts, CURATIVO_CONT)
+    # dano 4: gotas de suor (_suor, desenhadas por ultimo, depois da inclinacao do salto)
 
 
 def _inclina(cv, s, cx):
@@ -224,331 +390,402 @@ def _inclina(cv, s, cx):
 # ---------------------------------------------------------------- gaviao chefe
 # Cores ja na Endesga 32: corpo e cabeca claros (#b86f50), asa de perto #733e39, asa de longe
 # #3e2731, contorno de fora #181425. Assim o chefe tem 3 planos que leem sobre a parede azul
-# escura da torre (antes corpo e asa caiam os dois em #733e39, da mesma luz da parede).
+# escura da torre.
+# Desenhado DIRETO em 48x48 (1 px = 1 px do jogo) e ampliado 2x para a grade de 96: o reduz2 ve
+# blocos 2x2 de uma cor so e apenas amostra (com QUADRO_32 de 64 ou de 96, tanto faz).
+# Gordo e robusto: peito cheio, corpo redondo em degraus, asas largas com as penas em escada.
+G_LADO = 48                    # lado do quadro em px do jogo (QUADRO em scripts/gaviao_chefe.gd)
+G_PIVO = (24, 29)              # centro do corpo / origem do no (PIVO em scripts/gaviao_chefe.gd)
 G_CORPO, G_ASA, G_ASA_LONGE = hexc("b86f50"), hexc("733e39"), hexc("3e2731")
 G_BARRIGA, G_BICO = hexc("ead4aa"), hexc("fee761")
-G_CAUDA = hexc("743f3a")       # marca a cauda no desenho; vira #733e39 com a ponta barrada
 G_CAUDA_COR, G_CAUDA_MEIO = hexc("733e39"), hexc("be4a2f")
-G_LUZ = hexc("e4a672")         # linha de luz no alto da cabeca e das costas
+G_LUZ = hexc("e4a672")         # luz no alto da cabeca, das costas e na ponta das asas
 G_CONT, G_CONT_DENTRO = hexc("181425"), hexc("3e2731")
-G_ESC_DESENHO = (ini.ESC_AVE[:3], (0x2a, 0x16, 0x08))  # contornos que a ave() usa
-# asa "baixo" do chefe inclinada para tras (a vertical de ave() parecia quatro patas no chao)
-G_ASA_BAIXO = [(-7, -1, 9, 7), (-12, 3, 7, 5), (-16, 5, 5, 4), (-18, 7, 3, 3)]
-# cauda em leque de 3 penas (ponta para a esquerda; a ultima coluna encosta no corpo). As penas
-# de cima e de baixo tem 2 linhas de marrom entre o contorno de fora e a linha de dentro (com 1
-# linha so, a pena parecia colada no contorno, sobretudo quando a asa de longe cobre a ponta)
-G_CAUDA_MAPA = ["..#####",
-                ".#mlmmm",
-                "#mlmmmm",
-                "#mldddd",
-                "#mlrrmm",
-                "#mldddd",
-                "#mlmmmm",
-                ".#mlmmm",
-                "..#####"]
-# pata do mergulho/investida (coluna 1 = a perna; linha 0 = a linha de baixo do corpo)
-G_PE_MAPA = [".o..",
-             "ror.",
-             "rood",
-             ".rr."]
 G_PATA, G_PATA_CONT = hexc("feae34"), hexc("be4a2f")
-G_OMBRO = (17, 13)   # ombro da asa em pixel do jogo (ox, oy da ave() com k = 1.45, reduzido)
-G_PONTA = 1.5        # quanto da ponta da asa (em px a partir da mais distante) recebe a luz
+G_BOCA = hexc("e43b44")
+# dano acumulativo (scripts/gaviao_chefe.gd desce uma linha da tira a cada 2 golpes)
+G_ROXO, G_ROXO_L = hexc("68386c"), hexc("b55088")   # olho inchado
+G_PELE = hexc("e8b796")                               # pele sem pena (falha no pescoco)
+# com 5+ golpes as cores ficam apagadas (mesmas rampas, tons mais cinzentos da Endesga 32)
+G_APAGADO = {G_CORPO: hexc("c28569"), G_LUZ: hexc("e8b796"), G_BARRIGA: hexc("e8b796"),
+             G_CAUDA_MEIO: hexc("733e39"), G_BICO: hexc("feae34")}
+G_APAGADO_LEVE = {G_BARRIGA: hexc("e8b796"), G_BICO: hexc("feae34")}  # ja no 1o golpe
+G_NIVEIS = 5                   # linhas da tira chefe_gaviao: 0 = inteiro ... 4 = muito machucado
+# asa (u = do ombro para fora, v = para o lado da borda de tras): borda da frente reta, borda
+# de tras em escada (as penas largas); com dano a escada perde degraus (penas arrancadas)
+G_ASA_FRENTE = [(-3, -4), (6, -5), (14, -4), (20, -2), (23, 0), (24, 2)]
+G_ASA_ESCADA = [(22, 4), (19, 4), (19, 7), (15, 7), (15, 10), (10, 10), (10, 12), (4, 12), (-1, 10), (-4, 4)]
 
 
 def _vazio(cv, x, y):
     return not cv.inside(x, y) or cv.px[y][x] is None
 
 
-def _gaviao_32(pose):
-    """Pose do gaviao chefe ja em 32x32 (pixels do jogo), com os acabamentos do chefe."""
-    velha = ini.ASA_POSES["baixo"]
-    ini.ASA_POSES["baixo"] = G_ASA_BAIXO
-    try:
-        a = ini.ave(pose, 1.45, G_CORPO, G_ASA, G_ASA_LONGE, G_CORPO, G_CAUDA, peito=G_BARRIGA, env=1.25)
-    finally:
-        ini.ASA_POSES["baixo"] = velha
-    q = Canvas(64, 64)
-    for y in range(min(64, a.h)):
-        for x in range(min(64, a.w)):
-            q.px[y][x] = a.px[y][x]
-    cv = q.reduz2()  # a mesma reducao que o save() faria; daqui em diante tudo e pixel do jogo
-    px = cv.px
-    orig = [row[:] for row in px]
-    viz4 = ((1, 0), (-1, 0), (0, 1), (0, -1))
+def _escada(nivel):
+    """Borda de tras da asa (penas em escada). Cada estagio de dano arranca penas novas:
+    1 = tres dentes (penas faltando) na escada; 2 = a pena do meio inteira (o degrau 10..15
+    recua); 4 = a ponta perde um degrau."""
+    if nivel <= 0:
+        return list(G_ASA_ESCADA)
+    if nivel < 4:
+        ponta = [(22, 4), (19, 4), (19, 7), (18, 7), (18, 4.5), (16, 4.5), (16, 7)]
+    else:
+        ponta = [(21, 2), (17, 2), (17, 7)]
+    if nivel < 2:
+        meio = [(15, 7), (15, 10), (13.5, 10), (13.5, 6.5), (11.5, 6.5), (11.5, 10), (10, 10)]
+    else:
+        meio = [(15, 7), (10, 7)]
+    base = [(10, 12), (7.5, 12), (7.5, 8.5), (5.5, 8.5), (5.5, 12), (4, 12), (-1, 10), (-4, 4)]
+    return ponta + meio + base
 
-    def cor_orig(x, y, *refs):
-        c = orig[y][x]
-        return c is not None and c[:3] in [r[:3] for r in refs]
-    # o amarelo/laranja da ave() serve para o bico E para as patas: o bico fica na metade de
-    # cima (ate by + 4); abaixo disso e pata, que sai daqui e ganha desenho proprio no fim
-    amarelos = [(x, y) for y in range(32) for x in range(32) if y < 16 and cor_orig(x, y, ini.BICO)]
-    lim_cab = (min(y for _, y in amarelos) + 4) if amarelos else 15
-    pata = [(x, y) for y in range(lim_cab + 1, 32) for x in range(32) if cor_orig(x, y, ini.BICO, ini.BICO_ESC)]
-    for x, y in pata:
-        px[y][x] = None
-    troca = {ini.OLHO[:3]: G_CONT, G_CAUDA[:3]: G_CAUDA_COR}
-    troca_cab = {ini.BICO[:3]: G_BICO, ini.BICO_ESC[:3]: G_CONT_DENTRO}
-    for y in range(32):
-        for x in range(32):
-            c = px[y][x]
-            if c is None:
+
+def _asa_pts(sx, sy, ang, k=1.0, nivel=0):
+    """Poligono da asa com o ombro em (sx, sy). ang em graus: 90 = para cima, 0 = para tras,
+    negativo = para baixo e para tras."""
+    a = math.radians(ang)
+    D = (-math.cos(a), -math.sin(a))
+    N = (D[1], -D[0])
+    pts = []
+    for u, v in G_ASA_FRENTE + _escada(nivel):
+        u, v = u * k, v * k
+        pts.append((sx + u * D[0] + v * N[0], sy + u * D[1] + v * N[1]))
+    return pts, D, N
+
+
+def _asa_detalhe(cv, part, sx, sy, D, N, k, umax=24.0):
+    """Linhas entre as penas (marrom escuro) e luz na ponta da asa."""
+    for y in range(cv.h):
+        for x in range(cv.w):
+            if cv.part[y][x] != part or cv.px[y][x] in (G_CONT, G_CONT_DENTRO):
                 continue
-            if c[:3] in G_ESC_DESENHO:  # contorno: de fora no mais escuro, por dentro no marrom
-                fora = any(_vazio(cv, x + dx, y + dy) for dx, dy in viz4)
-                px[y][x] = G_CONT if fora else G_CONT_DENTRO
-            elif c[:3] in troca:
-                px[y][x] = troca[c[:3]]
-            elif y <= lim_cab and c[:3] in troca_cab:
-                px[y][x] = troca_cab[c[:3]]
-    # bico: contorno de fora tambem no mais escuro, e a ponta do gancho escura
-    for y in range(lim_cab + 1):
-        for x in range(32):
-            if cor_orig(x, y, ini.BICO_ESC):
-                if any(_vazio(cv, x + dx, y + dy) for dx, dy in ((1, 0), (0, 1), (0, -1))):
-                    px[y][x] = G_CONT
-    # cauda: a da ave() vira um bloco na reducao; sai inteira (com o contorno que so encostava
-    # nela) e entra um leque de 3 penas em degraus, desenhado em pixel do jogo: ponta escura de
-    # 1 px, 1 px de marrom, faixa clara #e4a672 seguindo os degraus, linhas de dentro separando
-    # as penas e o avermelhado so na pena do meio. So ocupa pixel vazio (a asa fica por cima).
-    cauda = {(x, y) for y in range(32) for x in range(32) if cor_orig(x, y, G_CAUDA)}
-    if cauda:
-        for x, y in cauda:
-            px[y][x] = None
-        for y in range(32):
-            for x in range(32):
-                if px[y][x] not in (G_CONT, G_CONT_DENTRO):
-                    continue
-                miolo = [(x + dx, y + dy) for dx in (-1, 0, 1) for dy in (-1, 0, 1)
-                         if (dx or dy) and cv.inside(x + dx, y + dy) and orig[y + dy][x + dx] is not None
-                         and orig[y + dy][x + dx][:3] not in G_ESC_DESENHO]
-                if miolo and all(m in cauda for m in miolo):
-                    px[y][x] = None
-        xr = max(x for x, _ in cauda)
-        topo = int((min(y for _, y in cauda) + max(y for _, y in cauda)) / 2.0) - len(G_CAUDA_MAPA) // 2
-        cores = {"#": G_CONT, "d": G_CONT_DENTRO, "m": G_CAUDA_COR, "l": G_LUZ, "r": G_CAUDA_MEIO}
-        for j, linha in enumerate(G_CAUDA_MAPA):
-            for i, ch in enumerate(linha):
-                x, y = xr - len(linha) + 1 + i, topo + j
-                if ch != "." and cv.inside(x, y) and px[y][x] is None:
-                    px[y][x] = cores[ch]
-    # cabeca: acha o bico (o amarelo mais alto e mais a esquerda) e redesenha olho e bico
-    # direto em pixel do jogo: olho 2x2 (iris amarela atras, pupila escura na frente) a 1 px
-    # do contorno, sobrancelha de 1 px, luz no alto da cabeca e bico em gancho sem vermelho
-    if amarelos:
-        by = min(y for _, y in amarelos)
-        bx = min(x for x, y in amarelos if y <= by + 3)
-        hx0 = bx - 1
-        while hx0 > 0 and px[by][hx0 - 1] not in (None, G_CONT_DENTRO) and not _vazio(cv, hx0 - 2, by):
-            hx0 -= 1  # borda de tras da cabeca na linha do olho
-        for y in range(by - 1, by + 3):  # limpa olho e sobrancelha antigos
-            for x in range(hx0, bx):
-                if px[y][x] in (G_CONT, G_CONT_DENTRO, G_LUZ) and not _vazio(cv, x, y - 1)                         and not _vazio(cv, x - 1, y) and not _vazio(cv, x + 1, y):
-                    px[y][x] = G_CORPO
-        for x in range(hx0, bx - 1):  # linha de luz no alto da cabeca (1o miolo de cada coluna)
-            for y in range(max(1, by - 4), by + 1):
-                if px[y][x] == G_CORPO and px[y - 1][x] in (G_CONT, G_CONT_DENTRO):
-                    px[y][x] = G_LUZ
-                    break
-        # olho 2x2: iris amarela atras, pupila escura na frente; a sobrancelha fica em cima da
-        # iris (1 px atras da pupila), entao pupila e sobrancelha nao viram uma barra so, e
-        # sobra face clara entre o olho e o bico
-        px[by][bx - 4] = px[by + 1][bx - 4] = G_BICO
-        px[by][bx - 3] = px[by + 1][bx - 3] = G_CONT
-        px[by - 1][bx - 4] = G_CONT                      # sobrancelha brava
-        px[by - 1][bx - 3] = G_CORPO
-        for x in (bx - 2, bx - 1):
-            if px[by][x] in (G_CONT, G_CONT_DENTRO):
-                px[by][x] = G_CORPO
-        for y in range(by - 1, by + 4):  # bico novo
-            for x in range(bx, min(32, bx + 4)):
-                c = orig[y][x]
-                if c is not None and c[:3] in (ini.BICO[:3], ini.BICO_ESC[:3]) or px[y][x] == G_CONT:
-                    px[y][x] = None
-        bico = {(0, -1): G_CONT, (1, -1): G_CONT,
-                (0, 0): G_BICO, (1, 0): G_BICO, (2, 0): G_CONT,
-                (0, 1): G_BICO, (1, 1): G_BICO, (2, 1): G_CONT_DENTRO, (3, 1): G_CONT,
-                (0, 2): G_CONT, (1, 2): G_CONT, (2, 2): G_CONT}
-        for (dx, dy), c in bico.items():
-            cv.set(bx + dx, by + dy, c)
-        borda = []  # fecha o contorno da cabeca onde o bico antigo saiu
-        for y in range(by - 2, min(32, by + 5)):
-            for x in range(max(0, hx0 - 1), min(32, bx + 5)):
-                c = px[y][x]
-                if c is not None and c not in (G_CONT, G_CONT_DENTRO) and                         any(_vazio(cv, x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-                    borda.append((x, y))
-        for x, y in borda:
-            px[y][x] = G_CONT
-    # patas desenhadas em pixel do jogo: amarelo #feae34 com contorno #be4a2f (nada de palito
-    # escuro). No voo ficam recolhidas (1 linha amarela sob a barriga); no mergulho/investida
-    # cada pata e uma perna de 1 px com dois dedos para a frente e a garra escura na ponta.
-    if pata:
-        y0 = min(y for _, y in pata)
-        if pose == 6:
-            y1 = max(y for _, y in pata)
-            pernas = sorted({x for x, y in pata if y == y1 - 1})[:2]
-            if len(pernas) == 2 and pernas[1] - pernas[0] < 4:
-                pernas[0] = pernas[1] - 4
-            for x, y in pata:  # a linha de baixo do corpo volta a ser contorno onde a perna saiu
-                if y == y0:
-                    px[y][x] = G_CONT
-            for lx in pernas:
-                for j, linha in enumerate(G_PE_MAPA):
-                    for i, ch in enumerate(linha):
-                        if ch != ".":
-                            cv.set(lx - 1 + i, y0 + j, {"o": G_PATA, "r": G_PATA_CONT, "d": G_CONT_DENTRO}[ch])
+            rx, ry = x + 0.5 - sx, y + 0.5 - sy
+            u = (rx * D[0] + ry * D[1]) / k
+            v = (rx * N[0] + ry * N[1]) / k
+            if u >= umax - 3.0:
+                cv.px[y][x] = G_LUZ
+            elif v > 3.0 and any(abs(u - c) < 0.7 for c in (10.0, 15.0, 19.0)):
+                cv.px[y][x] = G_CONT_DENTRO
+
+
+def _cabeca(d, hx, hy, nivel, bico_aberto=False):
+    """Cabeca redonda olhando para a direita, face clara, bico em gancho. Devolve o olho."""
+    d.elipse(hx, hy, 7.5, 7.0, G_CORPO, "cabeca")
+    if nivel >= 1:  # topete arrepiado no alto da cabeca (cresce com o dano)
+        if nivel < 3:
+            spikes = [(-6, 3), (-4, 4), (-2, 3)]
+        elif nivel < 4:
+            spikes = [(-6, 3), (-4, 4), (-2, 3), (0, 3)]
         else:
-            xs = sorted({x for x, y in pata if y == y0})
-            for x in range(xs[0], xs[-1] + 1):
-                cv.set(x, y0, G_PATA)
-                cv.set(x, y0 + 1, G_PATA_CONT)
-    # pontas das asas com luz: o miolo da asa de perto mais longe do ombro fica #e4a672
-    asa = [(x, y) for y in range(32) for x in range(32) if cor_orig(x, y, G_ASA) and px[y][x] == G_ASA]
-    if asa:
-        ox, oy = G_OMBRO
-        dist = {(x, y): math.hypot(x - ox, y - oy) for x, y in asa}
-        dmax = max(dist.values())
-        for (x, y), dd in dist.items():
-            if dd >= dmax - G_PONTA:
-                px[y][x] = G_LUZ
+            spikes = [(-7, 2), (-5, 4), (-3, 3), (-1, 4), (1, 2)]
+        for dx, h in spikes:
+            d.rect(int(hx) + dx, int(hy - 7) - h + 1, 1, h, G_CORPO, "cabeca")
+    d.rect(int(hx), int(hy) + 2, 6, 4, G_BARRIGA, None, so=["cabeca"])
+    bx, by = int(hx) + 7, int(hy) - 3
+    if bico_aberto:
+        d.poli([(bx - 1, by - 1), (bx + 3, by - 1), (bx + 5, by + 2), (bx + 5, by + 5), (bx + 3, by + 4),
+                (bx - 1, by + 3)], G_BICO, "bico")
+        d.rect(bx - 1, by + 6, 4, 2, G_BICO, "bico")
+        d.rect(bx - 1, by + 4, 3, 2, G_BOCA, "boca")
+    elif nivel < 3:
+        d.poli([(bx - 1, by - 1), (bx + 3, by - 1), (bx + 5, by + 2), (bx + 5, by + 7), (bx + 3, by + 6),
+                (bx + 3, by + 5), (bx - 1, by + 5)], G_BICO, "bico")
+    else:  # bico lascado: o gancho da ponta quebrou
+        d.poli([(bx - 1, by - 1), (bx + 3, by - 1), (bx + 5, by + 2), (bx + 5, by + 4), (bx + 4, by + 5),
+                (bx - 1, by + 5)], G_BICO, "bico")
+    return (int(hx) + 2, int(hy) - 3)
+
+
+def _olho(cv, ex, ey, nivel):
+    """Olho 2x2 (iris amarela atras, pupila escura na frente) com a sobrancelha brava. Com
+    dano: olho inchado (roxo em volta, palpebra caida)."""
+    if nivel >= 2:
+        for y in range(ey - 2, ey + 4):
+            for x in range(ex - 2, ex + 4):
+                if cv.px[y][x] in (G_CORPO, G_BARRIGA, G_LUZ):
+                    cv.px[y][x] = G_ROXO_L if y >= ey + 2 else G_ROXO
+    cv.px[ey][ex] = cv.px[ey + 1][ex] = G_BICO
+    cv.px[ey][ex + 1] = cv.px[ey + 1][ex + 1] = G_CONT
+    for x, y in ((ex - 1, ey - 2), (ex, ey - 1), (ex + 1, ey - 1), (ex + 2, ey - 1)):  # sobrancelha brava
+        if cv.px[y][x] is not None:
+            cv.px[y][x] = G_CONT
+    if nivel >= 2:  # palpebra inchada cobre a metade de cima
+        cv.px[ey][ex] = cv.px[ey][ex + 1] = G_ROXO
+        cv.px[ey - 1][ex + 1] = G_CONT
+
+
+def _acabamento(d, juntas):
+    d.contorno({"corpo": G_CONT, "cabeca": G_CONT, "asa": G_CONT, "asa_longe": G_CONT, "cauda": G_CONT,
+                "bico": G_CONT, "pata": G_PATA_CONT, "boca": G_CONT}, juntas=juntas)
+    cv = d.cv
+    for y in range(cv.h):  # linhas de dentro no marrom escuro; so a borda de fora no mais escuro
+        for x in range(cv.w):
+            if cv.px[y][x] == G_CONT and not any(_vazio(cv, x + dx, y + dy)
+                                                  for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                if cv.part[y][x] != "bico":
+                    cv.px[y][x] = G_CONT_DENTRO
     return cv
 
 
-def _gaviao_pose(pose):
-    return _amplia2(_gaviao_32(pose))
+def _apaga_cores(cv, nivel):
+    """1-2 golpes: peito e bico ja perdem o brilho; 5+ golpes: todas as cores apagadas."""
+    if nivel < 1:
+        return
+    mapa = G_APAGADO if nivel >= 3 else G_APAGADO_LEVE
+    for y in range(cv.h):
+        for x in range(cv.w):
+            c = cv.px[y][x]
+            if c in mapa:
+                cv.px[y][x] = mapa[c]
 
 
-def gaviao(q):
-    """80 quadros, 16 por estado: 0..15 voo; 16..31 grito (asa no alto, batendo curto);
-    32..47 mergulho; 48..63 investida; 64..79 atordoado (caido, estrelas girando)."""
-    bloco, i = divmod(q, 16)
-    if bloco == 0:
-        return ini.voo16(_gaviao_pose)[i]
-    if bloco == 1:  # grito: a asa so vai do alto ao meio e volta, e o corpo treme
-        pose = (0, 0, 1, 1)[i % 4]
-        return ini._desloca(_gaviao_pose(pose), (0, 2, 0, -2)[(i // 2) % 4], 0)
-    if bloco == 2:  # mergulho: pose propria em diagonal (cabeca para baixo, asas fechadas)
-        return mergulho(i)
-    if bloco == 3:  # investida rente ao chao: corpo esticado, tremendo para frente e para tras
-        return ini._desloca(_gaviao_pose(6), (0, 0, 2, 2)[i % 4], 0)
-    return atordoado(i * 2 * math.pi / 16.0)
+def _falha(cv, pts):
+    """Falha de penas: pele rosada so onde ha corpo."""
+    for x, y in pts:
+        if cv.inside(x, y) and cv.px[y][x] in (G_CORPO, G_LUZ, G_ASA):
+            cv.px[y][x] = G_PELE
 
 
-def mergulho(i):
-    """Mergulho em diagonal (45 graus, cabeca para baixo e para a frente), desenhado direto em
-    32x32 (pixels do jogo): asas fechadas coladas nas costas com as pontas para tras e para
-    cima, cauda fechada apontando para cima, patas recolhidas sob a barriga, bico em gancho
-    na ponta de baixo. Nos 16 quadros so treme 1 px e a luz corre pela ponta da asa."""
-    d = Desenho(32, 32)
-    # cauda fechada (para cima e para tras), ponta em degraus
-    d.poli([(3, 2), (8, 1), (12, 6), (8, 10), (3, 6)], G_CAUDA_COR, "cauda")
-    # corpo: capsula na diagonal, costas para cima/direita e barriga para baixo/esquerda
-    d.poli([(12, 3), (25, 14), (19, 23), (5, 11)], G_CORPO, "corpo")
-    # barriga clara do lado de baixo
-    d.poli([(5, 11), (8, 10), (21, 21), (19, 24)], G_BARRIGA, None, so=["corpo"])
-    # cabeca redonda na frente de baixo, com a face clara
-    d.elipse(23.5, 20.5, 5.0, 5.0, G_CORPO, "cabeca")
-    d.rect(21, 22, 4, 3, G_BARRIGA, None, so=["cabeca"])
-    # asa fechada por cima das costas: do ombro ate a ponta, que passa da cauda para cima
-    d.poli([(11, 1), (15, 1), (24, 11), (21, 14), (11, 6)], G_ASA, "asa")
-    # bico em gancho apontando para baixo e para a frente
-    d.poli([(26, 21), (30, 22), (31, 29), (28, 29), (26, 26)], G_BICO, "bico")
-    # patas recolhidas: so os dedos amarelos sob a barriga
-    d.rect(10, 15, 3, 2, G_PATA, "pata")
+G_JUNTAS = [("asa", "corpo"), ("asa", "cabeca"), ("asa", "cauda"), ("cabeca", "corpo"), ("bico", "cabeca"),
+            ("asa_longe", "corpo"), ("asa_longe", "cabeca"), ("asa_longe", "cauda"), ("cauda", "corpo"),
+            ("boca", "bico")]
+
+
+def _cauda_leque(d, x0, y0, nivel, compr=11):
+    """Cauda em leque de 3 penas (ponta para a esquerda); com dano perde penas."""
+    if nivel < 1:
+        d.rect(x0 + 2, y0, compr - 2, 3, G_CAUDA_COR, "cauda")
+    else:  # pena de cima arrancada: so um toco
+        d.rect(x0 + 7, y0 + 1, compr - 7, 2, G_CAUDA_COR, "cauda")
+    d.rect(x0, y0 + 3, compr, 3, G_CAUDA_COR, "cauda")
+    if nivel < 4:
+        d.rect(x0 + 2, y0 + 6, compr - 2, 3, G_CAUDA_COR, "cauda")
+    else:
+        d.rect(x0 + 5, y0 + 6, compr - 5, 3, G_CAUDA_COR, "cauda")
+
+
+def _cauda_det(cv, x0, y0, compr=11):
+    for x in range(x0, x0 + compr):
+        for y, c in ((y0 + 3, G_CONT_DENTRO), (y0 + 6, G_CONT_DENTRO), (y0 + 4, G_CAUDA_MEIO)):
+            if cv.part[y][x] == "cauda" and cv.px[y][x] == G_CAUDA_COR and not _vazio(cv, x - 1, y):
+                cv.px[y][x] = c
+    for y in range(y0, y0 + 9):  # ponta clara: o 1o miolo de cada pena
+        for x in range(x0, x0 + compr):
+            if cv.part[y][x] == "cauda" and cv.px[y][x] in (G_CAUDA_COR, G_CAUDA_MEIO):
+                cv.px[y][x] = G_LUZ
+                break
+
+
+def _gira(cv, rot, cx, cy, tx=0, ty=0):
+    """Gira o desenho (cores e partes, ainda sem luz nem contorno) rot graus em volta de
+    (cx, cy) e desloca (tx, ty). Positivo = sentido horario (bico para baixo). Vizinho mais
+    proximo: depois o contorno de 1 px e refeito em cima do resultado."""
+    a = math.radians(rot)
+    c, s = math.cos(a), math.sin(a)
+    out = Canvas(cv.w, cv.h)
+    for y in range(cv.h):
+        for x in range(cv.w):
+            rx, ry = x + 0.5 - cx - tx, y + 0.5 - cy - ty
+            ix = int(math.floor(cx + rx * c + ry * s))
+            iy = int(math.floor(cy - rx * s + ry * c))
+            if 0 <= ix < cv.w and 0 <= iy < cv.h and cv.px[iy][ix] is not None:
+                out.px[y][x] = cv.px[iy][ix]
+                out.part[y][x] = cv.part[iy][ix]
+    return out
+
+
+def _cauda_det_girada(cv, volta, x0, y0, nivel):
+    """_cauda_det para a pose girada: decide cada pixel pela posicao dele no desenho de origem."""
+    inicio = {0: 2 if nivel < 1 else 7, 1: 0, 2: 2 if nivel < 4 else 5}  # 1a coluna de cada pena
+    for y in range(cv.h):
+        for x in range(cv.w):
+            if cv.part[y][x] != "cauda" or cv.px[y][x] != G_CAUDA_COR:
+                continue
+            ox, oy = volta(x + 0.5, y + 0.5)
+            r = int(math.floor(oy)) - y0
+            if r in (3, 6):
+                cv.px[y][x] = G_CONT_DENTRO
+            elif 0 <= r <= 8 and ox - x0 < inicio[r // 3] + 2.2:
+                cv.px[y][x] = G_LUZ
+            elif r == 4:
+                cv.px[y][x] = G_CAUDA_MEIO
+
+
+def _olho_x(cv, ex, ey, nivel):
+    """Olho em X (atordoado); com dano o roxo em volta continua."""
+    if nivel >= 2:
+        for y in range(ey - 2, ey + 4):
+            for x in range(ex - 2, ex + 4):
+                if cv.inside(x, y) and cv.px[y][x] in (G_CORPO, G_BARRIGA, G_LUZ):
+                    cv.px[y][x] = G_ROXO_L if y >= ey + 2 else G_ROXO
+    for x, y in ((ex - 1, ey - 1), (ex + 2, ey - 1), (ex, ey), (ex + 1, ey), (ex, ey + 1), (ex + 1, ey + 1),
+                 (ex - 1, ey + 2), (ex + 2, ey + 2)):
+        if cv.inside(x, y):
+            cv.px[y][x] = G_CONT
+
+
+def _gaviao_pose(nivel, ang, dy=0, dx=0, grito=False, bico_aberto=None, k_asa=1.0, ang_longe=None,
+                 k_longe=0.85, patas="recolhidas", cabeca=(35, 18), rot=0.0, giro=(0, 0), chao=None,
+                 tonto=False):
+    """Todas as poses saem do MESMO corpo redondo e gordo do voo (peito cheio, silhueta em
+    degraus), so mudando asa, cabeca, patas e o giro do corpo inteiro (mergulho e investida).
+    ang = angulo da asa (graus: 90 = para cima, 0 = para tras, negativo = para baixo).
+    rot = giro do corpo em volta de G_PIVO (positivo = bico para baixo); chao = linha a partir da
+    qual tudo e cortado (deitado no chao, a barriga achata)."""
+    d = Desenho(G_LADO, G_LADO)
+    sx, sy = 21 + dx, 23 + dy
+    # asa de longe (atras de tudo): a mesma asa, menor, 4 px a frente e 2 acima, atrasada
+    pl, _, _ = _asa_pts(sx + 4, sy - 2, ang + 8 if ang_longe is None else ang_longe, k_longe, nivel)
+    d.poli(pl, G_ASA_LONGE, "asa_longe")
+    _cauda_leque(d, 0 + dx, 21 + dy, nivel, compr=14)
+    # corpo gordo e peito cheio
+    d.elipse(22 + dx, 28 + dy, 13.0, 10.0, G_CORPO, "corpo")
+    d.elipse(28 + dx, 30 + dy, 8.0, 7.0, G_CORPO, "corpo")
+    d.elipse(28 + dx, 32 + dy, 7.0, 5.5, G_BARRIGA, None, so=["corpo"])
+    if nivel >= 3 and abs(rot) <= 10:  # penas do peito arrepiadas (no mergulho girado viram fiapos soltos)
+        for px_, h in ((22, 2), (26, 3), (31, 2)):
+            d.rect(px_ + dx, 38 + dy, 1, h, G_BARRIGA, "corpo")
+    if patas == "recolhidas":  # sob a barriga
+        d.rect(23 + dx, 37 + dy, 4, 3, G_PATA, "pata")
+        d.rect(29 + dx, 37 + dy, 4, 3, G_PATA, "pata")
+    elif patas == "garras":  # esticadas para a frente, garras abertas
+        for lx in (29, 34):
+            d.rect(lx + dx, 36 + dy, 2, 2, G_PATA, "pata")
+            d.rect(lx + dx, 37 + dy, 4, 2, G_PATA, "pata")
+    hx, hy = cabeca[0] + dx, cabeca[1] + dy - (2 if grito else 0)
+    ex, ey = _cabeca(d, hx, hy, nivel, bico_aberto=grito if bico_aberto is None else bico_aberto)
+    # asa de perto por cima do corpo
+    pn, Dn, Nn = _asa_pts(sx, sy, ang, k_asa, nivel)
+    d.poli(pn, G_ASA, "asa")
+    a = math.radians(rot)
+    c, s = math.cos(a), math.sin(a)
+    cx, cy = G_PIVO
+    girado = rot != 0 or tuple(giro) != (0, 0)
+
+    def ida(x, y):  # ponto do desenho de origem -> ponto do quadro
+        rx, ry = x - cx, y - cy
+        return cx + rx * c - ry * s + giro[0], cy + rx * s + ry * c + giro[1]
+
+    def volta(x, y):  # ponto do quadro -> ponto do desenho de origem
+        rx, ry = x - cx - giro[0], y - cy - giro[1]
+        return cx + rx * c + ry * s, cy - rx * s + ry * c
+
+    def px_ida(x, y):
+        fx, fy = ida(x + 0.5, y + 0.5)
+        return int(math.floor(fx)), int(math.floor(fy))
+
+    if girado:
+        d.cv = _gira(d.cv, rot, cx, cy, giro[0], giro[1])
+    if chao is not None:
+        d.apaga([(x, y) for y in range(chao, G_LADO) for x in range(G_LADO)])
     d.luz("cabeca", G_LUZ, dx=0, dy=2)
     d.luz("corpo", G_LUZ, dx=0, dy=2)
-    d.contorno({"corpo": G_CONT, "cabeca": G_CONT, "asa": G_CONT, "cauda": G_CONT, "bico": G_CONT,
-                "pata": G_PATA_CONT},
-               juntas=[("asa", "corpo"), ("asa", "cauda"), ("asa", "cabeca"), ("cabeca", "corpo"),
-                       ("bico", "cabeca"), ("corpo", "cauda")])
-    cv = d.cv
-    for y in range(32):  # linhas de dentro no marrom escuro; so a borda de fora no mais escuro
-        for x in range(32):
-            if cv.px[y][x] == G_CONT and not any(_vazio(cv, x + dx, y + dy)
-                                                  for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-                cv.px[y][x] = G_CONT_DENTRO
-    # penas da asa: duas linhas na diagonal, e a luz correndo pela ponta (sobe e desce)
-    for x, y in ((15, 5), (16, 6), (18, 8), (19, 9)):
-        if cv.px[y][x] == G_ASA:
-            cv.px[y][x] = G_CONT_DENTRO
-    luz = (i // 2) % 4
-    for x, y in ((12 + luz, 2 + (luz > 1)), (13 + luz, 2 + (luz > 1))):
-        if cv.inside(x, y) and cv.px[y][x] == G_ASA:
-            cv.px[y][x] = G_LUZ
-    # pena do meio da cauda com o avermelhado
-    for x, y in ((5, 4), (6, 5), (7, 6)):
-        if cv.px[y][x] == G_CAUDA_COR:
-            cv.px[y][x] = G_CAUDA_MEIO
-    # olho 2x2 (iris amarela atras, pupila na frente) com a sobrancelha brava em cima
-    cv.px[18][24] = cv.px[19][24] = G_BICO
-    cv.px[18][25] = cv.px[19][25] = G_CONT
-    cv.px[17][24] = G_CONT
-    cv.px[27][29] = G_CONT_DENTRO  # ponta escura do gancho
-    # tremor de 1 px (o vento do mergulho)
-    dx, dy = (0, 1, 1, 0)[(i // 4) % 4], (0, 0, 1, 1, 0, 0, -1, -1)[i % 8]
-    return _amplia2(ini._desloca(cv, dx, dy))
+    cv = _acabamento(d, G_JUNTAS)
+    s2 = ida(sx, sy)
+    vet = lambda v: (v[0] * c - v[1] * s, v[0] * s + v[1] * c)  # noqa: E731
+    _asa_detalhe(cv, "asa", s2[0], s2[1], vet(Dn), vet(Nn), k_asa, 24.0 if nivel < 4 else 22.0)
+    if girado:
+        _cauda_det_girada(cv, volta, 0 + dx, 21 + dy, nivel)
+    else:
+        _cauda_det(cv, 0 + dx, 21 + dy, 14)
+    # marquinhas do peito (barrado)
+    for x, y in ((25, 31), (26, 31), (30, 33), (31, 33), (26, 35), (27, 35)):
+        qx, qy = px_ida(x + dx, y + dy)
+        if cv.inside(qx, qy) and cv.px[qy][qx] == G_BARRIGA:
+            cv.px[qy][qx] = G_LUZ
+    ox, oy = px_ida(ex, ey)
+    if tonto:
+        _olho_x(cv, ox, oy, nivel)
+    else:
+        _olho(cv, ox, oy, nivel)
+    if nivel >= 4:
+        _falha(cv, [px_ida(x + dx, y + dy) for x, y in ((30, 22), (31, 22), (29, 23), (30, 23), (31, 23))])
+    _apaga_cores(cv, nivel)
+    return cv
 
 
-def atordoado(ang0):
-    """Caido de bruços, desenhado direto em 32x32 (pixels do jogo): corpo alto (10 px) com a
-    barriga clara, asa caida por cima das costas com a ponta no chao, cauda em leque atras,
-    cabeca com a face clara, olho em X de 3x3 e bico separado da cauda; 3 estrelas em "+" de
-    forma fixa (com contorno escuro) girando acima da cabeca (ang0 = quanto ja giraram)."""
-    d = Desenho(32, 32)
-    # cauda em leque atras do corpo: pena do meio mais comprida (ponta em degraus)
-    d.rect(2, 17, 6, 2, G_CAUDA_COR, "cauda")
-    d.rect(1, 19, 7, 2, G_CAUDA_COR, "cauda")
-    d.rect(2, 21, 6, 2, G_CAUDA_COR, "cauda")
-    # corpo arredondado
-    d.rect(5, 16, 16, 10, G_CORPO, "corpo")
-    d.apaga([(5, 16), (20, 16), (5, 25), (20, 25)])
-    d.rect(8, 22, 11, 2, G_BARRIGA, None, so=["corpo"])
-    # asa caida sobre as costas, primarias pendendo ate o chao
-    d.rect(7, 15, 11, 6, G_ASA, "asa")
-    d.rect(4, 19, 5, 4, G_ASA, "asa")
-    d.rect(3, 22, 4, 4, G_ASA, "asa")
-    # cabeca deitada, com a face clara
-    d.rect(19, 13, 9, 11, G_CORPO, "cabeca")
-    d.apaga([(19, 13), (20, 13), (27, 13), (27, 14), (26, 13), (27, 23), (19, 23)])
-    d.rect(21, 19, 5, 3, G_BARRIGA, None, so=["cabeca"])
-    # bico em gancho a frente da cabeca
-    d.rect(26, 16, 5, 3, G_BICO, "bico")
-    d.rect(28, 19, 3, 1, G_BICO, "bico")
-    d.luz("cabeca", G_LUZ, dx=0, dy=2)
-    d.luz("corpo", G_LUZ, dx=0, dy=2)
-    d.contorno({"corpo": G_CONT, "cabeca": G_CONT, "asa": G_CONT, "cauda": G_CONT, "bico": G_CONT},
-               juntas=[("asa", "corpo"), ("asa", "cauda"), ("cabeca", "corpo"), ("bico", "cabeca"),
-                       ("corpo", "cauda")])
-    cv = d.cv
-    # linhas de dentro no marrom escuro; so a borda de fora fica no mais escuro
-    for y in range(32):
-        for x in range(32):
-            if cv.px[y][x] == G_CONT and not any(_vazio(cv, x + dx, y + dy)
-                                                  for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
-                cv.px[y][x] = G_CONT_DENTRO
-    # ponta da cauda como no voo: so o contorno escuro de 1 px, 1 px de marrom e a faixa clara
-    # seguindo os degraus das penas; a pena do meio com o avermelhado
-    for y in (17, 18, 19, 20, 21, 22):
-        xl = 3 if y in (19, 20) else 4
-        if cv.px[y][xl] == G_CAUDA_COR:
-            cv.px[y][xl] = G_LUZ
-    cv.px[19][4] = cv.px[19][5] = G_CAUDA_MEIO
-    # penas da asa (linhas de separacao) e ponta escura do gancho
-    for x in (10, 13):
-        for y in (18, 19):
-            cv.px[y][x] = G_CONT_DENTRO
-    cv.px[19][29] = G_CONT_DENTRO
-    # olho em X (3x3) na face, a 1 px do contorno
-    for (x, y) in ((21, 15), (23, 15), (22, 16), (21, 17), (23, 17)):
-        cv.px[y][x] = G_CONT
+def _gaviao_voo(ang, dy, nivel, grito=False, dx=0, cabeca=(35, 18)):
+    """Pose de voo (ou grito) em 48x48. ang = angulo da asa (graus)."""
+    return _gaviao_pose(nivel, ang, dy=dy, dx=dx, grito=grito, cabeca=cabeca)
+
+
+# mergulho: a asa fecha por etapas (aberta no alto -> colada nas costas) e o corpo vai
+# inclinando ate a diagonal; 12..15 = asa fechada, so as pontas tremendo com o vento (o jogo
+# toca 0..11 uma vez no comeco do mergulho e repete 12..15)
+G_MERG_ASA = [64, 58, 51, 44, 37, 30, 24, 18, 13, 9, 6, 4, 4, 7, 3, 6]
+G_MERG_ROT = [18, 21, 24, 27, 30, 33, 36, 39, 41, 43, 44, 45, 45, 46, 45, 46]
+
+
+def _gaviao_mergulho(i, nivel):
+    t = min(i, 11) / 11.0
+    treme = (0, 1, 1, 0)[i % 4] if i >= 12 else 0
+    return _gaviao_pose(nivel, G_MERG_ASA[i], k_asa=1.0 - 0.2 * t, k_longe=0.85 - 0.13 * t,
+                        patas="nenhuma", rot=G_MERG_ROT[i], giro=(-2, -2 + treme))
+
+
+def _gaviao_investida(i, nivel):
+    """Rasante rente ao chao: o corpo gordo um pouco inclinado para a frente, asas batendo curto
+    e rapido (2 batidas em 16 quadros), o corpo avancando e recuando ate 3 px no ciclo e as
+    garras esticadas a frente. A linha mais baixa (garras) fica em G_PIVO[1] + 8: na investida o
+    centro anda em chao - 9."""
+    ang = 26 + 30 * math.cos(2 * math.pi * i / 8.0)
+    avanco = (0, 0, 1, 2, 3, 3, 2, 1)[i // 2] - 1  # 1 avanco por ciclo de 16 (2 batidas)
+    cv = _gaviao_pose(nivel, ang, dx=avanco, patas="garras", rot=8, k_longe=0.8)
+    fundo = max((y for y in range(cv.h) for x in range(cv.w) if cv.px[y][x] is not None
+                 and cv.part[y][x] == "pata"), default=G_PIVO[1] + 8)
+    return ini._desloca(cv, 0, G_PIVO[1] + 8 - fundo)
+
+
+def _gaviao_atordoado(ang0, nivel, i=0):
+    """Caido de brucos no chao: o mesmo corpo redondo, achatado embaixo pelo piso, a cabeca
+    deitada com olho em X, a asa de perto largada no chao, a de longe mole nas costas, o peito
+    respirando (sobe e desce 1 px) e 3 estrelas em "+" girando acima da cabeca (ang0)."""
+    resp = (0, 0, 1, 1)[(i // 2) % 4]
+    ang = -12 + 3 * math.sin(2 * math.pi * i / 16.0)
+    cv = _gaviao_pose(nivel, ang, dy=7 + resp, k_asa=0.9, ang_longe=14 + 4 * math.sin(2 * math.pi * i / 16.0 + 1.0),
+                      k_longe=0.75, patas="nenhuma", cabeca=(36, 18 + (1 - resp)), rot=4, chao=41,
+                      tonto=True, bico_aberto=(i // 4) % 2 == 1)
     for k in range(3):
         a = ang0 + k * 2.094
-        # orbita de raio vertical 3.4: o centro fica entre as linhas 2 e 8, entao o contorno da
-        # estrela de cima cabe no quadro (linha 0) e o da de baixo (linha 10) nao encosta na
-        # cabeca (contorno na 12); as 3 estrelas ficam sempre a 7+ px uma da outra (distancia
-        # em "taxi"), entao os contornos nunca se tocam
-        _estrela(cv, 22 + int(round(7 * math.cos(a))), 5 + int(round(3.4 * math.sin(a))), contorno=G_CONT)
+        _estrela(cv, 35 + int(round(9 * math.cos(a))), 10 + int(round(4.4 * math.sin(a))), contorno=G_CONT)
+    return cv
+
+
+def gaviao(q, nivel=0):
+    """80 quadros de 48x48 (grade de 96), 16 por estado: 0..15 voo; 16..31 grito (asa no
+    alto batendo, bico aberto, cabeca e corpo tremendo); 32..47 mergulho (0..11 a asa fecha
+    por etapas, 12..15 repetem); 48..63 investida (asas batendo, corpo avancando); 64..79
+    atordoado. Todas as poses usam o mesmo corpo gordo do voo (_gaviao_pose).
+    nivel = dano acumulado (0 = inteiro ... 4 = muito machucado), cada estagio soma algo novo:
+    1 topete arrepiado, tres penas faltando na asa, pena de cima da cauda arrancada, peito e
+    bico sem brilho; 2 olho roxo inchado e a pena do meio da asa arrancada; 3 todas as cores
+    apagadas, peito arrepiado e bico lascado; 4 ponta da asa e cauda depenadas, topete maior e
+    falha de pele no pescoco."""
+    bloco, i = divmod(q, 16)
+    if bloco == 0:
+        ang = 18 + 54 * math.cos(2 * math.pi * i / 16.0)
+        dy = int(round(math.cos(2 * math.pi * (i - 3) / 16.0)))
+        cv = _gaviao_voo(ang, dy, nivel)
+    elif bloco == 1:
+        ang = 58 + 16 * math.cos(2 * math.pi * i * 3 / 16.0)
+        cv = _gaviao_voo(ang, (0, 0, -1, -1)[(i // 4) % 4], nivel, grito=True,
+                         dx=(0, 1, 0, -1)[(i // 2) % 4], cabeca=(35, 18 - (i % 2)))
+    elif bloco == 2:
+        cv = _gaviao_mergulho(i, nivel)
+    elif bloco == 3:
+        cv = _gaviao_investida(i, nivel)
+    else:
+        cv = _gaviao_atordoado(i * 2 * math.pi / 16.0, nivel, i)
     return _amplia2(cv)
+
+
+def tira_gaviao():
+    """Tira do gaviao chefe: 80 quadros de 48x48 lado a lado em G_NIVEIS linhas, uma por estagio
+    de dano (linha 0 = inteiro). O jogo desce uma linha a cada 2 golpes levados."""
+    linhas = [tira([gaviao(i, nivel) for i in range(80)]) for nivel in range(G_NIVEIS)]
+    cv = Canvas(linhas[0].w, linhas[0].h * G_NIVEIS)
+    for j, ln in enumerate(linhas):
+        cv.blit(ln, 0, j * ln.h)
+    return cv
 
 
 # ---------------------------------------------------------------- saida
@@ -560,10 +797,20 @@ def tira(quadros):
     return cv
 
 
+def tira_jacare():
+    """Tira do jacare gigante: 64 quadros lado a lado (16 por estado) em JG_ESTAGIOS linhas, uma
+    por golpe levado (linha 0 = inteiro). O jogo escolhe a linha por max_hp - hp."""
+    linhas = [tira([jacare_gigante(i, dano) for i in range(64)]) for dano in range(JG_ESTAGIOS)]
+    cv = Canvas(linhas[0].w, linhas[0].h * JG_ESTAGIOS)
+    for j, ln in enumerate(linhas):
+        cv.blit(ln, 0, j * ln.h)
+    return cv
+
+
 def pecas():
     return {
-        "chefe_jacare": [jacare_gigante(i) for i in range(64)],
-        "chefe_gaviao": [gaviao(i) for i in range(80)],
+        "chefe_jacare": [tira_jacare()],  # 1 Canvas ja montado: 64 quadros x 5 linhas de dano
+        "chefe_gaviao": [tira_gaviao()],  # 1 Canvas ja montado: 80 quadros 48x48 x 5 linhas de dano
     }
 
 

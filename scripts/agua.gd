@@ -3,9 +3,11 @@ extends Node2D
 ## Agua em que da para nadar (Fases 2 e 3). Diferente do perigo.tscn: aqui o pato boia na
 ## superficie, mergulha com BAIXO e tem folego limitado. Caixas boiam; jacares vivem aqui.
 ## Origem no canto INFERIOR esquerdo (como o Block), tamanho em tiles de 16 px.
-## Desenhada na frente do pato e translucida: ele aparece "dentro" d'agua.
+## O veu da frente e um quadriculado (dither ordenado) na cor do fundo do lago: no fundo ele
+## some (mesma cor) e no pato/jacare mergulhado vira pontinhos de agua -- "dentro" d'agua sem alfa.
 
 const Sprites := preload("res://scripts/sprites.gd")
+const PixelFx := preload("res://scripts/pixelfx.gd")
 
 @export var tiles_w: int = 4:
 	set(v):
@@ -16,24 +18,76 @@ const Sprites := preload("res://scripts/sprites.gd")
 		tiles_h = v
 		queue_redraw()
 
-## Veu da frente: um so e leve (tinta, nao lavagem), para o pato mergulhado manter o contorno
-## escuro e o laranja do bico. O tom da agua vem quase todo do fundo opaco abaixo.
-const COL_BODY := Color(0.12, 0.42, 0.80, 0.30)
 ## Fundo opaco do lago (atras de tudo, na frente do parallax): sem ele os morros do fundo
-## apareciam "dentro" d'agua. Ja escurecido para que fundo + veu de a mesma cor de antes
-## (metade de cima ~(64,134,209), metade funda ~(38,100,183)).
-const COL_BACK := Color8(78, 146, 212)
-const COL_BACK_DEEP := Color8(41, 97, 174)
-## Grama do fundo do lago: um veu azul por cima da faixa de grama do chao submerso, para ela
-## ficar "dentro" d'agua como as plantinhas (sem ele parecia gramado seco).
-const COL_FUNDO := Color(0.05, 0.25, 0.60, 0.40)
+## apareciam "dentro" d'agua. As mesmas duas faixas de azul de antes (metade de cima e metade
+## funda), agora chapadas: o veu da frente usa estas cores e some por cima delas.
+const COL_BACK := Color8(64, 134, 209)
+const COL_BACK_DEEP := Color8(38, 100, 183)
+## Veu da frente: fracao de pixels acesos (Bayer 4x4, os limiares mais baixos) na cor do fundo
+## daquela altura. Leve (2/16, pontinhos em diagonal) para o pato mergulhado manter o contorno
+## escuro e o laranja do bico.
+const VEU_COBERTURA := 2.0 / 16.0
+## Grama do fundo do lago: o mesmo quadriculado, mais denso (4/16), no azul fundo por cima da
+## faixa de grama do chao submerso, para ela ficar "dentro" d'agua (sem ele parecia gramado seco).
+const FUNDO_COBERTURA := 4.0 / 16.0
 const FUNDO_ALTURA := 6.0  # px da faixa de grama do tile de topo
 ## Tiles de topo de grama com flores/cogumelo (5 margaridas, 17 flores amarelas, 19 cogumelo):
 ## debaixo d'agua viram o 16 (grama lisa, sem flores) do mesmo tileset.
 const TOPO_COM_FLORES := [Vector2i(1, 1), Vector2i(1, 4), Vector2i(3, 4)]
 const TOPO_LISO := Vector2i(0, 4)
+## Brilhos e raios: cores opacas da Endesga 32 (o raio e um azul so um pouco mais claro que a
+## agua; quanto se ve dele e a fracao de pixels acesos no dither, RAIO_COBERTURA = 3/16).
+const BRILHO := Color("#ffffff")
+const BRILHO_FRACO := Color("#c0cbdc")
+const RAIO := Color("#0099db")
+const RAIO_COBERTURA := 3.0 / 16.0
+## Fundo do lago + raios de luz num shader so (atras do pato): os raios sao faixas inclinadas de
+## pixels soltos em dither ordenado (Bayer 4x4, preso ao mundo), opacos e da paleta; a forca
+## muda em degraus de 1/16, nunca por alfa. Um raio a cada 48 px, que balanca devagar. Os raios
+## acendem os limiares MAIS ALTOS do Bayer (o veu usa os mais baixos): o veu nao os apaga.
+const SHADER_FUNDO := """
+shader_type canvas_item;
+uniform float tempo = 0.0;
+uniform vec2 origem = vec2(0.0);
+uniform float largura = 64.0;
+uniform float altura = 48.0;
+uniform float cobertura = 0.1875;
+uniform vec4 raio : source_color = vec4(1.0);
+varying vec2 px;
+
+//BAYER
+
+void vertex() {
+	px = VERTEX;
+}
+
+void fragment() {
+	vec2 p = floor(px);
+	float y0 = floor(-altura + 6.0);
+	float y1 = -4.0;
+	if (p.y >= y0 && p.y < y1) {
+		float i = floor(p.x / 48.0);  // o raio i fica todo dentro de [48 i, 48 i + 48)
+		if (i < floor(largura / 48.0)) {
+			float rx = floor(i * 48.0 + 12.0 + sin(tempo * 0.6 + i) * 6.0);
+			float t = (p.y - y0) / (y1 - y0);
+			float l = floor(mix(rx, rx + 4.0, t));
+			float r = floor(mix(rx + 6.0, rx + 14.0, t));
+			float forca = cobertura + floor(sin(tempo + i) + 0.5) / 16.0;
+			// mais ralo no pe do raio (some em degraus, nao em degrade)
+			float cob = forca * (t < 0.6 ? 1.0 : 0.5);
+			if (p.x >= l && p.x < r && bayer4(origem + p) >= 1.0 - cob) {
+				COLOR = raio;
+			}
+		}
+	}
+}
+"""
+
+static var _sh_fundo: Shader
 
 var _time := 0.0
+var _mat_fundo: ShaderMaterial
+var _veu: Node2D
 
 
 func _ready() -> void:
@@ -42,12 +96,28 @@ func _ready() -> void:
 	fundo.name = "Fundo"
 	fundo.z_as_relative = false
 	fundo.z_index = -980
+	if _sh_fundo == null:
+		_sh_fundo = Shader.new()
+		_sh_fundo.code = PixelFx.com_bayer(SHADER_FUNDO)
+	_mat_fundo = ShaderMaterial.new()
+	_mat_fundo.shader = _sh_fundo
+	_mat_fundo.set_shader_parameter("cobertura", RAIO_COBERTURA)
+	_mat_fundo.set_shader_parameter("raio", RAIO)
+	fundo.material = _mat_fundo
 	fundo.draw.connect(func() -> void:
 		var w := 16.0 * tiles_w
 		var h := 16.0 * tiles_h
 		fundo.draw_rect(Rect2(0, -h + 4, w, h - 4), COL_BACK)
 		fundo.draw_rect(Rect2(0, -h * 0.5, w, h * 0.5), COL_BACK_DEEP))
 	add_child(fundo)
+	# veu da frente (filho: desenha depois da agua, por cima do pato mergulhado); o alfa da cor
+	# vira cobertura do quadriculado no PixelFx.material_dither(), pixel cheio ou vazio
+	_veu = Node2D.new()
+	_veu.name = "Veu"
+	_veu.material = PixelFx.material_dither()
+	_veu.draw.connect(_draw_veu)
+	add_child(_veu)
+	_atualiza_fundo()
 	if not Engine.is_editor_hint():
 		# o auto-tile da fase (Level._retile_grass) roda no _ready do pai, depois deste
 		_fundo_sem_flores.call_deferred()
@@ -82,36 +152,51 @@ func surface_y() -> float:
 
 func _process(delta: float) -> void:
 	_time += delta
+	_atualiza_fundo()
 	queue_redraw()
+
+
+func _atualiza_fundo() -> void:
+	if _mat_fundo == null:
+		return
+	_mat_fundo.set_shader_parameter("tempo", _time)
+	_mat_fundo.set_shader_parameter("origem", global_position.floor())
+	_mat_fundo.set_shader_parameter("largura", 16.0 * tiles_w)
+	_mat_fundo.set_shader_parameter("altura", 16.0 * tiles_h)
+	if _veu != null:
+		_veu.queue_redraw()
+
+
+## Veu em quadriculado: abaixo da espuma (opaca, 16 px) ate o fundo, na cor do fundo de cada
+## metade (no fundo nao aparece; no que esta mergulhado vira pontinhos de agua).
+func _draw_veu() -> void:
+	var w := 16.0 * tiles_w
+	var h := 16.0 * tiles_h
+	if h > 16.0:
+		var meio := -h * 0.5
+		var topo := -h + 16.0
+		if topo < meio:
+			_veu.draw_rect(Rect2(0, topo, w, meio - topo), Color(COL_BACK, VEU_COBERTURA))
+		_veu.draw_rect(Rect2(0, maxf(topo, meio), w, -maxf(topo, meio)), Color(COL_BACK_DEEP, VEU_COBERTURA))
+	# grama do fundo (passa 3 px para os lados: a curva da grama no pe das margens)
+	_veu.draw_rect(Rect2(-3.0, 0.0, w + 6.0, FUNDO_ALTURA), Color(COL_BACK_DEEP, FUNDO_COBERTURA))
 
 
 func _draw() -> void:
 	var w := 16.0 * tiles_w
 	var h := 16.0 * tiles_h
-	draw_rect(Rect2(0, -h + 4, w, h - 4), COL_BODY)
-	# veu na grama do fundo (passa 3 px para os lados: a curva da grama no pe das margens)
-	draw_rect(Rect2(-3.0, 0.0, w + 6.0, FUNDO_ALTURA), COL_FUNDO)
 	var frame := int(_time * 16.0)  # 16 quadros por segundo (uma volta da espuma)
 	for i in tiles_w:
-		Sprites.draw_frame(self, "agua", Rect2(i * 16.0, -h, 16.0, 16.0), posmod(frame + i * 4, 16), Color(1, 1, 1, 0.85))
-	# brilhinhos na superficie e raios de luz no fundo
+		Sprites.draw_frame(self, "agua", Rect2(i * 16.0, -h, 16.0, 16.0), posmod(frame + i * 4, 16))
+	# brilhinhos na superficie: opacos e da paleta, em degraus (ponto -> cruz -> ponto), sem alfa
 	for i in tiles_w * 2:
 		var ph := _time * 1.7 + i * 2.39
 		var s := sin(ph)
 		if s > 0.82:
 			var gx := fposmod(i * 8.0 + i * i * 3.0, w - 4.0)
-			var a := (s - 0.82) / 0.18
-			draw_rect(Rect2(gx, -h + 5, 3, 1), Color(1, 1, 1, a))
-			draw_rect(Rect2(gx + 1, -h + 4, 1, 3), Color(1, 1, 1, a * 0.6))
-	# raios: linha a linha em px inteiros do jogo (um poligono seria rasterizado na resolucao
-	# da janela, com bordas em degraus de 1 px da tela e deslizando em subpixel)
-	var y0 := int(-h + 6.0)
-	var y1 := -4
-	for i in int(w / 48.0):
-		var rx := floorf(i * 48.0 + 12.0 + sin(_time * 0.6 + i) * 6.0)
-		var cor := Color(0.85, 0.95, 1.0, 0.05 + 0.03 * sin(_time + i))
-		for y in range(y0, y1):
-			var t := float(y - y0) / float(y1 - y0)
-			var l := floorf(lerpf(rx, rx + 4.0, t))
-			var r := floorf(lerpf(rx + 6.0, rx + 14.0, t))
-			draw_rect(Rect2(l, y, r - l, 1.0), cor)
+			gx = floorf(gx)
+			if s > 0.93:  # no pico, a cruzinha
+				draw_rect(Rect2(gx, -h + 5, 3, 1), BRILHO)
+				draw_rect(Rect2(gx + 1, -h + 4, 1, 3), BRILHO)
+			else:
+				draw_rect(Rect2(gx + 1, -h + 5, 1, 1), BRILHO_FRACO)

@@ -65,11 +65,6 @@ z_index = -900
 position = Vector2(44, 304)
 script = ExtResource("7_06rsu")
 
-[node name="Celeiro" type="Node2D" parent="Decoracao" unique_id=1368504791 instance=ExtResource("6_sbw1o")]
-position = Vector2(472, 256)
-script = ExtResource("7_06rsu")
-tipo = 1
-
 [node name="Cerca1" type="Node2D" parent="Decoracao" unique_id=1583476853 instance=ExtResource("6_sbw1o")]
 position = Vector2(200, 288)
 script = ExtResource("7_06rsu")

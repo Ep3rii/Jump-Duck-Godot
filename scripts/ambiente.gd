@@ -40,7 +40,9 @@ const DRAGONFLY_HEAD := Color("#124e89")
 const DRAGONFLY_WINGS_UP := [Vector2i(-2, -1), Vector2i(-2, -2), Vector2i(0, -1), Vector2i(0, -2)]
 const DRAGONFLY_WINGS_OPEN := [Vector2i(-3, -1), Vector2i(-2, -1), Vector2i(0, -1),
 	Vector2i(1, -1)]
+## Poeira na luz da torre: pisca em degraus (clara -> apagada -> sumida), opaca e da paleta.
 const DUST := Color("#ead4aa")
+const DUST_DIM := Color("#c28569")
 ## Teia de canto (so onde parede encontra teto), pixel a pixel (1 px opaco), com o canto em
 ## (0, 0): um fio na diagonal e dois arcos ligando teto e parede. Sem fio colado no teto nem na
 ## parede (com eles a teia virava uma letra).
@@ -284,6 +286,9 @@ func _draw_bugs() -> void:
 					draw_rect(Rect2(p.x + a.x * s, p.y + a.y, 1, 1), DRAGONFLY_WING)
 				draw_rect(Rect2(p.x - 3.0 if s > 0.0 else p.x - 1.0, p.y, 5, 1), DRAGONFLY)
 				draw_rect(Rect2(p.x + 2.0 * s, p.y - 1.0, 1, 2), DRAGONFLY_HEAD)
-			Tipo.TORRE:  # poeira na luz
-				var a := 0.35 + 0.3 * sin(_time * 2.0 + t * 3.0)
-				draw_rect(Rect2(p.x, p.y, 1, 1), Color(DUST, a))
+			Tipo.TORRE:  # poeira na luz: dois tons opacos e um tempo sumida, sem alfa
+				var s := sin(_time * 2.0 + t * 3.0)
+				if s > 0.2:
+					draw_rect(Rect2(p.x, p.y, 1, 1), DUST)
+				elif s > -0.5:
+					draw_rect(Rect2(p.x, p.y, 1, 1), DUST_DIM)

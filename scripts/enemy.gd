@@ -1,5 +1,6 @@
 class_name Enemy
 extends Node2D
+const PixelFx := preload("res://scripts/pixelfx.gd")
 ## Base de todos os inimigos (raposa hoje; jacare, gaviao e o chefe depois).
 ##
 ## Contrato com o jogador (player.gd):
@@ -30,8 +31,12 @@ const Particulas := preload("res://scripts/particulas.gd")
 var particula_derrota := "poeira"
 var particulas_qtd := 10
 
+## Quadros apagado / aceso no pisca de dano.
+const PISCA_QUADROS := 5.0
+
 var hp := 1
 var _hurt_until := -1
+var _pisca: Tween
 
 
 ## Largura da sombra no chao em px (0 = sem sombra; quem nada sobrescreve).
@@ -43,6 +48,9 @@ func _ready() -> void:
 	add_to_group("enemy")
 	add_to_group("sombra")  # sombras.gd
 	hp = max_hp
+	# transparencia (submerso, pisca de dano) vira quadriculado de pixels cheios ou vazios
+	if material == null:
+		material = PixelFx.material_dither()
 	_enemy_ready()
 
 
@@ -79,10 +87,22 @@ func hit(damage: int = 1) -> void:
 		return
 	_hurt_until = Engine.get_physics_frames() + hurt_frames
 	Game.play_sfx("stomp")
-	var tw := create_tween()
-	tw.tween_property(self, "modulate:a", 0.3, 0.08)
-	tw.tween_property(self, "modulate:a", 1.0, 0.08)
-	tw.set_loops(maxi(1, int(hurt_frames / 10.0)))
+	_piscar()
+
+
+## Pisca de dano em pixel: some e volta por quadros inteiros (alfa 0 ou 1, nunca meio
+## transparente), 5 quadros apagado e 5 aceso, pelo tempo de hurt_frames.
+func _piscar() -> void:
+	if _pisca != null and _pisca.is_valid():
+		_pisca.kill()
+	_pisca = create_tween()
+	_pisca.set_process_mode(Tween.TWEEN_PROCESS_PHYSICS)
+	for i in maxi(1, int(hurt_frames / 10.0)):
+		_pisca.tween_callback(func() -> void: modulate.a = 0.0)
+		_pisca.tween_interval(PISCA_QUADROS / 60.0)
+		_pisca.tween_callback(func() -> void: modulate.a = 1.0)
+		_pisca.tween_interval(PISCA_QUADROS / 60.0)
+	_pisca.tween_callback(func() -> void: modulate.a = 1.0)
 
 
 func defeat() -> void:

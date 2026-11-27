@@ -23,6 +23,12 @@ const COL_BUBBLE_EDGE := Color("0099db")  # contorno da bolha cheia
 const COL_BUBBLE_OFF := Color("5a6988")  # anel da bolha vazia
 
 const PixelFont := preload("res://scripts/pixel_font.gd")
+const PixelFx := preload("res://scripts/pixelfx.gd")
+## Escurecimento atras dos menus: quadriculado (dither ordenado, PixelFx.material_dither) no tom
+## mais escuro da paleta, em degraus: 1/2 dos pixels na pausa, 1/4 nos menus fora da fase.
+const COL_ESCURO := Color("181425")
+const ESCURO_PAUSA := 0.5
+const ESCURO_LEVE := 0.25
 const Chave := preload("res://scripts/chave.gd")
 
 const LEFT := PixelFont.LEFT
@@ -30,9 +36,24 @@ const CENTER := PixelFont.CENTER
 const RIGHT := PixelFont.RIGHT
 
 
+var _escuro := 0.0
+var _escurecer: Control
+
+
 func _ready() -> void:
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	# atras do desenho da UI (show_behind_parent): escurece o jogo, nao os menus
+	_escurecer = Control.new()
+	_escurecer.name = "Escurecer"
+	_escurecer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_escurecer.show_behind_parent = true
+	_escurecer.material = PixelFx.material_dither()
+	_escurecer.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_escurecer.draw.connect(func() -> void:
+		if _escuro > 0.0:
+			_escurecer.draw_rect(Rect2(Vector2.ZERO, Vector2(Game.TELA)), Color(COL_ESCURO, _escuro)))
+	add_child(_escurecer)
 
 
 func _process(_delta: float) -> void:
@@ -211,16 +232,16 @@ func _draw() -> void:
 		_draw_hud(int(tela.x), int(tela.y))
 
 	# ---------- Menus ----------
-	if state == "playing" or state == "cutscene":
-		return
-
-	var dim := 0.55
-	if state == "main":
+	var dim := ESCURO_PAUSA
+	if state == "playing" or state == "cutscene" or state == "main":
 		dim = 0.0
 	elif state in ["settings", "controls", "levels", "credits"] and not Game.in_level:
-		dim = 0.3
-	if dim > 0.0:
-		draw_rect(Rect2(Vector2.ZERO, tela), Color(0, 0, 0, dim), true)
+		dim = ESCURO_LEVE
+	if dim != _escuro:
+		_escuro = dim
+		_escurecer.queue_redraw()
+	if state == "playing" or state == "cutscene":
+		return
 
 	# os menus usam a grade de 320x180, centrada na tela
 	draw_set_transform(Game.UI_OFS)
@@ -340,20 +361,9 @@ func _draw_hud(w: int, h: int) -> void:
 	if Game.debug_invincible:
 		_text(4, h - 8, "TESTE: INVENCÍVEL", COL_YELLOW, LEFT)
 
-	if Game.boss_visible and Game.boss_max > 0:
-		# barra de vida do chefe, no topo entre os coracoes e as flores (embaixo fica a agua);
-		# desenhada para 320 px de largura, centrada na tela
-		var bx := floorf((w - 320) / 2.0)
-		_fill(bx + 66, 2, bx + 222, 24, hud_bg)
-		_outline(bx + 66, 2, bx + 222, 24, COL_MID)
-		# titulo em y = 11: o acento (3 px acima das letras) fica com 1 linha livre abaixo da moldura
-		_text(bx + 144, 11, Game.boss_label, Color.WHITE, CENTER)
-		var seg_w := floorf(146.0 / Game.boss_max)
-		for i in Game.boss_max:
-			var x := bx + 72.0 + i * seg_w
-			_fill(x, 16, x + seg_w - 3, 21, COL_RED_DARK)
-			if i < Game.boss_hp:
-				_fill(x + 1, 17, x + seg_w - 4, 20, COL_RED)
+	# Sem barra de vida nem nome do chefe no HUD (pedido do dono): o dano acumulado aparece so
+	# no proprio chefe. Game.boss_hp / boss_max / boss_visible continuam existindo para os
+	# chefes e a arena (arena_chefe.gd), mas nada daqui os desenha.
 
 	var row_y := 23.0  # proxima linha livre embaixo dos coracoes
 	if Game.keys > 0:

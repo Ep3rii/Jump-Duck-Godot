@@ -5,8 +5,7 @@
 [ext_resource type="PackedScene" path="res://scenes/block.tscn" id="3_q08cq"]
 [ext_resource type="Script" path="res://scripts/block.gd" id="4_gf6jk"]
 [ext_resource type="TileSet" path="res://assets/tilesets/pedra_solida.tres" id="5_nmmpf"]
-[ext_resource type="PackedScene" path="res://scenes/porta.tscn" id="6_n7wbe"]
-[ext_resource type="Script" path="res://scripts/porta.gd" id="7_en2ip"]
+[ext_resource type="PackedScene" path="res://scenes/arena_chefe.tscn" id="6_arena"]
 [ext_resource type="PackedScene" path="res://scenes/caixa.tscn" id="8_ju4fu"]
 [ext_resource type="Script" path="res://scripts/caixa.gd" id="9_ho3ux"]
 [ext_resource type="PackedScene" path="res://scenes/flor.tscn" id="10_0ecyv"]
@@ -60,14 +59,13 @@ tile_set = ExtResource("5_nmmpf")
 [node name="Mecanicas" type="Node2D" parent="." unique_id=1259745504]
 z_index = -750
 
-[node name="PortaEntrada" type="Node2D" parent="Mecanicas" unique_id=1367282036 instance=ExtResource("6_n7wbe")]
-position = Vector2(192, 160)
-script = ExtResource("7_en2ip")
-abre_com_sinal = false
-
-[node name="PortaSaida" type="Node2D" parent="Mecanicas" unique_id=1376460550 instance=ExtResource("6_n7wbe")]
-position = Vector2(496, 160)
-script = ExtResource("7_en2ip")
+[node name="ArenaChefe" type="Node2D" parent="Mecanicas" unique_id=1367282036 instance=ExtResource("6_arena")]
+retangulo = Rect2(192, -24, 320, 216)
+tipo_portao = "torre"
+portoes_entrada = PackedVector2Array(192, 160)
+portoes_saida = PackedVector2Array(496, 160)
+chefe = NodePath("../../Entidades/Gaviao")
+reabrir_entrada = true
 
 [node name="Itens" type="Node2D" parent="." unique_id=1044924244]
 z_index = -700
@@ -104,12 +102,10 @@ script = ExtResource("15_m8fp2")
 z_index = -600
 
 [node name="Gaviao" type="Node2D" parent="Entidades" unique_id=521274060 instance=ExtResource("16_ivp87")]
-position = Vector2(352, 60)
+position = Vector2(352, 66)
 script = ExtResource("17_hxafh")
 limite_dir = 496.0
 chao = 160.0
-porta_entrada = NodePath("../../Mecanicas/PortaEntrada")
-alvos_ao_derrotar = Array[NodePath]([NodePath("../../Mecanicas/PortaSaida")])
 
 [node name="Dicas" type="Node2D" parent="." unique_id=1152938258]
 z_index = -450

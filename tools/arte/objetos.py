@@ -13,6 +13,8 @@ ainda sao desenhados na grade de 32.
   seta.png       1 quadro 40x48: placa de saida (seta)
   junco.png      2 quadros 32x56: moita de juncos balancando
   brilho.png     5 quadros 32x32: brilho de coletar
+  portao_fazenda.png 16 quadros 32x96: barranco de grama que sobe e fecha a arena (lagoa)
+  portao_torre.png   16 quadros 32x96: grade de ferro levadica que desce (torre)
 Uso: python tools/arte/objetos.py [--salvar]   (previa em tools/arte/saida/objetos.png)"""
 import math
 import os
@@ -356,6 +358,94 @@ def brilho(q):
     return d.cv
 
 
+# ---------------------------------------------------------------- portoes das arenas de chefe
+# Barreiras que fecham a entrada e a saida da arena (scripts/arena_chefe.gd). Cada uma: 16
+# quadros de 16x48 (pixels do jogo), entregues 2x (32x96 na grade de 32; sem entrada em QUADRO_32
+# o reduz2 trata a tira como um quadro so e, como e 2x exato, so amostra). Quadro 0 = aberto (so
+# um indicio do portao), 15 = fechado. A arena toca 0 -> 15 para fechar e 15 -> 0 para abrir.
+# PORTAO_ALTURAS = quantos px da barreira aparecem em cada quadro (o mesmo que
+# arena_chefe.gd PORTAO_ALTURAS usa no desenho de reserva): acelera, encosta, quica 1 vez e assenta.
+PORTAO_W, PORTAO_H = 16, 48
+PORTAO_ALTURAS = [2, 3, 5, 8, 12, 17, 23, 30, 38, 47, 48, 44, 48, 46, 48, 48]
+E_GRAMA, E_GRAMA_S, E_GRAMA_ESC = hexc("63c74d"), hexc("3e8948"), hexc("265c42")
+E_TERRA, E_TERRA_S = hexc("b86f50"), hexc("733e39")
+
+
+def _portao_fazenda_cheio():
+    """Barranco de terra com tampa de grama (as cores do tileset_grama) e dois juncos no alto:
+    um pedaco do chao que sobe e fecha a passagem. Raizes e pedrinhas na terra."""
+    d = Desenho(PORTAO_W, PORTAO_H)
+    d.rect(1, 6, 14, 42, E_TERRA, "terra")
+    d.rect(1, 4, 14, 5, E_GRAMA, "grama")       # tampa de grama
+    d.rect(3, 3, 4, 1, E_GRAMA, "grama")        # tufos irregulares no topo
+    d.rect(9, 3, 5, 1, E_GRAMA, "grama")
+    for x, y in ((2, 9), (4, 10), (5, 9), (8, 10), (11, 9), (12, 10)):   # franja caindo na terra
+        d.rect(x, y, 1, 1, E_GRAMA, "grama")
+    d.contorno({"grama": E_GRAMA_ESC, "terra": E_CONT})
+    d.rect(2, 8, 12, 1, E_GRAMA_S)              # sombra embaixo da tampa
+    d.rect(3, 4, 3, 1, hexc("ffffff"))          # florzinha branca de miolo laranja
+    ponto(d, 4, 4, E_OURO)
+    for y in range(11, 47):                     # sombra da terra a direita (luz de cima/esq.)
+        ponto(d, 13, y, E_TERRA_S)
+    for x, y in ((3, 14), (4, 15), (4, 16), (5, 17), (9, 21), (10, 22), (10, 23), (11, 24),
+                 (4, 29), (5, 30), (5, 31), (8, 36), (9, 37), (9, 38), (3, 42), (4, 43)):
+        ponto(d, x, y, E_TERRA_S)               # raizes finas
+    for x, y in ((7, 18), (11, 32), (6, 40)):   # pedrinhas
+        d.rect(x, y, 2, 1, E_PEDRA)
+        d.rect(x, y + 1, 2, 1, E_PEDRA_S)
+    # juncos espetados no alto (2 folhas de 1 px com a ponta escura)
+    for x, h in ((6, 4), (11, 3)):
+        for y in range(4 - h, 4):
+            ponto(d, x, y, E_VERDE_L)
+        ponto(d, x, 3 - h, E_GRAMA_ESC)
+    return d.cv
+
+
+def _portao_torre_cheio():
+    """Grade de ferro levadica: 3 barras verticais de 4 px (contorno, luz, corpo, contorno),
+    3 travessas com rebites e pontas embaixo. Mesmas cores frias do tileset_pedra."""
+    d = Desenho(PORTAO_W, PORTAO_H)
+    for y0 in (5, 19, 33):                      # travessas (por baixo das barras)
+        d.rect(0, y0, 16, 4, E_FERRO_ESC)
+        d.rect(1, y0 + 1, 14, 1, E_PEDRA)
+        d.rect(1, y0 + 2, 14, 1, E_PEDRA_S)
+    for x0 in (1, 6, 11):
+        d.rect(x0, 0, 4, 44, E_FERRO_ESC)
+        d.rect(x0 + 1, 0, 1, 44, E_PEDRA_L)
+        d.rect(x0 + 2, 0, 1, 44, E_PEDRA)
+        d.rect(x0 + 1, 44, 2, 2, E_PEDRA_S)     # ponta: afina em 2 linhas e fecha escura
+        ponto(d, x0, 44, E_FERRO_ESC)
+        ponto(d, x0 + 3, 44, E_FERRO_ESC)
+        ponto(d, x0, 45, E_FERRO_ESC)
+        ponto(d, x0 + 3, 45, E_FERRO_ESC)
+        d.rect(x0 + 1, 46, 2, 1, E_FERRO_ESC)
+        for y0 in (5, 19, 33):                  # rebite no cruzamento
+            ponto(d, x0 + 1, y0 + 1, E_BRANCO)
+            ponto(d, x0 + 2, y0 + 2, E_PEDRA_S)
+    return d.cv
+
+
+def _portao_quadro(cheio, q, de_baixo):
+    """Quadro q: mostra PORTAO_ALTURAS[q] px da barreira. de_baixo = sobe do chao (mostra o
+    TOPO da barreira encostado embaixo); senao desce do teto (mostra a BASE encostada em cima)."""
+    h = PORTAO_ALTURAS[q]
+    cv = Canvas(PORTAO_W, PORTAO_H)
+    for y in range(PORTAO_H):
+        sy = y - (PORTAO_H - h) if de_baixo else y + (PORTAO_H - h)
+        if 0 <= sy < PORTAO_H:
+            for x in range(PORTAO_W):
+                cv.px[y][x] = cheio.px[sy][x]
+    return x2(cv)
+
+
+def portao_fazenda(q):
+    return _portao_quadro(_portao_fazenda_cheio(), q, True)
+
+
+def portao_torre(q):
+    return _portao_quadro(_portao_torre_cheio(), q, False)
+
+
 # ---------------------------------------------------------------- saida
 def pecas():
     return {
@@ -370,6 +460,8 @@ def pecas():
         "seta": [seta()],
         "junco": [junco(i) for i in range(16)],
         "brilho": [brilho(i) for i in range(16)],
+        "portao_fazenda": [portao_fazenda(i) for i in range(16)],
+        "portao_torre": [portao_torre(i) for i in range(16)],
     }
 
 

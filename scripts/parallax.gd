@@ -21,6 +21,13 @@ const Sprites := preload("res://scripts/sprites.gd")
 @export_enum("Manhã", "Dia", "Tarde", "Entardecer", "Noite") var hora := 1
 ## Tamanho da torre ao fundo: ela cresce de fase em fase, conforme o pato chega perto.
 @export_enum("Longe", "Média", "Perto") var torre_distancia := 0
+## Celeiro ao fundo (ceu aberto): uma peca so por fase, na camada mais perto da tela, que passa
+## uma vez enquanto o pato anda (nao se repete como as tiras de morro). Fases com celeiro no
+## plano do jogo (Decoracao "Celeiro") nao ganham outro ao fundo.
+@export var mostrar_celeiro := true
+## X da camera (canto esquerdo) em que o celeiro fica no meio da tela. Negativo = escolhe
+## sozinho um trecho de chao firme sem itens, placas e decoracao na frente (_escolhe_celeiro).
+@export var celeiro_camera_x := -1.0
 
 ## Por hora: 5 faixas do ceu (de cima para baixo), tom das camadas, tom das nuvens, astro
 ## (sol/lua), posicao dele na tela (fracao), tom dele e luz ambiente da fase.
@@ -128,6 +135,8 @@ func _draw() -> void:
 	_draw_strip(COLINAS_LONGE, vx, vy, vw, vh, tinta)
 	_draw_birds(vx, vy, vw)
 	_draw_strip(COLINAS_PERTO, vx, vy, vw, vh, tinta)
+	if mostrar_celeiro:
+		_draw_celeiro(vx, vy, vw, vh, tinta)
 
 
 func _draw_sky(vx: float, vy: float, vw: float, vh: float, ceu: Array) -> void:
@@ -143,7 +152,7 @@ func _draw_stars(vx: float, vy: float, vw: float, vh: float) -> void:
 		var sy := float((i * 53 + 17) % int(vh * 0.6))
 		var on := int(_time_ms / 600.0 + i * 3) % 5 != 0
 		var s := 1.0
-		draw_rect(Rect2(vx + sx, vy + sy, s, s), Color(1, 1, 1, 1.0 if on else 0.45))
+		draw_rect(Rect2(vx + sx, vy + sy, s, s), Color.WHITE if on else Color("#8b9bb4"))  # pisca trocando de cor da paleta, sem alfa
 
 
 func _draw_astro(vx: float, vy: float, vw: float, vh: float, h: Dictionary) -> void:
@@ -237,6 +246,222 @@ func _draw_birds(vx: float, vy: float, vw: float) -> void:
 			draw_rect(Rect2(px - 2, wy, 2, 1), col)
 			draw_rect(Rect2(px + 1, wy, 2, 1), col)
 			draw_rect(Rect2(px, py, 1, 1), col)
+
+
+# ------------------------------------------------- celeiro ao fundo
+## Arte do celeiro de fundo (tools/arte/cenario.py: menor e um tom mais apagado que o do jogo,
+## para ler como "perto, mas atras"). Enquanto ela nao foi gravada, usa o celeiro do jogo.
+const CELEIRO_ARTE := "cenario/celeiro_fundo"
+const CELEIRO_ARTE_RESERVA := "cenario/celeiro"
+## Velocidade da camada do celeiro: entre as colinas de perto (0.45) e o mundo (1.0).
+const CELEIRO_FATOR := 0.78
+## Px do pe do celeiro escondidos atras do chao, no ponto mais baixo do chao embaixo dele.
+const CELEIRO_AFUNDA := 4.0
+## Fracao minima da altura do celeiro que precisa aparecer acima do chao.
+const CELEIRO_VISIVEL := 0.55
+## Passo da busca do lugar (px de camera) e da leitura do chao (px do mundo).
+const CELEIRO_PASSO := 8.0
+
+## [x da camera com o celeiro no meio da tela, y do pe no mundo]; [] = sem celeiro nesta fase;
+## null = ainda nao escolhido (espera o terreno da fase existir).
+var _celeiro: Variant = null
+var _chao_cache := {}
+
+
+func _celeiro_arte() -> String:
+	return CELEIRO_ARTE if Sprites.has_art(CELEIRO_ARTE) else CELEIRO_ARTE_RESERVA
+
+
+## X na tela do canto esquerdo do celeiro (inteiro: 1 px do jogo) com a camera em vx.
+static func _celeiro_x_tela(cam_meio: float, vx: float, vw: float, w: float) -> float:
+	return floorf(vw * 0.5 - w * 0.5 + (cam_meio - vx) * CELEIRO_FATOR)
+
+
+## Camera em que o celeiro aparece (de -> ate): fora dessa faixa ele esta fora da tela.
+static func _celeiro_alcance(vw: float, w: float) -> float:
+	return (vw + w) * 0.5 / CELEIRO_FATOR
+
+
+func _draw_celeiro(vx: float, vy: float, vw: float, vh: float, cor: Color) -> void:
+	var c := celeiro_lugar()
+	if c.is_empty():
+		return
+	var arte := _celeiro_arte()
+	var tam := Sprites.art_size(arte)
+	var x := _celeiro_x_tela(c[0], vx, vw, tam.x)
+	var y: float = c[1] - tam.y
+	if x >= vw or x + tam.x <= 0.0 or y >= vy + vh or c[1] <= vy:
+		return
+	Sprites.draw_art(self, arte, vx + x, y, 0, 1, cor)
+
+
+## Lugar do celeiro desta fase ([] = nenhum). Escolhido uma vez, quando o terreno ja existe.
+func celeiro_lugar() -> Array:
+	if _celeiro == null:
+		_celeiro = _escolhe_celeiro()
+	return _celeiro if _celeiro != null else []
+
+
+## Topo do chao firme na coluna x do mundo: o solido que vem de baixo da sala sem buraco (as
+## plataformas soltas no ar nao contam); um lago conta pela superficie (o fundo dele e opaco,
+## na frente do parallax). INF = buraco (o pe do celeiro apareceria).
+func _chao_em(x: float) -> float:
+	var chave := int(x)
+	if _chao_cache.has(chave):
+		return _chao_cache[chave]
+	var topo := INF
+	var y := float(Game.room_height) - 8.0
+	while y > 0.0 and _bate(Rect2(x, y, 1.0, 1.0)):
+		topo = floorf(y / 16.0) * 16.0
+		y -= 16.0
+	if is_inside_tree():
+		for a in get_tree().get_nodes_in_group("agua"):
+			if a is Node2D and a.get("tiles_w") != null:
+				var p: Vector2 = (a as Node2D).global_position
+				var sup: float = p.y - 16.0 * float(a.tiles_h) + 4.0
+				if x >= p.x and x < p.x + 16.0 * float(a.tiles_w):
+					topo = minf(topo, sup)
+	_chao_cache[chave] = topo
+	return topo
+
+
+## Retangulos (no mundo) do que o celeiro nao deve ficar atras, com o peso de cada um: itens,
+## placas de dica, saida e checkpoints (pesam muito: se misturam com ele) e o moinho e as
+## arvores do plano do jogo (pesam menos: escondem o celeiro). Arbusto, cerca e junco na
+## frente dele sao naturais.
+func _celeiro_obstaculos() -> Array:
+	var out := []
+	for g in ["item", "dica", "exit", "checkpoint", "chave"]:
+		for n in get_tree().get_nodes_in_group(g):
+			if n is Node2D:
+				var p: Vector2 = (n as Node2D).global_position
+				out.append([Rect2(p.x - 12.0, p.y - 28.0, 24.0, 30.0), 100.0])
+	for n in get_tree().get_nodes_in_group("sombra_cenario"):
+		if n is Node2D and n.get("tipo") in [0, 3, 8]:
+			var p: Vector2 = (n as Node2D).global_position
+			out.append([Rect2(p.x - 32.0, p.y - 96.0, 64.0, 96.0), 30.0])
+	return out
+
+
+## Escolhe a camera em que o celeiro fica no meio da tela: o trecho em que ele aparece inteiro
+## sobre chao firme (sem buraco embaixo, mostrando pelo menos CELEIRO_VISIVEL dele), longe da
+## arena do chefe, sem itens nem placas na frente e, de preferencia, fora da tela no comeco
+## (ele "passa" uma vez). null = o terreno ainda nao existe; [] = nao ha celeiro nesta fase.
+func _escolhe_celeiro() -> Variant:
+	if cenario != 0 or not is_inside_tree() or Game.room == "menu":
+		return []
+	var snap := _solidos_fixos()
+	if snap.is_empty() or ((snap[0] as Array).is_empty() and (snap[1] as Array).is_empty()):
+		return null
+	for n in get_tree().get_nodes_in_group("sombra_cenario"):
+		if n.get("tipo") == 1:
+			return []  # ja ha um celeiro no plano do jogo
+	var tam := Sprites.art_size(_celeiro_arte())
+	var vw: float = Game.view_size.x
+	var vx_max := maxf(0.0, float(Game.room_width) - vw)
+	var alcance := _celeiro_alcance(vw, tam.x)
+	# as fases da fazenda comecam na beira esquerda; a conta nao usa o pato (ao voltar de um
+	# checkpoint ele nasce mais adiante, e o celeiro tem de ficar no mesmo lugar)
+	var vx0 := 0.0
+	var limite := vx_max + alcance * 0.5
+	# faixas de camera da arena do chefe (arena_chefe.gd): la dentro o celeiro nunca aparece.
+	# Sem arena na fase, vale o no do chefe (nada de celeiro dali em diante).
+	var arenas := celeiro_faixas_proibidas()
+	if arenas.is_empty():
+		for ch in get_tree().get_nodes_in_group("chefe"):
+			if ch is Node2D:
+				limite = minf(limite, (ch as Node2D).global_position.x - vw - alcance)
+	var obst := _celeiro_obstaculos()
+	var candidatos: Array[float] = []
+	if celeiro_camera_x >= 0.0:
+		candidatos.append(celeiro_camera_x)
+	else:
+		var c := vx0 + 64.0
+		while c <= limite:
+			candidatos.append(c)
+			c += CELEIRO_PASSO
+	var melhor: Array = []
+	var melhor_nota := INF
+	for c in candidatos:
+		if _celeiro_na_arena(c, alcance, arenas):
+			continue
+		var r := _avalia_celeiro(c, vx0, vx_max, alcance, tam, obst)
+		if not r.is_empty() and (r[2] < melhor_nota or celeiro_camera_x >= 0.0):
+			melhor_nota = r[2]
+			melhor = [r[0], r[1]]
+	return melhor
+
+
+## Faixas [de, ate] do X da camera em que ela esta dentro de uma arena de chefe da fase (grupo
+## "arena_chefe", retangulo no mundo): com a arena fechada a camera fica presa ali.
+func celeiro_faixas_proibidas() -> Array:
+	var out := []
+	if not is_inside_tree():
+		return out
+	var vw: float = Game.view_size.x
+	for a in get_tree().get_nodes_in_group("arena_chefe"):
+		var r: Variant = a.get("retangulo")
+		if r is Rect2:
+			var ret: Rect2 = r
+			out.append([ret.position.x, maxf(ret.position.x, ret.end.x - vw)])
+	return out
+
+
+## O celeiro centrado na camera 'c' aparece (c - alcance .. c + alcance) com a camera em alguma
+## das faixas proibidas? Uma margem de 8 px evita que a borda dele encoste na tela da arena.
+static func _celeiro_na_arena(c: float, alcance: float, faixas: Array) -> bool:
+	for f: Array in faixas:
+		if c - alcance < f[1] + 8.0 and c + alcance > f[0] - 8.0:
+			return true
+	return false
+
+
+## [camera, y do pe, nota] do celeiro centrado na camera 'c' (nota menor = melhor), ou [].
+func _avalia_celeiro(c: float, vx0: float, vx_max: float, alcance: float, tam: Vector2,
+		obst: Array) -> Array:
+	var vw: float = Game.view_size.x
+	var a := maxf(0.0, c - alcance)
+	var b := minf(vx_max, c + alcance)
+	# chao embaixo de tudo o que o celeiro cobre enquanto aparece na tela
+	var x_ini := a + _celeiro_x_tela(c, a, vw, tam.x) + 2.0
+	var x_fim := b + _celeiro_x_tela(c, b, vw, tam.x) + tam.x - 2.0
+	var pe := -INF
+	var x := x_ini
+	while x <= x_fim:
+		var g := _chao_em(x)
+		if g == INF:
+			return []
+		pe = maxf(pe, g)
+		x += CELEIRO_PASSO
+	if pe == -INF:
+		return []
+	pe += CELEIRO_AFUNDA
+	# quanto dele aparece acima do chao com ele no meio da tela
+	var topo := pe - tam.y
+	var soma := 0.0
+	var n := 0
+	var x_meio := c + _celeiro_x_tela(c, c, vw, tam.x)
+	x = x_meio + 2.0
+	while x <= x_meio + tam.x - 2.0:
+		soma += clampf((_chao_em(x) - topo) / tam.y, 0.0, 1.0)
+		n += 1
+		x += CELEIRO_PASSO
+	var visivel := soma / maxf(1.0, n)
+	if visivel < CELEIRO_VISIVEL:
+		return []
+	# itens e placas na frente dele (em cinco pontos da passagem)
+	var nota := 0.0
+	for i in 5:
+		var v := lerpf(a, b, i / 4.0)
+		var ret := Rect2(v + _celeiro_x_tela(c, v, vw, tam.x), topo, tam.x, tam.y)
+		for o: Array in obst:
+			if ret.intersects(o[0]):
+				nota += o[1]
+	if c - alcance < vx0:
+		nota += 50.0 + (vx0 - (c - alcance)) * 0.2  # ja aparece no comeco da fase
+	nota += (1.0 - visivel) * 40.0
+	nota += absf(c - (vx0 + alcance + 96.0)) * 0.01  # cedo na fase, depois de sair da tela
+	return [c, pe, nota]
 
 
 # ------------------------------------------------- por dentro da torre

@@ -1,13 +1,19 @@
 extends CanvasLayer
 ## Luz da fase: uma pelicula por cima do mundo (e por baixo do HUD) que MULTIPLICA a cena pela
 ## luz ambiente e abre "clareiras" em volta de cada fonte de luz (tocha, janela, chave, pato).
-## Em faixas chapadas e presas a grade da arte, sem degrade: o mesmo estilo dos desenhos.
+## Em faixas chapadas e presas a grade da arte, sem degrade: o mesmo estilo dos desenhos. Na
+## divisa entre duas faixas, um dither ordenado (Bayer 4x4, PixelFx) de poucos px troca uma pela
+## outra em quadriculado, preso ao mundo (nao "anda" com a camera), como luz de pixel art.
 ##
 ## Quem ilumina: nos do grupo "luz" com a funcao luzes() -> Array de [posicao (mundo), raio (px),
 ## cor, forca 0..1]. A luz ambiente vem do Parallax da fase (luz_ambiente(), pela 'hora').
 ## De dia, ao ar livre, a luz ambiente e branca e nao ha luzes: a pelicula fica desligada.
 
+const PixelFx := preload("res://scripts/pixelfx.gd")
+
 const MAX_LUZES := 32
+## Largura do dither na divisa das faixas (fracao do raio; 0.14 de um raio de 40 px = ~5 px).
+const DITHER := 0.14
 const SHADER := """
 shader_type canvas_item;
 render_mode blend_mul, unshaded;
@@ -18,19 +24,25 @@ uniform vec2 vista = vec2(384.0, 216.0);
 uniform int n = 0;
 uniform vec3 luz_pos[32];  // x, y (mundo) e raio
 uniform vec4 luz_cor[32];  // cor e forca
+uniform float dither = 0.14;
+
+//BAYER
 
 void fragment() {
 	// ponto do mundo, preso a grade da arte (1 pixel do jogo)
-	vec2 p = cam + floor(UV * vista) + 0.5;
+	vec2 p = floor(cam + floor(UV * vista)) + 0.5;
+	// deslocamento do quadriculado neste pixel do mundo (+-metade de 'dither')
+	float bz = (bayer4(p) - 0.47) * dither;
 	// cada luz devolve a clareira a cor da propria arte, com so um leve tom da luz (a pedra
 	// azul nao vira cinza/caqui e o pato branco nao fica creme); as luzes se juntam pelo
 	// maximo de cada canal, entao a luz branca do pato vence a tocha em cima dele
 	vec3 res = ambiente;
 	for (int i = 0; i < n; i++) {
-		float d = distance(p, luz_pos[i].xy) / luz_pos[i].z;
-		// tres faixas chapadas: miolo, meio e borda
+		float d = distance(p, luz_pos[i].xy) / luz_pos[i].z + bz;
+		// tres faixas chapadas: miolo, meio e borda (a divisa em dither, pelo bz)
 		float k = d < 0.45 ? 1.0 : (d < 0.75 ? 0.62 : (d < 1.0 ? 0.3 : 0.0));
-		k *= luz_cor[i].a;
+		// a forca (que a tocha faz tremular) tambem em degraus de 1/8: nada de brilho continuo
+		k = floor(k * luz_cor[i].a * 8.0 + 0.5) / 8.0;
 		vec3 tom = mix(vec3(1.0), luz_cor[i].rgb, 0.3);
 		res = max(res, mix(ambiente, tom, k));
 	}
@@ -53,7 +65,7 @@ func _ready() -> void:
 	_rect.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var sh := Shader.new()
-	sh.code = SHADER
+	sh.code = PixelFx.com_bayer(SHADER)
 	_mat = ShaderMaterial.new()
 	_mat.shader = sh
 	_rect.material = _mat
@@ -106,7 +118,8 @@ func _update() -> void:
 		_ativas.append(l)
 		var p: Vector2 = l[0]
 		var c: Color = l[2]
-		pos.append(Vector3(p.x, p.y, l[1]))
+		# centro e raio em px inteiros: a borda em degraus nao tremula entre um pixel e outro
+		pos.append(Vector3(roundf(p.x), roundf(p.y), roundf(float(l[1]))))
 		cor.append(Color(c.r, c.g, c.b, l[3]))
 	var n := pos.size()
 	pos.resize(MAX_LUZES)
@@ -115,14 +128,15 @@ func _update() -> void:
 	_mat.set_shader_parameter("cam", Game.cam_pos)
 	_mat.set_shader_parameter("vista", Game.view_size)
 	_mat.set_shader_parameter("n", n)
+	_mat.set_shader_parameter("dither", DITHER)
 	_mat.set_shader_parameter("luz_pos", pos)
 	_mat.set_shader_parameter("luz_cor", cor)
 
 
 ## A mesma conta do shader para um ponto do mundo: por quanto a pelicula multiplica a cor ali
-## (branco = pelicula desligada). Com sem_fundo, ignora as luzes da parede (tochas e janelas,
-## marcadas com um 5o campo true): quem nao quer ser clareado por elas (as pedras que caem)
-## multiplica a propria cor por luz_em(p, true) / luz_em(p).
+## (branco = pelicula desligada), sem o dither da divisa das faixas. Com sem_fundo, ignora as
+## luzes da parede (tochas e janelas, marcadas com um 5o campo true): quem nao quer ser
+## clareado por elas (as pedras que caem) multiplica a propria cor por luz_em(p, true) / luz_em(p).
 ## 'lista' (de perto()) limita a conta as luzes que alcancam o objeto.
 func luz_em(p: Vector2, sem_fundo := false, lista: Variant = null) -> Color:
 	var res := _amb
@@ -131,7 +145,7 @@ func luz_em(p: Vector2, sem_fundo := false, lista: Variant = null) -> Color:
 			continue
 		var d: float = p.distance_to(l[0]) / float(l[1])
 		var k := 1.0 if d < 0.45 else (0.62 if d < 0.75 else (0.3 if d < 1.0 else 0.0))
-		k *= float(l[3])
+		k = floorf(k * float(l[3]) * 8.0 + 0.5) / 8.0
 		var tom := Color.WHITE.lerp(l[2] as Color, 0.3)
 		var m := _amb.lerp(tom, k)
 		res = Color(maxf(res.r, m.r), maxf(res.g, m.g), maxf(res.b, m.b))

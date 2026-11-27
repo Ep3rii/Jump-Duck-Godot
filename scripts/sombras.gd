@@ -1,7 +1,9 @@
 extends Node2D
 ## Sombras projetadas no chao. A luz vem de cima e da ESQUERDA (o sol fica a esquerda no ceu),
 ## entao a sombra cai embaixo e um pouco a direita de quem a faz, e encolhe conforme o bicho
-## sobe. Chapada e meio transparente, sem degrade.
+## sobe. Em pixel: formas em degraus de 1 px e UM so nivel de sombra, sem alfa nem degrade.
+## Cada pixel embaixo da sombra vira o tom de sombra da propria cor na Endesga 32 (grama ->
+## grama escura, terra -> terra escura; PixelFx.material_sombra()), entao tudo continua na paleta.
 ##
 ## Quem faz sombra:
 ## - nos do grupo "sombra" (pato, inimigos, caixas, itens): a sombra fica embaixo da mascara
@@ -10,12 +12,19 @@ extends Node2D
 ##   (x inicial, y do chao, comprimento): uma faixa de sombra deitada na grama.
 
 const Solids := preload("res://scripts/solids.gd")
+const PixelFx := preload("res://scripts/pixelfx.gd")
 
-const COR := Color(0.03, 0.06, 0.14, 0.3)
+## Cor do desenho (o shader troca pelo tom de sombra do que esta embaixo; sem o shader, a
+## sombra fica no tom mais escuro da paleta, #181425).
+const COR := Color("#181425")
 const ALCANCE := 112.0  # altura maxima em que ainda aparece sombra no chao
 const DESVIO := 0.22  # quanto a sombra anda para a direita por px de altura
 
 var _snap: Array = []
+
+
+func _ready() -> void:
+	material = PixelFx.material_sombra()
 
 
 func _process(_delta: float) -> void:
@@ -65,13 +74,15 @@ func _draw() -> void:
 		_draw_blob(floorf(p.x + alt * DESVIO), gy, w)
 
 
-## Sombra de quem esta em cima (ou acima) do chao: uma pilula achatada na superficie.
+## Sombra de quem esta em cima (ou acima) do chao: uma elipse achatada em degraus de 1 px na
+## superficie (as pontas da linha de cima recuam 1 px nas sombras largas).
 func _draw_blob(cx: float, gy: float, w: float) -> void:
 	if w < 3.0:
 		return
 	var x := cx - floorf(w * 0.5)
-	draw_rect(Rect2(x, gy + 1.0, w, 1.0), COR)
-	draw_rect(Rect2(x + 1.0, gy + 2.0, w - 2.0, 1.0), COR)
+	var ponta := 1.0 if w >= 8.0 else 0.0
+	draw_rect(Rect2(x + ponta, gy + 1.0, w - 2.0 * ponta, 1.0), COR)
+	draw_rect(Rect2(x + 1.0 + ponta, gy + 2.0, w - 2.0 - 2.0 * ponta, 1.0), COR)
 
 
 ## Faixa de sombra do cenario deitada no chao (so onde ha chao embaixo), afinando na ponta.

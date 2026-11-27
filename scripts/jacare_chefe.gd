@@ -9,7 +9,10 @@ extends Enemy
 ## 4. dor: fica na superficie "com dor de dente". So agora pode ser pisado.
 ##    Pisou: perde 1 de vida e mergulha (ferido). Se o tempo acaba, recomeca o ciclo.
 ## Encostar nele machuca, menos com dor de dente e ferido. 5 pisoes derrotam.
-## A barra de vida aparece no HUD quando o pato entra na arena.
+## Sem barra de vida: cada golpe deixa uma marca que fica ate o fim da luta (linha da tira =
+## golpes levados: curativo, dente a menos, olho roxo, suor...) e ele fica mais lento para nadar
+## e se mexer. A luta comeca pela arena (arena_chefe.gd, Mecanicas/ArenaChefe da fase 3): quando
+## os portoes fecham ela chama comecar_luta(); se o pato reaparece fora, reiniciar_luta().
 
 const DISPLAY_NAME := "JACARÉ GIGANTE"
 const SWIM_SPEED := 2.5
@@ -22,15 +25,20 @@ const LEAP_GRAVITY := 0.25
 const SURFACE_DEPTH := 8.0  # na superficie a barriga fica 8 px abaixo da linha d'agua
 const PAIN_DEPTH := 2.0  # com dor de dente boia mais alto: bochecha e boca ficam fora d'agua
 const DEEP := 26.0  # submerso
-const BITE_DISTANCE := 36.0  # emerge a esta distancia do pato (8 px de folga com HALF_W + meio pato)
-const HALF_W := 20.0  # 40 px de colisao (a arte tem 48: a ponta fina da cauda e o focinho ficam de fora)
+const BITE_DISTANCE := 46.0  # emerge a esta distancia do pato (8 px de folga com HALF_W + meio pato)
+const HALF_W := 30.0  # 60 px de colisao (a arte tem 72: a ponta fina da cauda e o focinho ficam de fora)
 const HEIGHT := 16.0  # corpo de ~16 px acima da barriga (cabeca e cristas mais altas)
 const BITE_REACH := 10.0
 const Z_SALTO := -470  # absoluto: na frente do Jogador (-500) e da Agua (-480), atras das Dicas
 const Z_BOLHAS := -479  # absoluto: logo na frente da Agua (-480), que cobriria as bolhas do aviso
 const Sprites := preload("res://scripts/sprites.gd")
 const QUADROS := 64  # chefe_jacare.png: nado, salto, mordida e dor, 16 quadros cada
-const PIVO := Vector2(24, 28)  # ponto da barriga no quadro de 48x32 px (JG_W / 2 e JG_BARRIGA em tools/arte/chefes.py)
+## Cada linha da tira (32 px de altura) e um estagio de dano: linha 0 inteiro, 1..4 = golpes levados
+## (JG_ESTAGIOS em tools/arte/chefes.py). Uma tira de 1 linha so (arte antiga) tambem funciona.
+const LINHA_H := 32.0
+## Ponto da barriga no quadro de 72x32 px (JG_W / 2 e JG_BARRIGA em tools/arte/chefes.py). O X e
+## recalculado pela largura real do quadro (_pivo), entao uma tira de outra largura nao desalinha.
+const PIVO := Vector2(36, 28)
 
 
 var state := "espera"  # espera | nadando | aviso | salto | mordida_aviso | mordida | dor | ferido
@@ -44,6 +52,7 @@ var _mouth := 0.0
 var _lunge := 0.0
 var _anim := 0.0
 var _bolhas: Node2D = null  # filho que desenha as bolhas do aviso na frente da agua
+var _pos0 := Vector2.ZERO  # posicao inicial (reiniciar_luta)
 
 
 func sombra_largura() -> float:
@@ -70,6 +79,42 @@ func _enemy_ready() -> void:
 			break
 	if water != null:
 		position.y = _surface() + DEEP
+	_pos0 = position
+
+
+## Golpes ja levados (0..4): escolhe a linha de dano da tira e deixa o bicho mais lento.
+func dano() -> int:
+	return clampi(max_hp - hp, 0, max_hp - 1)
+
+
+## Chamado pela arena quando os portoes terminam de fechar.
+func comecar_luta(_arena: Node = null) -> void:
+	if state != "espera" or water == null:
+		return
+	state = "nadando"
+	leaps_left = 2
+	_pick_leap_target(_player())
+	Game.set_boss(DISPLAY_NAME, hp, max_hp)  # so os valores: o HUD nao desenha mais barra
+	Game.play_sfx("splash")
+
+
+## Chamado pela arena quando o pato reaparece fora dela (checkpoint): tudo como no inicio.
+func reiniciar_luta() -> void:
+	state = "espera"
+	hp = max_hp
+	_hurt_until = -1
+	modulate.a = 1.0
+	position = _pos0
+	if water != null:
+		position.y = _surface() + DEEP
+	dir = -1
+	_timer = 0
+	_vy = 0.0
+	_mouth = 0.0
+	_lunge = 0.0
+	leaps_left = 2
+	Game.clear_boss()
+	queue_redraw()
 
 
 func _surface() -> float:
@@ -144,18 +189,14 @@ func _physics_process(_delta: float) -> void:
 
 	match state:
 		"espera":
-			var r: Rect2 = water.get_rect()
-			if p != null and p.position.x > r.position.x - 8.0 and p.position.x < r.end.x + 8.0:
-				state = "nadando"
-				leaps_left = 2
-				_pick_leap_target(p)
-				Game.set_boss(DISPLAY_NAME, hp, max_hp)
+			pass  # quem acorda o chefe e a arena (comecar_luta)
 		"nadando":
 			position.y = move_toward(position.y, _surface() + DEEP, 1.5)
 			var dx := _target_x - position.x
+			var vel := SWIM_SPEED - 0.25 * dano()  # cansado: nada mais devagar a cada golpe
 			if absf(dx) > 1.0:
 				dir = 1 if dx > 0 else -1
-				position.x += clampf(dx, -SWIM_SPEED, SWIM_SPEED)
+				position.x += clampf(dx, -vel, vel)
 			elif absf(position.y - (_surface() + DEEP)) < 1.0:
 				if leaps_left > 0:
 					state = "aviso"
@@ -253,7 +294,7 @@ func _start_leap(p: Node2D) -> void:
 func _draw() -> void:
 	# nadando: 0..15; salto: 16..23 subindo (focinho para cima), 24..31 descendo; mordida:
 	# 32..47 (boca abrindo); dor: 48..63
-	var q := int(_anim * 16.0 / 36.0) % 16
+	var q := int(_anim * 16.0 / (36.0 + 6.0 * dano())) % 16  # cansado: nada com mais calma
 	match state:
 		"salto":
 			q = (16 if _vy < 0.0 else 24) + int(_anim / 3.0) % 8
@@ -274,8 +315,7 @@ func _draw() -> void:
 		# opaca e sumir de repente quando ele volta para tras da agua
 		_draw_cortado(q, Color.WHITE, COR_DEBAIXO_DAGUA)
 	else:
-		Sprites.draw_bicho(self, "chefe_jacare", q, QUADROS, PIVO, dir < 0, Color.WHITE,
-			Vector2(_lunge * float(dir), 0.0))
+		_draw_cortado(q, Color.WHITE, Color.WHITE, Vector2(_lunge * float(dir), 0.0))
 
 
 ## Tinta da parte submersa quando o chefe esta na frente da agua: parecida com o sprite a 0.6
@@ -283,21 +323,30 @@ func _draw() -> void:
 const COR_DEBAIXO_DAGUA := Color(0.55, 0.72, 0.95, 0.6)
 
 
-## Desenha o quadro q dividido na linha d'agua: acima com 'cima', abaixo com 'baixo'.
-func _draw_cortado(q: int, cima: Color, baixo: Color) -> void:
+## Pivo do quadro pela largura real da tira (centro em X, barriga em Y), em px inteiros.
+func _pivo(fw: float) -> Vector2:
+	return Vector2(floorf(fw * Sprites.ART_SCALE * 0.5), PIVO.y)
+
+
+## Desenha o quadro q (na linha do dano acumulado) dividido na linha d'agua: acima com 'cima',
+## abaixo com 'baixo'. 'desloc' empurra o desenho (bote da mordida), em px inteiros.
+func _draw_cortado(q: int, cima: Color, baixo: Color, desloc := Vector2.ZERO) -> void:
 	var t := Sprites.art("chefe_jacare")
 	var fw := t.get_width() / float(QUADROS)
-	var fh := float(t.get_height())
+	var linhas := maxi(1, int(t.get_height() / LINHA_H))
+	var fh := float(t.get_height()) / linhas
+	var sy := fh * mini(dano(), linhas - 1)
 	var esc := Sprites.ART_SCALE
+	var pv := _pivo(fw)
 	# linha do quadro (em px da textura) que fica na linha d'agua
-	var corte := clampf(roundf((water.surface_y() - global_position.y + PIVO.y) / esc), 0.0, fh)
+	var corte := clampf(roundf((water.surface_y() - global_position.y + pv.y) / esc), 0.0, fh)
 	var sx := posmod(q, QUADROS) * fw
-	draw_set_transform(Vector2.ZERO, 0.0, Vector2(-1, 1) if dir < 0 else Vector2.ONE)
+	draw_set_transform(desloc.round(), 0.0, Vector2(-1, 1) if dir < 0 else Vector2.ONE)
 	if corte > 0.0:
-		draw_texture_rect_region(t, Rect2(-PIVO, Vector2(fw, corte) * esc), Rect2(sx, 0.0, fw, corte), cima)
+		draw_texture_rect_region(t, Rect2(-pv, Vector2(fw, corte) * esc), Rect2(sx, sy, fw, corte), cima)
 	if corte < fh:
-		draw_texture_rect_region(t, Rect2(Vector2(-PIVO.x, -PIVO.y + corte * esc), Vector2(fw, fh - corte) * esc),
-			Rect2(sx, corte, fw, fh - corte), baixo)
+		draw_texture_rect_region(t, Rect2(Vector2(-pv.x, -pv.y + corte * esc), Vector2(fw, fh - corte) * esc),
+			Rect2(sx, sy + corte, fw, fh - corte), baixo)
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
 
 

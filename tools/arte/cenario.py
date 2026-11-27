@@ -8,7 +8,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from pixelkit import Canvas, load_png, hexc, mapa_paleta  # noqa: E402
+from pixelkit import Canvas, load_png, hexc, mapa_paleta, na_paleta  # noqa: E402
 from estilo import Desenho, P, conferir  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(HERE))
@@ -316,12 +316,15 @@ def celeiro():
     return d
 
 
-def celeiro16():
+def celeiro16(d=None):
     """Celeiro em 16x16 com o telhado retocado: na aba ingreme a reducao tira o contorno entre
     a sombra do telhado e a parede e o fio de luz. Em cada linha da aba ingreme fica, de fora
     para dentro: contorno, luz (so na esquerda), madeira, 1 px de sombra, 1 px de contorno,
     parede. E o pe do portao (friso branco) fecha no contorno da parede, nao em cinza."""
-    cv, cor = em16(celeiro().cv)
+    cv, cor0 = em16((d or celeiro()).cv)
+
+    def cor(c):  # cor que sumiu na reducao (o fio de luz do celeiro de fundo): a da paleta
+        return cor0(c) or na_paleta(c)
     esc = cor(P["contorno_madeira"])
     luz = cor(P["madeira_luz"])
     mad = cor(P["madeira"])
@@ -370,6 +373,67 @@ def celeiro16():
         if base[x] is not None and base[x] == cinza:
             base[x] = fundo
     return amplia2(cv)
+
+
+# ------------------------------------------------------------------ celeiro de fundo
+def celeiro_fundo():
+    """O mesmo celeiro, menor (cerca de 2/3: 104x76 px do jogo) e com menos detalhe, para a
+    camada de parallax mais perto da tela (scripts/parallax.gd). Desenhado de novo nesta
+    medida (nada de reduzir a peca grande): tabuas, friso, portao com X e janela do sotao."""
+    W, H = 208, 152
+    d = Desenho(W, H)
+    d.poli([(2, 86), (28, 32), (104, 0), (180, 32), (206, 86), (196, 86), (196, 78), (12, 78),
+            (12, 86)], P["madeira"], "telhado")
+    d.poli([(12, 78), (40, 46), (104, 18), (168, 46), (196, 78)], P["vermelho"], "parede")
+    d.rect(12, 78, 184, H - 78, P["vermelho"], "parede")
+    for x in range(26, 196, 16):
+        d.rect(x, 16, 1, H, P["vermelho_sombra"], None, so=["parede"])
+    d.sombra("parede", P["vermelho_sombra"], dx=8, dy=0)
+    d.luz("parede", P["vermelho_luz"], dx=4, dy=0)
+    cv = d.cv
+    for y in range(H):
+        for x in range(W):
+            if cv.part[y][x] == "parede" and any(
+                    0 <= y - j < H and cv.part[y - j][x] == "telhado" for j in range(1, 5)):
+                cv.px[y][x] = P["vermelho_sombra"]
+    d.sombra("telhado", P["madeira_sombra"], dx=0, dy=4)
+    d.luz("telhado", P["madeira_luz"], dx=0, dy=2)
+    d.rect(13, 78, 182, 4, P["branco"], "friso")
+    # portao de duas folhas com X
+    d.rect(68, 88, 72, H - 88, P["branco"], "friso")
+    for px in (72, 106):
+        d.rect(px, 92, 30, H - 92, P["vermelho_sombra"], "porta")
+        d.linha(px, 92, px + 29, H - 2, P["branco"], so=["porta"], grossura=2)
+        d.linha(px + 29, 92, px, H - 2, P["branco"], so=["porta"], grossura=2)
+    # janela do sotao
+    d.rect(90, 36, 28, 26, P["branco"], "friso")
+    d.rect(94, 40, 20, 18, P["janela"], "vidro")
+    d.rect(102, 40, 4, 18, P["branco"], "friso")
+    d.contorno({"parede": P["contorno_vermelho"], "telhado": P["contorno_madeira"],
+                "friso": P["contorno_cinza"], "porta": P["contorno_vermelho"], "vidro": P["janela"]},
+               juntas=[("telhado", "parede"), ("porta", "friso"), ("vidro", "friso")])
+    return d
+
+
+# Cores do celeiro de fundo: um tom abaixo das do celeiro do jogo (como as colinas de perto,
+# mais escuras que a grama da fase), todas da Endesga 32; o contorno fica igual.
+CELEIRO_FUNDO_CORES = {
+    "e43b44": "be4a2f", "f6757a": "d77643", "be4a2f": "a22633",  # parede (cor, luz, sombra)
+    "b86f50": "733e39", "c28569": "b86f50", "733e39": "3e2731",  # telhado
+    "ffffff": "c0cbdc", "c0cbdc": "8b9bb4",  # friso, portao e janela
+    "3a4466": "262b44",  # vidro
+}
+
+
+def celeiro_fundo16():
+    cv = celeiro16(celeiro_fundo())
+    troca = {hexc(a)[:3]: hexc(b) for a, b in CELEIRO_FUNDO_CORES.items()}
+    for y in range(cv.h):
+        for x in range(cv.w):
+            c = cv.px[y][x]
+            if c is not None and c[:3] in troca:
+                cv.px[y][x] = troca[c[:3]]
+    return cv
 
 
 # ------------------------------------------------------------------ moinho
@@ -583,6 +647,7 @@ def pecas():
         "arbusto": arbusto16(),
         "cerca": cerca_cv,
         "celeiro": celeiro16(),
+        "celeiro_fundo": celeiro_fundo16(),
         "moinho_corpo": moinho_corpo16(),
         "moinho_pas": tira([moinho_pas16(i) for i in range(PAS_QUADROS)]),
     }

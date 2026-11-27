@@ -39,7 +39,7 @@ QUADRO_32 = {
     "coracao": 32, "agua": 32, "bloco": 32, "pata": 32, "porta": 32, "placa": 32, "cipo": 32,
     "pedra_cai": 32, "brilho": 32, "junco": 32,
     "raposa": 46, "jacare": 64, "gaviaozinho": 46, "aguia": 62,
-    "chefe_jacare": 64, "chefe_gaviao": 64,
+    "chefe_jacare": 144, "chefe_gaviao": 96,
     "saida": 40, "checkpoint": 28, "vento": 24,
     "cenario/cerca": 32, "cenario/moinho_pas": 192, "fundo/sol": 96, "fundo/tocha": 32,
 }

@@ -4,8 +4,11 @@ extends Node2D
 ## ela treme por meio segundo, despenca (deixa de ser solida) e volta para o lugar alguns
 ## segundos depois (so volta se nada estiver no caminho).
 ## Origem no canto INFERIOR esquerdo, 1 tile de altura, largura em tiles de 16 px.
+## Some caindo e reaparece em pixel: o alfa do desenho vira quadriculado (PixelFx.material_dither,
+## Bayer 4x4), cada pixel cheio ou vazio, em degraus de 1/16 -- nunca meio transparente.
 
 const Sprites := preload("res://scripts/sprites.gd")
+const PixelFx := preload("res://scripts/pixelfx.gd")
 
 @export var tiles_w: int = 2:
 	set(v):
@@ -19,7 +22,7 @@ const Sprites := preload("res://scripts/sprites.gd")
 const Particulas := preload("res://scripts/particulas.gd")
 const FALL_SHOW_PX := 120.0  # depois de cair isso, some (ate voltar)
 
-const COL_LIGHT := Color8(214, 198, 160)
+const COL_LIGHT := Color("#ead4aa")  # poeira (Endesga 32)
 
 var state := "parada"  # parada | tremendo | caindo | voltando
 var _timer := 0
@@ -30,6 +33,7 @@ var _anim := 0.0
 
 
 func _ready() -> void:
+	material = PixelFx.material_dither()
 	add_to_group("plataforma_cai")
 	if not Engine.is_editor_hint():
 		add_to_group("solid")
@@ -128,7 +132,7 @@ func _draw() -> void:
 		for i in 3:
 			var px := fposmod(i * 11.0 + _anim * 0.7, w)
 			var py := fposmod(_anim * 1.5 + i * 7.0, 14.0)
-			draw_rect(Rect2(px, py + 1.0, 1, 1), Color(COL_LIGHT, 0.8))
+			draw_rect(Rect2(px, py + 1.0, 1, 1), COL_LIGHT)
 
 
 ## Perto de uma tocha a pelicula de luz (luz.gd) clareia so parte das pedras e o mesmo

@@ -18,6 +18,13 @@ const GRID_SCALE := 1.0
 ## de 9x9 (cheia e vazia), a estrela pequena do menu de fases (tools/arte/itens.py).
 const QUADRO_DE := {"estrela_mini": 9}
 
+## Portoes das arenas de chefe (tools/arte/objetos.py, usados por scripts/arena_chefe.gd):
+## tipo do portao -> peca. Tiras de PORTAO_QUADROS quadros de PORTAO_TAM px; quadro 0 = aberto
+## (so um indicio), o ultimo = fechado. 'fazenda' sobe do chao, 'torre' desce do teto.
+const PORTOES := {"fazenda": "portao_fazenda", "torre": "portao_torre"}
+const PORTAO_QUADROS := 16
+const PORTAO_TAM := Vector2(16, 48)
+
 static var _art: Dictionary = {}
 
 

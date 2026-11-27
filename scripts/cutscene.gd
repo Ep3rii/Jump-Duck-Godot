@@ -8,6 +8,9 @@ extends Node2D
 const Sprites := preload("res://scripts/sprites.gd")
 const PixelFont := preload("res://scripts/pixel_font.gd")
 const PlayerScript := preload("res://scripts/player.gd")
+const PixelFx := preload("res://scripts/pixelfx.gd")
+## O por do sol escurece o cenario em degraus (PASSOS_LUZ tons), nao num degrade continuo.
+const PASSOS_LUZ := 6
 
 const DURATION := 22.0
 const FLOOR_Y := 140.0
@@ -58,6 +61,8 @@ func _ready() -> void:
 	add_child(_duck)
 	_overlay = Node2D.new()
 	_overlay.z_index = 10
+	# coracoes e textos desbotam em quadriculado (dither de Bayer), nunca por alfa
+	_overlay.material = PixelFx.material_dither()
 	_overlay.draw.connect(_draw_overlay)
 	add_child(_overlay)
 
@@ -80,12 +85,17 @@ func sunset() -> float:
 	return _phase(5.0, 18.0)
 
 
+## O tom da luz do por do sol em degraus (0, 1/5 .. 1): o cenario escurece de tom em tom.
+static func luz_degrau(k: float) -> float:
+	return floorf(k * (PASSOS_LUZ - 1) + 0.5) / float(PASSOS_LUZ - 1)
+
+
 func _process(delta: float) -> void:
 	if _done:
 		return
 	t += delta
 	_duck.position.x = floorf(duck_x())
-	_duck.modulate = _tinta_bicho(sunset())
+	_duck.modulate = _tinta_bicho(luz_degrau(sunset()))
 	_duck.play("run" if t > 0.5 and t < 4.0 else "idle")
 	if t >= 4.5 and not _sfx_heart:
 		_sfx_heart = true
@@ -111,10 +121,11 @@ func _finish() -> void:
 
 # ------------------------------------------------------------------- desenho
 func _draw() -> void:
-	var k := sunset()
+	var sol := sunset()
+	var k := luz_degrau(sol)  # tons do cenario em degraus; o sol desce liso
 	_draw_sky(k)
 	_draw_stars(k)
-	_draw_sun(k)
+	_draw_sun(sol)
 	var dusk := Color(lerpf(0.75, 0.35, k), lerpf(0.5, 0.25, k), lerpf(0.7, 0.45, k))
 	Sprites.draw_art(self, "fundo/montanhas", -96.0, 24.0, 0, 1, dusk)
 	# nuvens opacas (so o tom muda): nada do ceu ou das estrelas aparece atraves delas
@@ -142,20 +153,27 @@ func _draw_sky(k: float) -> void:
 
 
 func _draw_stars(k: float) -> void:
+	# estrelas opacas: com a noite chegando acendem mais delas (e nao mais forte); cada uma
+	# pisca entre branco e cinza-azulado da paleta, e no apagar some de vez
 	var a := clampf((k - 0.5) * 2.0, 0.0, 1.0)
 	if a <= 0.0:
 		return
 	for i in 24:
+		if a <= float((i * 7) % 24) / 24.0:
+			continue
 		var x := ESQ + fposmod(i * 67.0 + 13.0, DIR - ESQ)
 		var y := CAM_POS.y + fposmod(i * 29.0 + 7.0, 90.0 - CAM_POS.y)
-		var tw := 0.6 + 0.4 * sin(t * 3.0 + i)
-		draw_rect(Rect2(floorf(x), floorf(y), 1, 1), Color(1, 1, 1, a * tw))
+		var tw := sin(t * 3.0 + i)
+		if tw > -0.6:
+			draw_rect(Rect2(floorf(x), floorf(y), 1, 1), ESTRELA if tw > 0.2 else ESTRELA_FRACA)
 
 
 ## Sol da arte dos fundos (16 quadros), descendo. Nada de tingir por um lerp de cor qualquer:
 ## ate k = 0.6 fica com as cores do proprio sprite; no fim do por do sol passa de uma vez para
 ## o laranja da paleta (#feae34, Endesga 32).
 const SOL_POENTE := Color("#feae34")
+const ESTRELA := Color("#ffffff")
+const ESTRELA_FRACA := Color("#8b9bb4")
 
 
 func _draw_sun(k: float) -> void:
@@ -238,8 +256,9 @@ func _draw_overlay() -> void:
 
 ## "ENTER: PULAR" no canto de baixo: sobre as lajes claras do piso o texto sumia, entao vai
 ## numa faixa escura (#181425, Endesga 32) encostada no canto, em branco opaco com sombra.
+## A faixa e opaca (o overlay transforma alfa em quadriculado).
 const DICA := "ENTER: PULAR"
-const DICA_FUNDO := Color(0.094, 0.078, 0.145, 0.7)
+const DICA_FUNDO := Color("#181425")
 const DICA_SOMBRA := Color("#181425")
 
 
@@ -251,7 +270,8 @@ func _dica_pular() -> void:
 	PixelFont.draw_plain(_overlay, x, 174.0, DICA, Color.WHITE, PixelFont.RIGHT)
 
 
-## Texto centralizado com sombra que tambem desbota (a sombra da fonte e opaca).
+## Texto centralizado com sombra que tambem desbota (a sombra da fonte e opaca); no overlay o
+## alfa vira dither: o texto some/aparece em quadriculado de 1 px.
 func _fading_text(at: Vector2, text: String, col: Color, alpha: float, scale: float) -> void:
 	if alpha <= 0.01:
 		return

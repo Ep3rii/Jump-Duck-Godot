@@ -61,6 +61,25 @@ func press_key(key: Key) -> void:
 	await frames(1)
 
 
+## Tecla de debug (Game._input). Input.parse_input_event so entrega o evento no proximo quadro
+## de PROCESSO, e logo depois de carregar uma fase (ou com a maquina ocupada) o Godot roda
+## varios quadros de fisica num quadro de processo so: esperar 1 quadro de fisica (press_key)
+## nao garante que a tecla ja chegou. Aqui espera os quadros de processo.
+func _tecla_debug(key: Key) -> void:
+	var ev := InputEventKey.new()
+	ev.physical_keycode = key
+	ev.pressed = true
+	Input.parse_input_event(ev)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var up := InputEventKey.new()
+	up.physical_keycode = key
+	up.pressed = false
+	Input.parse_input_event(up)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+
 ## Segura uma tecla por n frames.
 func hold(key: Key, n: int) -> void:
 	var ev := InputEventKey.new()
@@ -365,16 +384,18 @@ func _run() -> void:
 	check(Game.player_lives == Game.max_lives and Game.game_state == "playing", "com vidas cheias")
 
 	print("-- teclas de debug")
-	await press_key(KEY_F1)
+	await _tecla_debug(KEY_F1)
 	check(Game.debug_invincible, "F1 liga invencivel")
 	var lives := Game.player_lives
 	player().take_damage()
 	check(Game.player_lives == lives, "invencivel nao perde vida")
-	await press_key(KEY_F1)
-	await press_key(KEY_F4)
+	await _tecla_debug(KEY_F1)
+	check(not Game.debug_invincible, "F1 de novo desliga")
+	await _tecla_debug(KEY_F4)
 	check(Game.game_state == "complete", "F4 conclui a fase")
 
 	await _test_mechanics()
+	await _test_arena()
 
 	print("-- menus")
 	Game.go_to_menu()
@@ -490,7 +511,15 @@ func _test_levels() -> void:
 	check(som.chao_abaixo(player().position.x, player().position.y - 300.0, []) < 0.0,
 		"muito alto nao ha sombra")
 	var decos := get_tree().get_nodes_in_group("sombra_cenario")
-	check(decos.size() >= 4, "arvores, moinho, celeiro e arbustos fazem sombra no chao (%d)" % decos.size())
+	check(decos.size() >= 4, "arvores, moinho e arbustos fazem sombra no chao (%d)" % decos.size())
+	# o celeiro do tutorial e de fundo (parallax), pontual, num trecho limpo da fase
+	check(get_tree().current_scene.get_node_or_null("Decoracao/Celeiro") == null,"tutorial sem celeiro no plano do jogo")
+	var cel: Array = par0.celeiro_lugar()
+	check(cel.size() == 2 and cel[0] > 0.0 and cel[0] < float(Game.room_width),
+		"tutorial ganha o celeiro de fundo no parallax (%s)" % [cel])
+	check(par0._celeiro_na_arena(500.0, 100.0, [[550.0, 700.0]])
+		and not par0._celeiro_na_arena(300.0, 100.0, [[550.0, 700.0]]),
+		"celeiro de fundo nunca aparece com a camera presa na arena do chefe")
 	var faixa: Rect2 = node("Decoracao/Moinho").sombra_chao()
 	check(faixa.size.x > 40.0 and faixa.get_center().x > node("Decoracao/Moinho").position.x,
 		"sombra do moinho cai para a direita (luz da esquerda)")
@@ -808,19 +837,49 @@ func _test_fase3() -> void:
 	check(node("Luz").ambiente() != Color.WHITE and node("Luz").get_child(0).visible,
 		"entardecer: a cena ganha o tom da hora")
 	var boss: Node2D = node("Entidades/JacareGigante")
-	var porta: Node2D = node("Mecanicas/Porta1")
+	var arena: Node2D = node("Mecanicas/ArenaChefe")
 	for j in [node("Entidades/Jacare1"), node("Entidades/Jacare2")]:
 		j.set_physics_process(false)
 		j.position = Vector2(-500, 0)
 	await frames(5)
-	check(boss.state == "espera" and not Game.boss_visible, "chefe espera e a barra esta escondida")
-	check(not porta.is_open, "porta da saida trancada")
+	check(arena != null and arena.tipo_portao == "fazenda" and arena._entrada.size() == 1 and arena._saida.size() == 1,
+		"arena do jacare com portoes de barranco na entrada e na saida")
+	check(arena.retangulo.size.x >= 384.0 and arena.retangulo.size.y >= 216.0
+		and arena.retangulo.end.y == 416.0, "arena do tamanho da tela, encostada no fundo da sala")
+	check(not arena.retangulo.grow(64.0).has_point(node("Itens/Checkpoint1").position),
+		"checkpoint antes da arena, com folga da margem de deteccao (o pato reaparece fora dela)")
+	check(boss.state == "espera" and arena.estado == "aberta" and not Game.camera_limit.has_area(),
+		"chefe espera e a arena esta aberta")
+	# o boss nunca encosta nos portoes (senao o portao espera para sempre)
+	var nado: Rect2 = boss.water.get_rect()
+	var mais_esq: float = nado.position.x + 4.0  # _clamp_x: centro a HALF_W + 4 da borda
+	var mais_dir: float = nado.end.x - 4.0 + boss.BITE_REACH
+	for g in arena._entrada + arena._saida:
+		check(mais_dir < g.get_rect().position.x or mais_esq > g.get_rect().end.x,
+			"o nado do chefe fica longe do portao em x=%.0f" % g.position.x)
+	# barranco de terra suspenso (2 tiles do terreno, borda de baixo) sobre cada portao: ninguem
+	# pula por cima, e a entrada/saida parece uma boca de barranco, nao uma coluna solta
+	var terreno: TileMapLayer = node("Terreno")
+	for col in [50, 51, 81, 82]:
+		check(terreno.get_cell_source_id(Vector2i(col, 0)) != -1 and terreno.get_cell_source_id(Vector2i(col, 15)) != -1
+			and terreno.get_cell_source_id(Vector2i(col, 16)) == -1
+			and terreno.get_cell_atlas_coords(Vector2i(col, 15)).y == 7,
+			"barranco solido sobre o portao (coluna %d)" % col)
+	check(node("Decoracao/JuncoBarrancoEntrada") != null and node("Decoracao/JuncoBarrancoSaida") != null,
+		"juncos ao pe dos barrancos da entrada e da saida")
 
-	# entrar na arena acorda o chefe
-	reset_player(Vector2(944, 256))  # plataforma 1
-	await frames(5)
-	check(boss.state != "espera" and Game.boss_visible and Game.boss_hp == 5,
-		"pato na arena: chefe acorda e a barra aparece (%s)" % boss.state)
+	# entrar pela entrada fecha a arena atras do pato; a camera so mostra a lagoa
+	reset_player(Vector2(838, 304))
+	await frames(3)
+	check(arena.fechada() and Game.camera_limit == arena.retangulo, "pato passou da entrada: arena fecha")
+	await frames(45)
+	var ent: Node2D = arena._entrada[0]
+	check(ent.fechado() and ent.is_in_group("solid") and not arena._saida[0].aberto(),
+		"portao da entrada fechado e solido; saida fechada")
+	check(Game.cam_pos.x >= arena.retangulo.position.x and Game.cam_pos.x + 384.0 <= arena.retangulo.end.x,
+		"camera nao mostra nada fora da arena (x=%.0f)" % Game.cam_pos.x)
+	check(boss.state != "espera" and Game.boss_hp == 5, "portoes fechados: chefe acorda (%s)" % boss.state)
+	check(boss.dano() == 0, "chefe inteiro, sem marcas de dano")
 
 	# ciclo completo sozinho (pato invencivel numa plataforma)
 	Game.debug_invincible = true
@@ -861,7 +920,24 @@ func _test_fase3() -> void:
 	await frames(30)
 	check(Game.player_lives == Game.max_lives - 1, "mordida pega quem esta perto")
 
-	# 5 pisoes com dor de dente derrotam e abrem a porta
+	# 1 pisao deixa marca; reaparecer no checkpoint reabre tudo e o chefe volta inteiro
+	boss.position = Vector2(1000, boss.position.y)
+	boss.force_state("dor", 999)
+	await frames(2)
+	reset_player(Vector2(1000, 260))
+	player().spdv = 3.0
+	await frames(12)
+	check(boss.hp == 4 and boss.dano() == 1, "golpe deixa marca de dano (estagio %d)" % boss.dano())
+	reset_player(node("Itens/Checkpoint1").position)
+	await frames(3)
+	check(arena.estado == "aberta" and ent.aberto() and not Game.camera_limit.has_area(),
+		"pato no checkpoint: arena reabre e a camera solta")
+	check(boss.state == "espera" and boss.hp == 5 and boss.dano() == 0, "chefe volta ao inicio, inteiro")
+	reset_player(Vector2(838, 304))
+	await frames(50)
+	check(arena.estado == "luta" and boss.state != "espera", "entrar de novo recomeca a luta")
+
+	# 5 pisoes com dor de dente derrotam e abrem a saida
 	for k in 5:
 		if not is_instance_valid(boss) or boss.is_queued_for_deletion():
 			break
@@ -875,10 +951,21 @@ func _test_fase3() -> void:
 			check(boss.hp == 4 and boss.state == "ferido" and Game.boss_hp == 4,
 				"pisao com dor de dente tira 1 de vida")
 			check(Game.player_lives == Game.max_lives, "pisao certo nao machuca")
+		if k > 0 and k < 4:
+			check(boss.dano() == k + 1, "as marcas de dano se somam (estagio %d)" % boss.dano())
+		if k == 4:
+			check(arena.estado == "vencida" and not arena._saida[0].aberto() and Game.camera_limit.has_area(),
+				"logo depois da vitoria a camera ainda esta presa")
+			break
 		await frames(60)
 	check(not is_instance_valid(boss) or boss.is_queued_for_deletion(), "5 pisoes derrotam o jacare gigante")
-	await frames(5)
-	check(porta.is_open and not Game.boss_visible, "porta da saida abre e a barra some")
+	for i in 200:
+		await frames(1)
+		if arena.estado == "liberada":
+			break
+	check(arena.estado == "liberada" and arena._saida[0].aberto() and not arena._saida[0].is_in_group("solid")
+		and not Game.camera_limit.has_area() and not Game.boss_visible,
+		"saida abre e a camera solta para mostrar a continuacao")
 
 	player().position = Vector2(1480, 304)
 	await frames(3)
@@ -1425,21 +1512,43 @@ func _test_fase_final() -> void:
 	print("-- fase final (chefe gaviao)")
 	check(Game.current_level_name == "fase_final" and Game.total_collectibles == 3, "fase final carregada com 3 flores")
 	var boss: Node2D = node("Entidades/Gaviao")
-	var entrada: Node2D = node("Mecanicas/PortaEntrada")
-	var saida: Node2D = node("Mecanicas/PortaSaida")
+	# arena isolada (arena_chefe.gd): grade da torre na entrada e na saida, no lugar das portas
+	var arena: Node2D = node("Mecanicas/ArenaChefe")
+	var entrada: Node2D = arena._entrada[0]
+	var saida: Node2D = arena._saida[0]
 	await frames(5)
-	check(boss.state == "espera" and not Game.boss_visible and entrada.is_open and not saida.is_open,
-		"gaviao espera; entrada aberta, saida fechada")
+	check(boss.state == "espera" and arena.estado == "aberta" and entrada.aberto() and saida.aberto()
+		and arena.tipo_portao == "torre", "gaviao espera; arena aberta com a grade da torre")
+	check(boss.get_mask().size == Vector2(36, 22) and boss.sombra_largura() >= 38.0,
+		"gaviao chefe grande e gordo (quadro 48, corpo 36x22)")
 
 	print("-- comeco da luta")
 	reset_player(Vector2(248, 160))
 	await frames(10)
-	check(boss.state != "espera" and Game.boss_visible and Game.boss_hp == 10 and Game.boss_max == 10,
-		"pato na arena: a luta comeca com a barra de 10")
-	await frames(10)
-	check(not entrada.is_open, "a porta da entrada fecha atras do pato")
-	check(Game.camera_limit.has_area() and Game.cam_pos.x == 160.0,
-		"camera centrada na arena (x=%.0f)" % Game.cam_pos.x)
+	# a camera desliza ate o enquadramento da arena enquanto a grade desce (camera.gd)
+	check(arena.fechada() and Game.camera_limit.has_area(),
+		"pato na arena: ela fecha e prende a camera (x=%.0f)" % Game.cam_pos.x)
+	check(boss.state == "espera" and not entrada.aberto() and not saida.aberto(),
+		"a grade desce na entrada e na saida antes da luta")
+	for i in 80:
+		if boss.state != "espera":
+			break
+		await frames(1)
+	check(boss.state != "espera" and entrada.fechado() and saida.fechado() and boss.hp == 10,
+		"grade fechada: a luta comeca (sem barra de vida no HUD)")
+	check(Game.cam_pos.x == 160.0, "grade fechada: camera ja presa na arena (x=%.0f)" % Game.cam_pos.x)
+	print("-- pato fora da arena: tudo volta ao comeco")
+	reset_player(Vector2(32, 160))
+	await frames(3)
+	check(arena.estado == "aberta" and boss.state == "espera" and boss.hp == 10
+		and not Game.camera_limit.has_area() and entrada.aberto(),
+		"reaparecer fora reabre a arena e reinicia o gaviao")
+	reset_player(Vector2(248, 160))
+	for i in 90:
+		if boss.state != "espera":
+			break
+		await frames(1)
+	check(boss.state != "espera" and arena.estado == "luta", "entrando de novo a luta recomeca")
 
 	print("-- ciclo de ataques sozinho")
 	Game.debug_invincible = true
@@ -1453,25 +1562,38 @@ func _test_fase_final() -> void:
 	check(seen.has("aviso") and seen.has("mergulho") and seen.has("subida") and seen.has("preparar")
 		and seen.has("carga_aviso") and seen.has("investida") and seen.has("atordoado"),
 		"mergulhos, investida e atordoado (%s)" % [seen.keys()])
-	check(absf(boss.position.x - 222.0) < 2.0 or absf(boss.position.x - 482.0) < 2.0,
+	# gaviao maior: o centro para a 26 px da parede (208 + 26 / 496 - 26), cauda e bico fora da grade
+	check(absf(boss.position.x - 234.0) < 2.0 or absf(boss.position.x - 470.0) < 2.0,
 		"a investida termina batendo numa parede (x=%.0f)" % boss.position.x)
 	await frames(1)
 	check(boss.position.y == 152.0 and not boss.harmful() and boss.stompable, "atordoado no chao: nao machuca e pode ser pisado")
 
 	print("-- mergulho e investida acertam o pato")
-	reset_player(Vector2(300, 160))
-	boss.position = Vector2(300, 60)
+	# x=310: o mergulho do gaviao grande (32 px de largura) a 300 raspa o ressalto 240..288
+	reset_player(Vector2(310, 160))
+	boss.position = Vector2(310, 66)
 	boss.force_state("aviso", 1)
 	await frames(60)
 	check(Game.player_lives == Game.max_lives - 1, "mergulho acerta o pato parado")
+	# o bico da pose de mergulho (abaixo da caixa de colisao) para no ressalto 240..288 (topo 112)
+	boss._vel = Vector2(0, 4)
+	boss._merg_t = 18.0
+	var ponta: Rect2 = boss._ponta_quadro(boss._quadro_mergulho())
+	if ponta.has_area():
+		boss.dir = 1
+		var nx := 264.0 - roundf(ponta.get_center().x)
+		var snap_g := Solids.snapshot(get_tree())
+		var y_toca := 112.0 - ponta.position.y - ponta.size.y
+		check(boss._bico_bate(snap_g, Vector2(nx, y_toca + 1.0)) and not boss._bico_bate(snap_g, Vector2(nx, y_toca)),
+			"o bico do mergulho para no ressalto em vez de entrar nele")
 	reset_player(Vector2(370, 160))
-	boss.position = Vector2(222, 151)
+	boss.position = Vector2(234, 151)
 	boss.dir = 1
 	boss.force_state("carga_aviso", 1)
 	await frames(60)
 	check(Game.player_lives == Game.max_lives - 1, "investida acerta o pato no chao")
 	reset_player(Vector2(248, 112))  # em cima do ressalto
-	boss.position = Vector2(222, 151)
+	boss.position = Vector2(234, 151)
 	boss.dir = 1
 	boss.force_state("carga_aviso", 1)
 	await frames(90)
@@ -1491,6 +1613,7 @@ func _test_fase_final() -> void:
 	player().spdv = 2.0
 	await frames(12)
 	check(boss.hp == 9 and Game.boss_hp == 9 and Game.player_lives == Game.max_lives, "pisao com ele atordoado tira 1")
+	check(boss.nivel_dano() == 1, "1o golpe ja aparece no gaviao (linha de dano 1)")
 	await frames(45)
 	reset_player(Vector2(370, 118))
 	player().spdv = 2.0
@@ -1512,6 +1635,7 @@ func _test_fase_final() -> void:
 	await press_key(KEY_X)
 	await frames(30)
 	check(boss.hp == 7, "caixa arremessada acerta o gaviao atordoado (hp %d)" % boss.hp)
+	check(boss.nivel_dano() == 2, "o dano se acumula no desenho (linha %d)" % boss.nivel_dano())
 
 	print("-- etapa 2")
 	boss.hp = 6
@@ -1525,8 +1649,16 @@ func _test_fase_final() -> void:
 	check(boss.hp == 5 and boss.state == "transicao" and boss.stage == 2, "com 5 de vida perdida vai para a etapa 2")
 	check(get_tree().get_nodes_in_group("item").filter(func(n): return n.get_script() == VidaScene.instantiate().get_script()).size() >= 1,
 		"deixa cair um coracao")
+	var coracoes := func() -> int:
+		return get_tree().get_nodes_in_group("item").filter(
+			func(n): return n.scene_file_path == VidaScene.resource_path and not n.is_queued_for_deletion()).size()
+	var n_cor: int = coracoes.call()
+	boss._start_transition()
+	check(coracoes.call() == n_cor, "etapa 2 de novo nao solta um 2o coracao")
 	await wait_boss(boss, "voo", 200)
 	check(boss.dives_left == 5 and boss._dive_speed() > 4.0, "etapa 2: 5 mergulhos e mais rapido")
+	check(boss.nivel_dano() == 3 and boss._altura_pairar() > boss.altura_voo,
+		"etapa 2: cores apagadas e voo mais baixo e pesado")
 
 	print("-- derrota")
 	for k in 5:
@@ -1540,8 +1672,14 @@ func _test_fase_final() -> void:
 		await frames(50)
 	check(not is_instance_valid(boss) or boss.is_queued_for_deletion(), "10 golpes derrotam o gaviao")
 	await frames(5)
-	check(saida.is_open and not Game.boss_visible and not Game.camera_limit.has_area(),
-		"porta da saida abre, a barra some e a camera solta")
+	check(Game.camera_limit.has_area() and not saida.aberto(),
+		"logo depois da vitoria a camera ainda nao mostra a continuacao")
+	for i in 200:
+		if arena.estado == "liberada":
+			break
+		await frames(1)
+	check(saida.aberto() and not Game.boss_visible and not Game.camera_limit.has_area(),
+		"a grade da saida sobe e a camera solta")
 	player().position = Vector2(536, 160)
 	await frames(3)
 	check(Game.game_state == "complete" and Game.best.has("fase_final"), "saida conclui a fase final e salva")
@@ -1739,3 +1877,161 @@ func _test_mechanics() -> void:
 	await frames(3)
 	check(Game.game_state == "complete", "saida do laboratorio conclui")
 	check(Game.best == best_before and not Game.best.has("laboratorio"), "nenhum recorde gravado")
+
+
+## Chefe de mentira para a arena (so o contrato que arena_chefe.gd usa).
+func _chefe_falso() -> Node2D:
+	var gs := GDScript.new()
+	gs.source_code = "extends Node2D\nsignal defeated\nvar hp := 3\nvar comecou := 0\nvar reiniciou := 0\n" \
+		+ "func comecar_luta(_arena) -> void:\n\tcomecou += 1\n" \
+		+ "func reiniciar_luta() -> void:\n\treiniciou += 1\n"
+	gs.reload()
+	var n := Node2D.new()
+	n.set_script(gs)
+	n.name = "ChefeFalso"
+	return n
+
+
+func _test_arena() -> void:
+	print("-- arena de chefe (arena_chefe.gd): fecha, prende a camera, reinicia e libera")
+	Game.game_state = "playing"
+	Game.room_goto(Game.LAB_LEVEL)
+	await wait_level()
+	var fox := get_tree().current_scene.get_node_or_null("Entidades/Raposa1")
+	if fox != null:
+		fox.queue_free()
+	var chefe := _chefe_falso()
+	get_tree().current_scene.add_child(chefe)
+	var arena: Node2D = preload("res://scenes/arena_chefe.tscn").instantiate()
+	arena.retangulo = Rect2(16, 144, 384, 216)
+	arena.tipo_portao = "torre"
+	arena.portoes_entrada = PackedVector2Array([Vector2(16, 336)])
+	arena.portoes_saida = PackedVector2Array([Vector2(384, 336)])
+	arena.chefe = chefe.get_path()
+	arena.espera_saida = 10
+	reset_player(Vector2(600, 288))  # fora da arena
+	get_tree().current_scene.add_child(arena)
+	await frames(3)
+	var entrada: Node2D = arena._entrada[0]
+	var saida: Node2D = arena._saida[0]
+	check(arena.estado == "aberta" and not entrada.is_in_group("solid") and not Game.camera_limit.has_area(),
+		"arena comeca aberta, portoes nao solidos e camera livre")
+
+	reset_player(Vector2(70, 336))
+	await frames(2)
+	check(arena.estado == "fechando" and Game.camera_limit == arena.retangulo and Game.arena_chefe == arena,
+		"pato inteiro dentro: a arena fecha e prende a camera (%s)" % arena.estado)
+	check(entrada.is_in_group("solid") and Solids.hits(Solids.snapshot(get_tree()), Rect2(20, 300, 4, 4)),
+		"portao fechando ja e solido")
+	check(entrada.get_rect() == Rect2(16, 288, 16, 47),
+		"caixa do portao da torre = desenho (sem a linha vazia de baixo): %s" % [entrada.get_rect()])
+	var pf: Node2D = preload("res://scripts/arena_chefe.gd").Portao.new("fazenda", Vector2(0, 100))
+	check(pf.get_rect() == Rect2(0, 56, 16, 44),
+		"caixa do portao da fazenda sem os juncos do topo: %s" % [pf.get_rect()])
+	pf.free()
+	# fechamento natural: a camera desliza (pixels inteiros) e o que aparece de fora so diminui
+	var fora_antes := INF
+	var so_diminui := true
+	var passo_max := 0.0
+	var cam_antes := Game.cam_pos
+	for i in 32:
+		await frames(1)
+		var c := Game.cam_pos
+		var fora := maxf(0.0, 16.0 - c.x) + maxf(0.0, c.x + 384.0 - 400.0)
+		fora += maxf(0.0, 144.0 - c.y) + maxf(0.0, c.y + 216.0 - 360.0)
+		so_diminui = so_diminui and fora <= fora_antes and c == c.floor()
+		passo_max = maxf(passo_max, (c - cam_antes).length())
+		fora_antes = fora
+		cam_antes = c
+	check(so_diminui and passo_max < 24.0,
+		"camera desliza ao fechar sem mostrar mais do que mostrava (maior passo %.0f px)" % passo_max)
+	check(Game.cam_pos == Vector2(16, 144), "fim do deslize: camera presa ao retangulo (%s)" % [Game.cam_pos])
+	await frames(8)
+	check(arena.estado == "luta" and entrada.fechado() and saida.fechado() and chefe.comecou == 1,
+		"portoes fechados (16 quadros) e o chefe avisado")
+	await hold(KEY_LEFT, 60)
+	check(player().position.x >= 40.0, "o portao da entrada segura o pato (x=%.0f)" % player().position.x)
+	var preso := true
+	for i in 30:
+		await frames(1)
+		preso = preso and Game.cam_pos.x >= 16.0 and Game.cam_pos.x + 384.0 <= 400.0 and Game.cam_pos.y >= 144.0
+	check(preso, "a camera nunca mostra nada fora da arena")
+
+	print("-- arena: pato reaparece fora (checkpoint) -> tudo volta ao estado de antes")
+	reset_player(Vector2(504, 288))
+	await frames(2)
+	check(arena.estado == "aberta" and entrada.aberto() and saida.aberto() and not entrada.is_in_group("solid"),
+		"portoes abertos na hora")
+	check(not Game.camera_limit.has_area() and chefe.reiniciou == 1, "camera solta e chefe.reiniciar_luta()")
+
+	print("-- arena: chefe derrotado -> saida abre e a camera volta suave")
+	reset_player(Vector2(70, 336))
+	await frames(45)
+	check(arena.estado == "luta" and chefe.comecou == 2, "fecha de novo ao voltar")
+	reset_player(Vector2(360, 336))
+	await frames(5)
+	chefe.hp = 0
+	await frames(2)
+	check(arena.estado == "vencida", "chefe com hp 0: arena vencida")
+	var xs: Array = []
+	for i in 120:
+		await frames(1)
+		if arena.estado == "liberada" or xs.size() > 0:
+			xs.append(Game.cam_pos.x)
+		if xs.size() > 60:
+			break
+	check(saida.aberto() and not saida.is_in_group("solid") and entrada.fechado(),
+		"a saida abre (animacao reversa) e a entrada continua fechada")
+	check(not Game.camera_limit.has_area() and Game.arena_chefe == null, "camera solta")
+	var salto := 0.0
+	var inteiro := true
+	for i in range(1, xs.size()):
+		salto = maxf(salto, absf(xs[i] - xs[i - 1]))
+		inteiro = inteiro and xs[i] == floorf(xs[i])
+	check(xs.size() > 40 and salto <= 8.0 and inteiro and xs[-1] == 170.0,
+		"transicao suave em pixels inteiros (maior passo %.0f px, fim x=%s)" % [salto, xs[-1] if xs.size() > 0 else -1])
+
+	print("-- arena: depois da vitoria o pato reaparece do lado de fora da entrada -> ela abre")
+	reset_player(Vector2(4, 336))  # checkpoint antes da arena (respawn)
+	await frames(2)
+	check(entrada.aberto() and not entrada.is_in_group("solid"), "a entrada abre na hora: o pato nao fica preso")
+	arena.queue_free()
+	chefe.queue_free()
+	await frames(1)
+
+	print("-- arena estreita (352 px): respawn colado/acima da arena e morte depois da vitoria")
+	var chefe2 := _chefe_falso()
+	get_tree().current_scene.add_child(chefe2)
+	var arena2: Node2D = preload("res://scenes/arena_chefe.tscn").instantiate()
+	arena2.retangulo = Rect2(32, 144, 352, 216)
+	arena2.tipo_portao = "torre"
+	arena2.portoes_entrada = PackedVector2Array([Vector2(368, 336)])
+	arena2.portoes_saida = PackedVector2Array([Vector2(32, 336)])
+	arena2.chefe = chefe2.get_path()
+	arena2.espera_saida = 60
+	reset_player(Vector2(200, 336))
+	get_tree().current_scene.add_child(arena2)
+	await frames(45)
+	check(arena2.estado == "luta" and Game.cam_pos.x == 16.0,
+		"arena estreita fecha com a camera centrada (x=%s)" % Game.cam_pos.x)
+	check(arena2._cortina.visible, "a sobra da tela vira parede (cortina) com a arena estreita fechada")
+	reset_player(Vector2(200, 120))  # checkpoint logo acima da arena: teleporte para fora
+	await frames(2)
+	check(arena2.estado == "aberta" and chefe2.reiniciou == 1 and not arena2._cortina.visible,
+		"respawn colado na arena (acima dela) reinicia a luta (%s)" % arena2.estado)
+	reset_player(Vector2(200, 336))
+	await frames(45)
+	check(arena2.estado == "luta", "fecha de novo")
+	chefe2.hp = 0
+	await frames(2)
+	check(arena2.estado == "vencida", "vencida")
+	reset_player(Vector2(504, 288))  # morreu e reapareceu fora antes da saida abrir
+	await frames(2)
+	var tudo_aberto := true
+	for g: Node2D in arena2._entrada + arena2._saida:
+		tudo_aberto = tudo_aberto and g.aberto() and not g.is_in_group("solid")
+	check(arena2.estado == "liberada" and tudo_aberto and not Game.camera_limit.has_area(),
+		"morte depois da vitoria: entrada e saida abrem e a camera solta (%s)" % arena2.estado)
+	arena2.queue_free()
+	chefe2.queue_free()
+	await frames(1)

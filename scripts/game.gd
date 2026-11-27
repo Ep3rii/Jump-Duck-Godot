@@ -1,4 +1,5 @@
 extends Node
+const PixelFx := preload("res://scripts/pixelfx.gd")
 ## Equivalente ao obj_game_manager do GameMaker (autoload "Game").
 ## Guarda o estado global, cuida de menus, pausa, pontuacao, progresso salvo,
 ## configuracoes de tela/volume, musica e efeitos sonoros. O desenho fica em ui.gd.
@@ -104,7 +105,8 @@ var show_air := false
 # --- chaves no bolso do pato (chave.gd soma; porta trancada gasta; ui.gd desenha) ---
 var keys := 0
 
-# --- barra de vida do chefe da fase (o chefe chama set_boss / clear_boss) -----
+# --- vida do chefe da fase (o chefe chama set_boss / clear_boss) ------------
+# Nao ha mais barra no HUD (ui.gd): estes valores ficam para os chefes, a arena e os testes.
 var boss_visible := false
 var boss_label := ""
 var boss_hp := 0
@@ -117,8 +119,17 @@ var room_height := 180
 var cam_pos := Vector2.ZERO  # canto superior esquerdo da "view" (camera.gd)
 var view_size := Vector2(TELA)  # area do mundo que a tela mostra (384x216, ver TELA)
 var camera_offset_y := -50.0  # Level.camera_offset_y da fase atual
-## Faixa de x que a camera pode mostrar (vazio = a sala toda). O chefe trava na arena.
+## Retangulo da sala que a camera pode mostrar (vazio = a sala toda). A arena do chefe
+## (arena_chefe.gd) prende a camera nele: nada fora dele aparece, em x e em y.
 var camera_limit := Rect2()
+## Quadros da transicao suave quando camera_limit volta a ficar vazio (camera.gd le e zera).
+## 0 = usa o padrao da camera (camera.gd SOLTAR_QUADROS).
+var camera_soltar_quadros := 0
+## Quadros do deslize suave quando camera_limit liga (arena fechando; camera.gd le e zera).
+## 0 = usa o padrao da camera (camera.gd FECHAR_QUADROS).
+var camera_fechar_quadros := 0
+## Arena de chefe fechada agora (arena_chefe.gd), ou null.
+var arena_chefe: Node = null
 var in_level := false  # true enquanto uma cena de fase (level.gd) esta ativa
 var current_level_name := ""
 var has_checkpoint := false
@@ -160,7 +171,9 @@ func _ready() -> void:
 	fade_layer.layer = 20
 	add_child(fade_layer)
 	_fade = ColorRect.new()
-	_fade.color = Color(0, 0, 0, 0)
+	# fade pixelado: o alfa vira cortina de blocos 2x2 em dither (PixelFx), na cor mais escura da paleta
+	_fade.color = Color(PixelFx.COR_CORTINA, 0.0)
+	_fade.material = PixelFx.material_cortina()
 	_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_fade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	fade_layer.add_child(_fade)
@@ -365,6 +378,9 @@ func begin_level(level: Level) -> void:
 	boss_visible = false
 	keys = 0
 	camera_limit = Rect2()
+	camera_soltar_quadros = 0
+	camera_fechar_quadros = 0
+	arena_chefe = null
 	current_collectibles = 0
 	has_checkpoint = false
 	var flowers := 0
