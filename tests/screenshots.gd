@@ -114,6 +114,26 @@ func _run() -> void:
 	await wait_ready()
 	await frames(30)
 	await shot("22a_fase2_inicio")
+	# controles de toque (celular): soltos e com direita + pulo apertados
+	Game.toque.forcar = true
+	Game.toque.usando_toque = true
+	await frames(2)
+	await shot("22a1_toque_solto")
+	var t1 := InputEventScreenTouch.new()
+	t1.index = 0
+	t1.position = Game.toque.DPAD_C + Vector2(12, 0)
+	t1.pressed = true
+	Game.toque._input(t1)
+	var t2 := InputEventScreenTouch.new()
+	t2.index = 1
+	t2.position = Game.toque.PULO_C
+	t2.pressed = true
+	Game.toque._input(t2)
+	await frames(2)
+	await shot("22a2_toque_apertado")
+	Game.toque.forcar = false
+	Game.toque.usando_toque = false
+	Game.toque.soltar_tudo()
 	p = get_tree().get_first_node_in_group("player")
 	p.position = Vector2(300, 310)
 	await frames(40)

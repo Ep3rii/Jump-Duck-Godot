@@ -7,3 +7,4 @@ tools_tmp/
 tools/arte/saida/*
 !tools/arte/saida/.gdignore
 __pycache__/
+build/

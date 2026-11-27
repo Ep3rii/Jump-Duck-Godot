@@ -10,6 +10,7 @@ const PixelFx := preload("res://scripts/pixelfx.gd")
 
 const UIScript := preload("res://scripts/ui.gd")
 const Sfx := preload("res://scripts/sfx.gd")
+const ToqueScript := preload("res://scripts/toque.gd")
 
 ## Tela do jogo: 384x216 pixels do jogo (o mundo visivel), ampliada por um fator INTEIRO
 ## (Window.CONTENT_SCALE_STRETCH_INTEGER): 3x com faixas pretas em 1280x720, 5x em 1920x1080,
@@ -55,6 +56,23 @@ const ACTIONS := {
 	"grab": [KEY_X, KEY_J],  # pegar / arremessar caixa
 	"confirm": [KEY_ENTER, KEY_KP_ENTER, KEY_SPACE],
 	"pause": [KEY_ESCAPE],
+}
+## Controle (gamepad): botoes de cada acao e eixo do analogico esquerdo [eixo, sentido].
+const JOY_BOTOES := {
+	"left": [JOY_BUTTON_DPAD_LEFT],
+	"right": [JOY_BUTTON_DPAD_RIGHT],
+	"up": [JOY_BUTTON_DPAD_UP],
+	"down": [JOY_BUTTON_DPAD_DOWN],
+	"jump": [JOY_BUTTON_A],
+	"grab": [JOY_BUTTON_X, JOY_BUTTON_Y],
+	"confirm": [JOY_BUTTON_A, JOY_BUTTON_START],
+	"pause": [JOY_BUTTON_START, JOY_BUTTON_BACK],
+}
+const JOY_EIXOS := {
+	"left": [JOY_AXIS_LEFT_X, -1.0],
+	"right": [JOY_AXIS_LEFT_X, 1.0],
+	"up": [JOY_AXIS_LEFT_Y, -1.0],
+	"down": [JOY_AXIS_LEFT_Y, 1.0],
 }
 
 # --- arquivos (variaveis para os testes usarem arquivos proprios) -----------
@@ -135,6 +153,7 @@ var current_level_name := ""
 var has_checkpoint := false
 var checkpoint_pos := Vector2.ZERO
 var transitioning := false
+var toque: Node2D = null  # controles de toque na tela (toque.gd)
 
 var pending_resize := false
 var pending_window_size := Vector2i(1920, 1080)
@@ -165,6 +184,13 @@ func _ready() -> void:
 	layer.layer = 10
 	add_child(layer)
 	layer.add_child(UIScript.new())
+
+	# Controles de toque (celular): acima do HUD, abaixo do fade.
+	var toque_layer := CanvasLayer.new()
+	toque_layer.layer = 15
+	add_child(toque_layer)
+	toque = ToqueScript.new()
+	toque_layer.add_child(toque)
 
 	# Cortina preta do fade entre cenas, acima de tudo.
 	var fade_layer := CanvasLayer.new()
@@ -210,11 +236,20 @@ func _setup_screen() -> void:
 func _setup_input() -> void:
 	for action: String in ACTIONS:
 		if not InputMap.has_action(action):
-			InputMap.add_action(action)
+			InputMap.add_action(action, 0.5)
 		for key: int in ACTIONS[action]:
 			var ev := InputEventKey.new()
 			ev.physical_keycode = key as Key
 			InputMap.action_add_event(action, ev)
+		for b: int in JOY_BOTOES.get(action, []):
+			var jb := InputEventJoypadButton.new()
+			jb.button_index = b as JoyButton
+			InputMap.action_add_event(action, jb)
+		if JOY_EIXOS.has(action):
+			var jm := InputEventJoypadMotion.new()
+			jm.axis = JOY_EIXOS[action][0] as JoyAxis
+			jm.axis_value = JOY_EIXOS[action][1]
+			InputMap.action_add_event(action, jm)
 
 
 func _setup_buses() -> void:

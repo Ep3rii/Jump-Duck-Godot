@@ -396,6 +396,7 @@ func _run() -> void:
 
 	await _test_mechanics()
 	await _test_arena()
+	await _test_toque()
 
 	print("-- menus")
 	Game.go_to_menu()
@@ -2035,3 +2036,88 @@ func _test_arena() -> void:
 	arena2.queue_free()
 	chefe2.queue_free()
 	await frames(1)
+
+
+func _toque(idx: int, pos: Vector2, pressed: bool) -> void:
+	var ev := InputEventScreenTouch.new()
+	ev.index = idx
+	ev.position = pos
+	ev.pressed = pressed
+	Game.toque._input(ev)
+
+
+func _arrasta(idx: int, pos: Vector2) -> void:
+	var ev := InputEventScreenDrag.new()
+	ev.index = idx
+	ev.position = pos
+	Game.toque._input(ev)
+
+
+func _test_toque() -> void:
+	print("-- controles de toque (toque.gd)")
+	var tq: Node2D = Game.toque
+	check(tq != null, "Game cria os controles de toque")
+	tq.forcar = true
+	Game.game_state = "playing"
+	Game.room_goto(Game.LAB_LEVEL)
+	await wait_level()
+	reset_player(Vector2(600, 288))
+	_toque(0, Vector2(10, 10), true)  # um toque qualquer liga o modo toque
+	_toque(0, Vector2(10, 10), false)
+	await frames(2)
+	check(tq.ativo() and tq.visible, "jogando com toque: controles aparecem")
+
+	_toque(1, tq.PULO_C, true)
+	check(Input.is_action_pressed("jump"), "botao A aperta pular")
+	_toque(1, tq.PULO_C, false)
+	check(not Input.is_action_pressed("jump"), "soltar o dedo solta pular")
+
+	_toque(2, tq.PEGA_C, true)
+	check(Input.is_action_pressed("grab") and not Input.is_action_pressed("jump"), "botao B aperta pegar")
+	_toque(2, tq.PEGA_C, false)
+
+	_toque(3, tq.DPAD_C + Vector2(-12, 0), true)
+	check(Input.is_action_pressed("left") and not Input.is_action_pressed("right"), "direcional: esquerda")
+	var x0 := player().position.x
+	await frames(10)
+	check(player().position.x < x0, "segurando esquerda o pato anda para a esquerda")
+	_arrasta(3, tq.DPAD_C + Vector2(12, 0))
+	check(Input.is_action_pressed("right") and not Input.is_action_pressed("left"),
+		"arrastar o dedo para a direita troca a direcao")
+	_arrasta(3, tq.DPAD_C + Vector2(10, -10))
+	check(Input.is_action_pressed("right") and Input.is_action_pressed("up"), "diagonal direita+cima")
+	_arrasta(3, tq.DPAD_C + Vector2(60, 0))
+	check(Input.is_action_pressed("right"), "dedo que escorrega para fora continua no direcional")
+	# dois dedos ao mesmo tempo: andar e pular
+	_toque(4, tq.PULO_C + Vector2(3, 2), true)
+	check(Input.is_action_pressed("right") and Input.is_action_pressed("jump"), "dois dedos: andar e pular juntos")
+	_toque(4, tq.PULO_C, false)
+	_toque(3, tq.DPAD_C, false)
+	check(not Input.is_action_pressed("right") and not Input.is_action_pressed("up"), "soltar o direcional solta tudo")
+
+	_toque(5, Vector2(192, 120), true)
+	check(not Input.is_action_pressed("jump") and tq._dedos.is_empty(), "toque no meio da tela nao aperta nada")
+	_toque(5, Vector2(192, 120), false)
+
+	_toque(6, tq.PAUSA.get_center(), true)
+	await frames(2)
+	check(Game.game_state == "pause", "botao de pausa pausa o jogo")
+	check(not tq.visible and not Input.is_action_pressed("pause"), "na pausa os controles somem e nada fica apertado")
+	_toque(6, tq.PAUSA.get_center(), false)
+	Game.ui_selection = 0
+	await press_key(KEY_ENTER)
+	await frames(2)
+	check(Game.game_state == "playing" and not tq.usando_toque and not tq.visible,
+		"apertar tecla esconde os controles de toque")
+	_toque(0, Vector2(10, 10), true)
+	_toque(0, Vector2(10, 10), false)
+	await frames(2)
+	check(tq.visible, "novo toque mostra os controles de novo")
+
+	check(InputMap.action_get_events("jump").any(func(e): return e is InputEventJoypadButton),
+		"controle (gamepad): pular mapeado")
+	check(InputMap.action_get_events("left").any(func(e): return e is InputEventJoypadMotion),
+		"controle: analogico mapeado")
+	tq.forcar = false
+	tq.usando_toque = false
+	tq.soltar_tudo()
