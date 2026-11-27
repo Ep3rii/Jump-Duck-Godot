@@ -49,6 +49,9 @@ func wait_ready() -> void:
 func _run() -> void:
 	Game.save_path = SHOT_SAVE
 	Game.settings_path = SHOT_SETTINGS
+	# o jogo ja leu as configuracoes do jogador ao abrir (teclas trocadas, por exemplo):
+	# os testes sempre usam as teclas de fabrica
+	Game.teclas_padrao()
 	Game.load_progress()
 	Game.go_to_menu()
 	await wait_ready()
@@ -59,6 +62,12 @@ func _run() -> void:
 	Game.best = {"tutorial": {"score": 87, "stars": 2, "time": 64.0}}
 	Game.unlocked_count = 2
 	await shot("02_menu_com_progresso")
+	Game.game_state = "confirmar_novo"
+	Game.ui_selection = 0
+	await shot("02b_confirmar_novo_jogo")
+	Game.game_state = "main"
+	Game.zerado = true
+	await shot("02c_menu_depois_de_zerar")
 	Game.game_state = "levels"
 	await shot("03_fases")
 	Game.game_state = "credits"

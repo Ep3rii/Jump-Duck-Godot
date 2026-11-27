@@ -291,6 +291,12 @@ func _draw_menus(state: String, now: int) -> void:
 						_mini_star(r["x2"] - 36.0 + s * 11.0, ty - 4.0, s < int(rec["stars"]))
 			generic_from = layout.size() - 1
 
+		"confirmar_novo":
+			_panel(60, 48, 260, 156)
+			_title_banner(52, "NOVO JOGO")
+			_text(cx, 84, "COMEÇAR DO ZERO?", Color.WHITE, CENTER)
+			_text(cx, 98, "O PROGRESSO SERÁ APAGADO", COL_YELLOW, CENTER)
+
 		"credits":
 			_panel(30, 6, 290, 176)
 			_title_banner(10, "CRÉDITOS")

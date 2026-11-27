@@ -123,6 +123,8 @@ var screen_mode := "fullscreen"  # fullscreen | borderless | windowed
 var resume_frame := -1
 
 # --- progresso salvo --------------------------------------------------------
+## Ja terminou a aventura (viu a cutscene final): libera FASES no menu principal.
+var zerado := false
 var unlocked_count := 1  # quantas fases (na ordem de levels) estao liberadas
 var best := {}  # id da fase -> {"score": int, "stars": int, "time": float}
 
@@ -476,6 +478,14 @@ func has_progress() -> bool:
 	return unlocked_count > 1 or not best.is_empty()
 
 
+## NOVO JOGO confirmado: apaga fases liberadas, recordes, flores e o "zerado" e comeca do zero.
+func apagar_progresso() -> void:
+	unlocked_count = 1
+	best = {}
+	zerado = false
+	save_progress()
+
+
 ## Recomeca a fase atual (fim de jogo, pausa, "jogar novamente", F3).
 ## Vidas cheias se tinham acabado; um resultado ja registrado desta fase e descartado.
 func restart_level() -> void:
@@ -510,6 +520,9 @@ func play_ending() -> void:
 
 ## Fim da cutscene (ou pulou): creditos com "FIM" sobre o menu.
 func finish_ending() -> void:
+	if not zerado:
+		zerado = true
+		save_progress()
 	credits_after_ending = true
 	game_state = "credits"
 	ui_selection = 0
@@ -670,9 +683,11 @@ func _record_progress(score: int) -> void:
 func load_progress() -> void:
 	unlocked_count = 1
 	best = {}
+	zerado = false
 	var cfg := ConfigFile.new()
 	if cfg.load(save_path) == OK:
 		unlocked_count = clampi(int(cfg.get_value("progress", "unlocked", 1)), 1, levels.size())
+		zerado = bool(cfg.get_value("progress", "zerado", false))
 		var saved = cfg.get_value("progress", "best", {})
 		if saved is Dictionary:
 			best = saved
@@ -682,6 +697,7 @@ func save_progress() -> void:
 	var cfg := ConfigFile.new()
 	cfg.set_value("progress", "unlocked", unlocked_count)
 	cfg.set_value("progress", "best", best)
+	cfg.set_value("progress", "zerado", zerado)
 	cfg.save(save_path)
 
 
@@ -781,12 +797,19 @@ func ui_rect(cy: int, w: int, h: int, label: String, extra: Dictionary = {}) -> 
 func ui_layout() -> Array:
 	match game_state:
 		"main":
-			# Menu simples: um botao grande (JOGAR, ou CONTINUAR com progresso salvo) e tres
-			# pequenos. Recomecar do zero: FASES -> TUTORIAL. Creditos ficam em OPCOES.
-			return [ui_rect(70, 164, 24, "CONTINUAR" if has_progress() else "JOGAR", {"big": true}),
-				ui_rect(97, 112, 16, "FASES"),
-				ui_rect(117, 112, 16, "OPÇÕES"),
-				ui_rect(137, 112, 16, "SAIR")]
+			# Instalacao nova: JOGAR, OPCOES, SAIR. Com progresso: CONTINUAR, NOVO JOGO (apaga
+			# tudo, com confirmacao), OPCOES, SAIR. FASES so depois de zerar o jogo (ver a
+			# cutscene final). Creditos ficam em OPCOES.
+			var nomes: Array = ["OPÇÕES", "SAIR"]
+			if has_progress():
+				nomes = ["NOVO JOGO", "FASES", "OPÇÕES", "SAIR"] if zerado else ["NOVO JOGO", "OPÇÕES", "SAIR"]
+			var out := [ui_rect(70, 164, 24, "CONTINUAR" if has_progress() else "JOGAR", {"big": true})]
+			var passo := 18 if nomes.size() > 3 else 20
+			for i in nomes.size():
+				out.append(ui_rect(97 + i * passo, 112, 16, nomes[i]))
+			return out
+		"confirmar_novo":
+			return [ui_rect(118, 70, 16, "NÃO"), ui_rect(138, 70, 16, "SIM")]
 		"levels":
 			var out := []
 			# linhas compactas: cabem as 10 fases + o laboratorio acima do VOLTAR
@@ -992,7 +1015,10 @@ func _handle_back() -> bool:
 			ui_selection = 4
 		"levels":
 			game_state = "main"
-			ui_selection = 1
+			ui_selection = 2  # volta em cima de FASES
+		"confirmar_novo":
+			game_state = "main"
+			ui_selection = 1  # volta em cima de NOVO JOGO
 		"credits":
 			if credits_after_ending:  # veio do fim da cutscene: volta ao menu principal
 				credits_after_ending = false
@@ -1041,8 +1067,17 @@ func _run_menu_action(label: String) -> void:
 				game_state = "playing"
 			else:
 				continue_game()
-		"JOGAR", "NOVO JOGO":
+		"JOGAR":
 			start_new_game()
+		"NOVO JOGO":
+			ui_selection = 0  # NAO ja selecionado: apagar tudo pede um aperto a mais
+			game_state = "confirmar_novo"
+		"SIM":
+			if game_state == "confirmar_novo":
+				apagar_progresso()
+				start_new_game()
+		"NÃO":
+			_handle_back()
 		"FASES":
 			ui_selection = 0
 			game_state = "levels"

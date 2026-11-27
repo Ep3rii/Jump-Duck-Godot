@@ -143,6 +143,9 @@ func _run() -> void:
 	print("== Jump Duck: testes")
 	Game.save_path = TEST_SAVE
 	Game.settings_path = TEST_SETTINGS
+	# o jogo ja leu as configuracoes do jogador ao abrir (teclas trocadas, por exemplo):
+	# os testes sempre usam as teclas de fabrica
+	Game.teclas_padrao()
 	_delete(TEST_SAVE)
 	_delete(TEST_SETTINGS)
 	# A maior parte dos testes usa a fase de testes (o tutorial antigo do GameMaker).
@@ -163,8 +166,8 @@ func _run() -> void:
 	print("-- menu sem progresso")
 	check(not Game.has_progress(), "save novo: sem progresso")
 	var labels := Game.ui_layout().map(func(r): return r["label"])
-	check(labels == ["JOGAR", "FASES", "OPÇÕES", "SAIR"],
-		"menu principal: %s" % [labels])
+	check(labels == ["JOGAR", "OPÇÕES", "SAIR"],
+		"instalacao nova: so JOGAR, OPÇÕES e SAIR (%s)" % [labels])
 
 	print("-- jogo novo: cutscene inicial e depois a primeira fase")
 	Game.start_new_game()
@@ -420,7 +423,37 @@ func _run() -> void:
 	await wait_room("menu")
 	check(not Game.in_level and not get_tree().paused, "menu: fora da fase e sem pausa")
 	labels = Game.ui_layout().map(func(r): return r["label"])
-	check(labels == ["CONTINUAR", "FASES", "OPÇÕES", "SAIR"], "com progresso: CONTINUAR no lugar de JOGAR (%s)" % [labels])
+	check(labels == ["CONTINUAR", "NOVO JOGO", "OPÇÕES", "SAIR"],
+		"com progresso: CONTINUAR e NOVO JOGO, sem FASES antes de zerar (%s)" % [labels])
+	# NOVO JOGO pede confirmacao; NAO (ou ESC) volta sem apagar nada
+	Game._run_menu_action("NOVO JOGO")
+	check(Game.game_state == "confirmar_novo" and Game.ui_selection == 0
+		and Game.ui_layout()[0]["label"] == "NÃO", "NOVO JOGO pergunta antes de apagar (NÃO selecionado)")
+	await press_key(KEY_ESCAPE)
+	check(Game.game_state == "main" and Game.ui_selection == 1 and Game.has_progress(), "ESC: volta ao menu, nada apagado")
+	Game._run_menu_action("NOVO JOGO")
+	Game._run_menu_action("NÃO")
+	check(Game.game_state == "main" and Game.has_progress(), "NÃO: volta ao menu, nada apagado")
+	var best_salvo: Dictionary = Game.best.duplicate(true)
+	var liberadas := Game.unlocked_count
+	Game._run_menu_action("NOVO JOGO")
+	Game._run_menu_action("SIM")
+	check(not Game.has_progress() and not Game.zerado, "SIM: progresso apagado")
+	await wait_room("cutscene_inicial")
+	check(Game.room == "cutscene_inicial", "NOVO JOGO comeca pela cutscene inicial")
+	var cfg_novo := ConfigFile.new()
+	cfg_novo.load(Game.save_path)
+	check(cfg_novo.get_value("progress", "unlocked", 0) == 1 and (cfg_novo.get_value("progress", "best", {}) as Dictionary).is_empty(),
+		"o save tambem foi zerado")
+	Game.go_to_menu()
+	await wait_room("menu")
+	Game.best = best_salvo
+	Game.unlocked_count = liberadas
+	Game.save_progress()
+	# FASES so depois de zerar o jogo
+	Game.zerado = true
+	labels = Game.ui_layout().map(func(r): return r["label"])
+	check(labels == ["CONTINUAR", "NOVO JOGO", "FASES", "OPÇÕES", "SAIR"], "depois de zerar aparece FASES (%s)" % [labels])
 	Game._run_menu_action("FASES")
 	check(Game.game_state == "levels", "FASES abre a selecao")
 	var lv: Array = Game.ui_layout()
@@ -1742,6 +1775,7 @@ func _test_cutscene() -> void:
 	await wait_room("menu")
 	await frames(3)
 	check(Game.game_state == "credits" and Game.credits_after_ending, "no fim vao os creditos com FIM")
+	check(Game.zerado, "ver a cutscene final conta como zerar o jogo (libera FASES)")
 	await press_key(KEY_ESCAPE)
 	check(Game.game_state == "main" and not Game.credits_after_ending, "ESC volta ao menu principal")
 	# pular com ENTER
